@@ -1,0 +1,12 @@
+{
+	"files.associations": {
+		"*.h": "cpp",
+		"*.asm": "asm-intel-x86-generic",
+		"*.compute": "glsl",
+		"sstream": "cpp",
+		"strstream": "cpp"
+	},
+	"C_Cpp.default.includePath": [
+		"src/include"
+	]
+}
