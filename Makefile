@@ -9,6 +9,7 @@ INCLUDE ?= -Isrc/include
 
 CFLAGS32 ?= -c -nostdlib -fno-exceptions -fno-rtti -fno-stack-protector -ffreestanding -target i386-unknown-none
 CFLAGS64 ?= $(INCLUDE) -g -c -nostdlib -fno-exceptions -fno-rtti -fno-stack-protector -ffreestanding -target x86_64-unknown-none
+C++FLAGS ?= -std=c++20
 
 BUILD_DIR ?= build
 ISODIR ?= $(BUILD_DIR)/isodir
@@ -44,7 +45,7 @@ $(BUILD_DIR)/init/%.c.o: src/init/%.c | $(BUILD_DIR)/init
 	$(CC) $(CFLAGS64) -o $@ $<
 
 $(BUILD_DIR)/main/%.cpp.o: src/main/%.cpp | $(BUILD_DIR)/main
-	$(CXX) $(CFLAGS64) -o $@ $<
+	$(CXX) $(CFLAGS64) $(C++FLAGS) -o $@ $<
 
 $(BUILD_DIR)/main/%.c.o: src/main/%.c | $(BUILD_DIR)/main
 	$(CC) $(CFLAGS64) -o $@ $<
