@@ -59,4 +59,4 @@ $(BUILD_DIR)/hug.iso: $(BUILD_DIR)/hug.bin $(GRUBCFG) | $(ISODIR)
 clean:
 	rm -rf $(BUILD_DIR)
 run: $(BUILD_DIR)/hug.iso
-	$(QEMU) $(QEMU_ARGS) -cdrom $<
+	$(QEMU) $(QEMU_ARGS) -drive file=$<,format=raw
