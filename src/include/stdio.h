@@ -7,10 +7,11 @@
 extern "C" {
 #endif
 
-void kputc(char c);
+void kputc(unsigned char c);
 void kputs(const char* str);
-void kvprintf(const char *fmt, va_list args);
-void kprintf(const char *fmt, ...);
+int kvprintf(const char *fmt, va_list args);
+int kprintf(const char *fmt, ...);
+void handle_esc_code(int code);
 
 #ifdef __cplusplus
 }

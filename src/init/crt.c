@@ -1,5 +1,10 @@
 #include <stdint.h>
 
+#include <stdlib.h>
+#include <stdio.h>
+
+#include <termcolor.h>
+
 #define ATEXIT_COUNT 128
 #define NULL ((void*)0)
 
@@ -45,42 +50,24 @@ extern ctor_func init_array_start;
 extern ctor_func init_array_end;
 
 void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr);
-char* itoa(uint64_t val, uint64_t base);
-void kprintf(const char *str);
-void kputc(char c);
 
 void __cxa_init(uint32_t multiboot_magic, uint32_t multiboot_addr) {
-	kprintf("ctors start at 0x");
-	kprintf(itoa((uint64_t)&start_ctors, 16));
-	kputc('\n');
-	kprintf("ctors end at 0x");
-	kprintf(itoa((uint64_t)&end_ctors, 16));
-	kputc('\n');
-
+	kprintf("[    ] Running ctors\n\tstart: %p\n\t  end: %p\n", &start_ctors, &end_ctors);
 	ctor_func *i = &start_ctors;
 	while (i < &end_ctors) {
-		/*kprintf("Calling constructor at 0x");
-		kprintf(itoa((uint64_t)i, 16));
-		kputc('\n');*/
+		//kprintf("Calling constructor at %p\n", i);
 		if (*i != NULL) (*i)();
 		i++;
 	}
+	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Ran ctors\n");
 
-	kprintf("init array start at 0x");
-	kprintf(itoa((uint64_t)&init_array_start, 16));
-	kputc('\n');
-	kprintf("init array end at 0x");
-	kprintf(itoa((uint64_t)&init_array_end, 16));
-	kputc('\n');
-
-	i = &init_array_start;
+	kprintf("[    ] Running elements of init array\n\tstart: %p\n\t  end: %p\n", &init_array_start, &init_array_end);
 	while (i < &init_array_end) {
-		/*kprintf("Calling constructor at 0x");
-		kprintf(itoa((uint64_t)i, 16));
-		kputc('\n');*/
+		//kprintf("Calling constructor at 0x%x\n", i);
 		if (*i != NULL) (*i)();
 		i++;
 	}
+	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Done running elements of init array\n");
 
 	kmain(multiboot_magic, multiboot_addr);
 

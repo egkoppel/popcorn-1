@@ -2,7 +2,6 @@ bits 64
 
 global long_mode_start
 
-section .rodata
 
 section .text
 extern __cxa_init
