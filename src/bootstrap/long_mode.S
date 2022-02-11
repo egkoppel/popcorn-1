@@ -15,7 +15,7 @@ extern __cxa_init
 extern kputs
 long_mode_start:
 	; ENABLE SSE
-	lea rdi, [sse_enabling]
+	lea rdi, [rel sse_enabling]
 	call kputs
 
 	mov rax, cr0
@@ -28,7 +28,7 @@ long_mode_start:
 	or ax, 1<<10 ; enable SSE exceptions
 	mov cr4, rax
 
-	lea rdi, [sse_enabled]
+	lea rdi, [rel sse_enabled]
 	call kputs
 
 	mov esi, [rbp-8] ; pop multiboot info

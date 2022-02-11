@@ -1,15 +1,17 @@
 ENTRY(_start)
 
 SECTIONS {
-	. = 1M;
+	. = 0xC0100000;
  
-	.text ALIGN(4K) : {
+	.text ALIGN(4K) : AT(ADDR(.text) - 0xC0000000)
+	{
 		*(.multiboot2)
 		*(.text)
 	}
  
 	/* Read-only data. */
-	.rodata ALIGN(4K) : {
+	.rodata ALIGN(4K) : AT(ADDR(.rodata) - 0xC0000000)
+	{
 		ALIGN(64)
 		preinit_array_start = .;
 		*(SORT(.preinit_array))
@@ -34,12 +36,14 @@ SECTIONS {
 	}
  
 	/* Read-write data (initialized) */
-	.data ALIGN(4K) : {
+	.data ALIGN(4K) : AT(ADDR(.data) - 0xC0000000)
+	{
 		*(.data)
 	}
  
 	/* Read-write data (uninitialized) and stack */
-	.bss ALIGN(4K) : {
+	.bss ALIGN(4K) : AT(ADDR(.bss) - 0xC0000000)
+	{
 		*(COMMON)
 		*(.bss)
 	}

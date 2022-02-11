@@ -1,11 +1,13 @@
 bits 32
+
+KERNEL_VIRTUAL_BASE: equ 0xC0000000
+
 section .rodata
 
 global lm_enabled
 global hello_world_str
 hello_world_str db "Hello World!", 0
 color db 0x0f
-len dd (color - hello_world_str)
 
 %define col_reset 128
 %define col_red 129
@@ -44,26 +46,26 @@ SZ_32         equ 1 << 6
 LONG_MODE     equ 1 << 5
 
 gdt64:
-	.null: equ $ - gdt64
+	.null: equ $ - gdt64 - KERNEL_VIRTUAL_BASE
 		dq 0 ; null entry
-	.code_kernel: equ $ - gdt64
+	.code_kernel: equ $ - gdt64 - KERNEL_VIRTUAL_BASE
 		dd 0xFFFF
 		db 0
 		db PRESENT | NOT_SYS | EXEC | RW
 		db GRAN_4K | LONG_MODE | 0xF
 		db 0
-	.data_kernel: equ $ - gdt64
+	.data_kernel: equ $ - gdt64 - KERNEL_VIRTUAL_BASE
 		dd 0xFFFF
 		db 0
 		db PRESENT | NOT_SYS | RW
 		db GRAN_4K | SZ_32 | 0xF
 		db 0
-	.tss: equ $ - gdt64
+	.tss: equ $ - gdt64 - KERNEL_VIRTUAL_BASE
 		dd 0x00000068
 		dd 0x00CF8900
 	.pointer:
-		dw $ - gdt64 - 1
-		dq gdt64
+		dw $ - gdt64 - 1 - KERNEL_VIRTUAL_BASE
+		dq gdt64 - KERNEL_VIRTUAL_BASE
 
 section .text
 global _start
@@ -73,13 +75,15 @@ extern _32_print_cpu_info
 extern long_mode_start
 
 _start:
-	mov esp, _stack_top
+	mov esp, _stack_top - KERNEL_VIRTUAL_BASE
 	mov ebp, esp
 	push eax ; save multiboot magic
 	push ebx ; save multiboot info
 
 	; CHECK CPUID SUPPORTED
-	push cpuid_check ; print checking for cpuid
+	;push cpuid_check ; print checking for cpuid
+	mov eax, cpuid_check - KERNEL_VIRTUAL_BASE
+	push eax
 	call _32_puts
 	add esp, 4 ; clear args
 	
@@ -97,18 +101,21 @@ _start:
 
 	xor eax, ebx
 	jnz .1
-		push cpuid_not_found
+		mov eax, cpuid_not_found - KERNEL_VIRTUAL_BASE
+		push eax
 		call _32_puts
 		add esp, 4 ; clear args
 		jmp error
 	.1: 
-		push cpuid_found
+		mov eax, cpuid_found - KERNEL_VIRTUAL_BASE
+		push eax
 		call _32_puts
 		add esp, 4 ; clear args
 	
 
 	; CHECK MAX CPUID EXTENDED FEATURESET SUPPORTED
-	push cpuid_max_check
+	mov eax, cpuid_max_check - KERNEL_VIRTUAL_BASE
+	push eax
 	call _32_puts
 	add esp, 4 ; clear args
 
@@ -118,12 +125,14 @@ _start:
 
 	cmp eax, 0x80000001
 	jnb .2
-		push cpuid_max_not_found
+		mov eax, cpuid_max_not_found - KERNEL_VIRTUAL_BASE
+		push eax
 		call _32_puts
 		add esp, 4 ; clear args
 		jmp error
 	.2: 
-		push cpuid_max_found
+		mov eax, cpuid_max_found - KERNEL_VIRTUAL_BASE
+		push eax
 		call _32_puts
 		add esp, 4 ; clear args
 
@@ -137,13 +146,15 @@ _start:
 		call _32_puts
 		add esp, 4 ; clear args
 
-		push nl ; print newline
+		mov eax, nl - KERNEL_VIRTUAL_BASE
+		push eax ; print newline
 		call _32_puts
 		add esp, 4 ; clear args
 	
 
 	; CHECK LONG MODE SUPPORTED
-	push long_mode_check
+	mov eax, long_mode_check - KERNEL_VIRTUAL_BASE
+	push eax
 	call _32_puts
 	add esp, 4 ; clear args
 
@@ -151,50 +162,68 @@ _start:
 	cpuid
 	test edx, 1<<29 ; test LM bit
 	jnz .3
-		push long_mode_not_found
+		mov eax, long_mode_not_found - KERNEL_VIRTUAL_BASE
+		push eax
 		call _32_puts
 		add esp, 4 ; clear args
 		jmp error
 	.3:
-		push long_mode_found
+		mov eax, long_mode_found - KERNEL_VIRTUAL_BASE
+		push eax
 		call _32_puts
 		add esp, 4 ; clear args
 
-
-	;call print_cpu_info ; print cpu info
-
-
 	; INIT PAGING
-	push init_paging
+	mov eax, init_paging - KERNEL_VIRTUAL_BASE
+	push eax
 	call _32_puts
 	add esp, 4 ; clear args
 
-	mov eax, level3_page_table
+	mov eax, level3_page_table - KERNEL_VIRTUAL_BASE
 	or eax, 0b11 ; set present and write bits
-	mov [level4_page_table], eax ; map p4[0] to p3
+	mov [level4_page_table - KERNEL_VIRTUAL_BASE], eax ; map p4[0] to p3
 
-	mov eax, level2_page_table
+	mov eax, level2_page_table_0 - KERNEL_VIRTUAL_BASE
 	or eax, 0b11 ; set present and write bits
-	mov [level3_page_table], eax ; map p3[0] to p2
+	mov [level3_page_table + 8*0 - KERNEL_VIRTUAL_BASE], eax ; map p3[0] to p2_0
+	mov [level3_page_table + 8*3 - KERNEL_VIRTUAL_BASE], eax ; map p3[3] to p2_0 for higher half kernel
 
-	; map each p2 entry to a huge page (2MiB)
+	mov eax, level2_page_table_1 - KERNEL_VIRTUAL_BASE
+	or eax, 0b11 ; set present and write bits
+	mov [level3_page_table + 8*1 - KERNEL_VIRTUAL_BASE], eax ; map p3[1] to p2_1
+
+	; map each p2_0 entry to a huge page (2MiB)
 	mov ecx, 0
-	.map_level2_table_loop:
+	.map_level2_0_table_loop:
 		mov eax, 0x200000 ; size of each entry (2MiB)
 		mul ecx ; real start address of entry (counter * 2MiB)
 		or eax, 0b10000011 ; present, write, and huge bits
-		mov [level2_page_table + ecx * 8], eax ; map p2[counter] to eax
+		mov [level2_page_table_0 + ecx * 8 - KERNEL_VIRTUAL_BASE], eax ; map p2[counter] to eax
 
 		inc ecx
 		cmp ecx, 512 ; 512 entries in p2
-	jne .map_level2_table_loop
+	jne .map_level2_0_table_loop
 
-	push init_paging_done
+	; map each p2_1 entry to a huge page (2MiB)
+	mov ecx, 0
+	.map_level2_1_table_loop:
+		mov eax, 0x200000 ; size of each entry (2MiB)
+		mul ecx ; real start address of entry (counter * 2MiB)
+		add eax, 0xfd000000 ; start mapping from 0xfd000000
+		or eax, 0b10000011 ; present, write, and huge bits
+		mov [level2_page_table_1 + ecx * 8 - KERNEL_VIRTUAL_BASE], eax ; map p2[counter] to eax
+
+		inc ecx
+		cmp ecx, 16 ; only map 4K 32bpp framebuffer
+	jne .map_level2_1_table_loop
+
+	mov eax, init_paging_done - KERNEL_VIRTUAL_BASE
+	push eax
 	call _32_puts
 	add esp, 4 ; clear args
 
 	; enable paging
-	mov eax, level4_page_table
+	mov eax, level4_page_table - KERNEL_VIRTUAL_BASE
 	mov cr3, eax ; set p4 as l4 page table
 
 	; enable PAE
@@ -202,13 +231,14 @@ _start:
 	or eax, 1<<5 ; set PAE bit
 	mov cr4, eax
 
-	push enable_paging_done
+	mov eax, enable_paging_done - KERNEL_VIRTUAL_BASE
+	push eax
 	call _32_puts
 	add esp, 4 ; clear args
 
-
 	; ENTER LONG MODE
-	push lm_enabling
+	mov eax, lm_enabling - KERNEL_VIRTUAL_BASE
+	push eax
 	call _32_puts
 	add esp, 4 ; clear args
 
@@ -223,7 +253,8 @@ _start:
 
 	; load gdt
 	lgdt [gdt64.pointer]
-	push lm_gdt_load
+	mov eax, lm_gdt_load
+	push eax
 	call _32_puts
 	add esp, 4 ; clear args
 	jmp gdt64.code_kernel:long_mode_start
@@ -237,7 +268,9 @@ level4_page_table:
 	resb 0x1000
 level3_page_table:
 	resb 0x1000
-level2_page_table:
+level2_page_table_0:
+	resb 0x1000
+level2_page_table_1:
 	resb 0x1000
 _stack_bottom:
 	resb 0x1000*4

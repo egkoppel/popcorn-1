@@ -1,5 +1,7 @@
 bits 32
 
+KERNEL_VIRTUAL_BASE: equ 0xC0000000
+
 section .bss
 global x
 global y
@@ -39,8 +41,8 @@ _32_utoa:
 		; val % base -> edx
 		; val / base -> eax
 
-		movzx ecx, byte [itoa_str + edx] ; cl = itoa_str[val % base]
-		mov byte [itoa_buffer + edi], cl ; buf[i] = cl = itoa_str[val % base]
+		movzx ecx, byte [itoa_str + edx - KERNEL_VIRTUAL_BASE] ; cl = itoa_str[val % base]
+		mov byte [itoa_buffer + edi - KERNEL_VIRTUAL_BASE], cl ; buf[i] = cl = itoa_str[val % base]
 
 		dec edi ; --i
 		; val /= base already done since quotient in eax
@@ -53,7 +55,7 @@ _32_utoa:
 	jmp .loop_start
 	.loop_end:
 
-	lea eax, [itoa_buffer + edi + 1]; return &buf[i+1]
+	lea eax, [itoa_buffer + edi + 1 - KERNEL_VIRTUAL_BASE]; return &buf[i+1]
 
 	; unsave regs
 	pop edi
@@ -125,37 +127,37 @@ _32_putc:
 	je .col_red
 	cmp cl, 130 ; c == [col_green]
 	je .col_green
-		movzx eax, byte [y] ; get current y
+		movzx eax, byte [y - KERNEL_VIRTUAL_BASE] ; get current y
 		mov edx, 80
 		mul byte dl ; ax = y*80
 
-		movzx edx, byte [x]
+		movzx edx, byte [x - KERNEL_VIRTUAL_BASE]
 		add eax, edx ; eax = y*80 + x
 
 		lea ebx, [0xB8000 + 2*eax] ; eax = 0xB8000 + 2*(x + 80*y)
 
 		; upper bits already cleared by movzx before loop so can write to ch
-		mov ch, [col] ; ch:cl = col:char
+		mov ch, [col - KERNEL_VIRTUAL_BASE] ; ch:cl = col:char
 		mov word [ebx], cx
 
-		inc byte [x]
+		inc byte [x - KERNEL_VIRTUAL_BASE]
 		jmp .epi
 	.col_reset:
-		mov byte [col], 0x0f
+		mov byte [col - KERNEL_VIRTUAL_BASE], 0x0f
 		jmp .epi
 	.col_green:
-		mov byte [col], 0x02
+		mov byte [col - KERNEL_VIRTUAL_BASE], 0x02
 		jmp .epi
 	.col_red:
-		mov byte [col], 0x04
+		mov byte [col - KERNEL_VIRTUAL_BASE], 0x04
 		jmp .epi
 	.println:
-		mov byte [x], 0
-		inc byte [y]
+		mov byte [x - KERNEL_VIRTUAL_BASE], 0
+		inc byte [y - KERNEL_VIRTUAL_BASE]
 
-		cmp byte [y], 24
+		cmp byte [y - KERNEL_VIRTUAL_BASE], 24
 		jle .epi
-			mov byte [y], 24
+			mov byte [y - KERNEL_VIRTUAL_BASE], 24
 			call _32_shift_up
 	.epi:
 
