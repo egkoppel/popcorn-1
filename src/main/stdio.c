@@ -17,15 +17,22 @@
 
 extern uint8_t x, y, col;
 
-FILE _stdin = { .fd = 0 };
-FILE _stdout = { .fd = 1 };
-FILE _stderr = { .fd = 2 };
-FILE _stdserial = { .fd = 3 };
+static size_t stdio_char_count_theoretical = 0;
+static size_t stdio_char_count = 0;
+static size_t stdio_char_limit = 0;
+static char *stdio_strbuf; // for sprintf, snprintf
 
-FILE* stdin = &_stdin;
-FILE* stdout = &_stdout;
-FILE* stderr = &_stderr;
-FILE* stdserial = &_stdserial;
+static FILE _stdin = { .fd = 0 };
+static FILE _stdout = { .fd = 1 };
+static FILE _stderr = { .fd = 2 };
+static FILE _stdserial = { .fd = 3 };
+static FILE _stdstrbuf = {.fd = 4 };
+
+FILE *stdin = &_stdin;
+FILE *stdout = &_stdout;
+FILE *stderr = &_stderr;
+FILE *stdserial = &_stdserial;
+static FILE *stdstrbuf = &_stdstrbuf;
 
 void kputc(unsigned char c) {
 	static bool esc = false;
@@ -69,12 +76,21 @@ void kputc(unsigned char c) {
 }
 
 void kfputc(FILE* stream, unsigned char c) {
-	if (stream == stdout) {
+	++stdio_char_count_theoretical;
+	
+	if (stdio_char_count >= stdio_char_limit) return;
+	++stdio_char_count;
+	
+	if (stream->fd == stdout->fd) {
 		kputc(c);
-	} else if (stream == stderr) {
+	} else if (stream->fd == stderr->fd) {
 		kputc(c);
-	} else if (stream == stdserial) {
+	} else if (stream->fd == stdserial->fd) {
 		write_serial(c);
+	} else if (stream->fd == _stdstrbuf.fd) {
+		*stdio_strbuf++ = c;
+	} else {
+		// TODO: real files
 	}
 }
 
@@ -113,8 +129,7 @@ enum printf_length_specifiers {
 	PRINTF_LENGTH_L,
 };
 
-int kvfprintf(FILE* stream, const char *fmt, va_list args) {
-	int len, ret = 0;
+int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 	char c;
 	void *p;
 	static char itoabuf[32];
@@ -263,7 +278,6 @@ int kvfprintf(FILE* stream, const char *fmt, va_list args) {
 					if (*fmt == 'o') base = 8;
 					else if (*fmt == 'u') base = 10;
 					kfputs(stream, itoa(un, itoabuf, base));
-					ret += strlen(itoabuf);
 					break;
 					
 				case 'd':
@@ -279,7 +293,6 @@ int kvfprintf(FILE* stream, const char *fmt, va_list args) {
 						default:               n = va_arg(args, int); break;
 					}
 					kfputs(stream, itoa(n, itoabuf, 10));
-					ret += strlen(itoabuf);
 					break;
 				
 				case 'p':
@@ -290,9 +303,7 @@ int kvfprintf(FILE* stream, const char *fmt, va_list args) {
 					}
 					kfputs(stream, "0x");
 					itoa((uint64_t)p, itoabuf, 16);
-					len = strlen(itoabuf);
-					ret += len;
-					for(int i = 0; i < sizeof(void*) * 2 - len; ++i) kfputc(stream, '0');
+					for(int i = 0; i < sizeof(void*) * 2 - strlen(itoabuf); ++i) kfputc(stream, '0');
 					kfputs(stream, itoabuf);
 					break;
 				
@@ -313,14 +324,14 @@ int kvfprintf(FILE* stream, const char *fmt, va_list args) {
 				
 				case 'n':
 					switch (options.length) {
-						case PRINTF_LENGTH_hh: *(va_arg(args, char*)) = ret; break;
-						case PRINTF_LENGTH_h:  *(va_arg(args, short int*)) = ret; break;
-						case PRINTF_LENGTH_l:  *(va_arg(args, long int*)) = ret; break;
-						case PRINTF_LENGTH_ll: *(va_arg(args, long long int*)) = ret; break;
-						case PRINTF_LENGTH_j:  *(va_arg(args, intmax_t*)) = ret; break;
-						case PRINTF_LENGTH_z:  *(va_arg(args, size_t*)) = ret; break;
-						case PRINTF_LENGTH_t:  *(va_arg(args, ptrdiff_t*)) = ret; break;
-						default:               *(va_arg(args, int*)) = ret; break;
+						case PRINTF_LENGTH_hh: *(va_arg(args, char*)) = stdio_char_count; break;
+						case PRINTF_LENGTH_h:  *(va_arg(args, short int*)) = stdio_char_count; break;
+						case PRINTF_LENGTH_l:  *(va_arg(args, long int*)) = stdio_char_count; break;
+						case PRINTF_LENGTH_ll: *(va_arg(args, long long int*)) = stdio_char_count; break;
+						case PRINTF_LENGTH_j:  *(va_arg(args, intmax_t*)) = stdio_char_count; break;
+						case PRINTF_LENGTH_z:  *(va_arg(args, size_t*)) = stdio_char_count; break;
+						case PRINTF_LENGTH_t:  *(va_arg(args, ptrdiff_t*)) = stdio_char_count; break;
+						default:               *(va_arg(args, int*)) = stdio_char_count; break;
 					}
 					break;
 					
@@ -334,13 +345,40 @@ int kvfprintf(FILE* stream, const char *fmt, va_list args) {
 			++fmt;
 		} else {
 			kfputc(stream, c);
-			++ret;
 		}
 	}
+	return stdio_char_count;
+}
+
+int kvfprintf(FILE* stream, const char *fmt, va_list args) {
+	stdio_char_count = 0;
+	stdio_char_limit = SIZE_MAX;
+	
+	return _kvfprintf(stream, fmt, args);
+}
+
+int kvprintf(const char *fmt, va_list args) {
+	return kvfprintf(stdout, fmt, args);
+}
+
+int kfprintf(FILE *stream, const char *fmt, ...) {
+	stdio_char_count = 0;
+	stdio_char_limit = SIZE_MAX;
+	
+	va_list args;
+	va_start(args, fmt);
+
+	int ret = kvfprintf(stream, fmt, args);
+
+	va_end(args);
+	
 	return ret;
 }
 
 int kprintf(const char *fmt, ...) {
+	stdio_char_count = 0;
+	stdio_char_limit = SIZE_MAX;
+	
 	va_list args;
 	va_start(args, fmt);
 
@@ -351,11 +389,43 @@ int kprintf(const char *fmt, ...) {
 	return ret;
 }
 
-int kfprintf(FILE *stream, const char *fmt, ...) {
+int kvsnprintf(char *str, size_t size, const char *fmt, va_list args) {
+	stdio_strbuf = str;
+	stdio_char_count = 0;
+	stdio_char_count_theoretical = 0;
+	stdio_char_limit = size;
+	
+	_kvfprintf(stdstrbuf, fmt, args);
+	
+	if (stdio_char_count >= stdio_char_limit) {
+		*(--stdio_strbuf) = '\0'; // don't write off the end of the buffer
+	} else {
+		*stdio_strbuf = '\0';
+	}
+	
+	return stdio_char_count_theoretical;
+}
+
+int ksnprintf(char *str, size_t size, const char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 
-	int ret = kvfprintf(stream, fmt, args);
+	int ret = kvsnprintf(str, size, fmt, args);
+
+	va_end(args);
+	
+	return ret;
+}
+
+int kvsprintf(char *str, const char *fmt, va_list args) {
+	return kvsnprintf(str, SIZE_MAX, fmt, args);
+}
+
+int ksprintf(char *str, const char *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+
+	int ret = kvsprintf(str, fmt, args);
 
 	va_end(args);
 	
