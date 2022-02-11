@@ -9,12 +9,23 @@
 #include <stdio.h>
 
 #include <vga.h>
+#include <serial.h>
 
 #define CONSOLE_SIZE_X 80
 #define CONSOLE_SIZE_Y 25
 #define TABSIZE 8
 
 extern uint8_t x, y, col;
+
+FILE _stdin = { .fd = 0 };
+FILE _stdout = { .fd = 1 };
+FILE _stderr = { .fd = 2 };
+FILE _stdserial = { .fd = 3 };
+
+FILE* stdin = &_stdin;
+FILE* stdout = &_stdout;
+FILE* stderr = &_stderr;
+FILE* stdserial = &_stdserial;
 
 void kputc(unsigned char c) {
 	static bool esc = false;
@@ -57,6 +68,23 @@ void kputc(unsigned char c) {
 	}
 }
 
+void kfputc(FILE* stream, unsigned char c) {
+	if (stream == stdout) {
+		kputc(c);
+	} else if (stream == stderr) {
+		kputc(c);
+	} else if (stream == stdserial) {
+		write_serial(c);
+	}
+}
+
+inline void kfputs(FILE* stream, const char* str) {
+	char c;
+	while ((c = *str++)) {
+		kfputc(stream, c);
+	}
+}
+
 inline void kputs(const char* str) {
 	char c;
 	while ((c = *str++)) {
@@ -85,7 +113,7 @@ enum printf_length_specifiers {
 	PRINTF_LENGTH_L,
 };
 
-int kvprintf(const char *fmt, va_list args) {
+int kvfprintf(FILE* stream, const char *fmt, va_list args) {
 	int len, ret = 0;
 	char c;
 	void *p;
@@ -210,7 +238,7 @@ int kvprintf(const char *fmt, va_list args) {
 			uint64_t un;
 			switch (*fmt) {
 				case 'c': // todo: handle %lc
-					kputc(va_arg(args, int /*char*/));
+					kfputc(stream, va_arg(args, int /*char*/));
 					break;
 				
 				case 'u':
@@ -218,8 +246,8 @@ int kvprintf(const char *fmt, va_list args) {
 				case 'x':
 				case 'X':
 					if (options.prepend == PRINTF_PREPEND_NUM_MODE) {
-						if (*fmt == 'o') kputc('0');
-						else if (*fmt != 'd') kputs("0x"); // 'x' or 'X'
+						if (*fmt == 'o') kfputc(stream, '0');
+						else if (*fmt != 'd') kfputs(stream, "0x"); // 'x' or 'X'
 					}
 					switch (options.length) {
 						case PRINTF_LENGTH_hh: un = va_arg(args, int /*unsigned char*/); break;
@@ -234,7 +262,7 @@ int kvprintf(const char *fmt, va_list args) {
 					int base = 16;
 					if (*fmt == 'o') base = 8;
 					else if (*fmt == 'u') base = 10;
-					kputs(itoa(un, itoabuf, base));
+					kfputs(stream, itoa(un, itoabuf, base));
 					ret += strlen(itoabuf);
 					break;
 					
@@ -250,22 +278,22 @@ int kvprintf(const char *fmt, va_list args) {
 						case PRINTF_LENGTH_t:  n = va_arg(args, ptrdiff_t); break;
 						default:               n = va_arg(args, int); break;
 					}
-					kputs(itoa(n, itoabuf, 10));
+					kfputs(stream, itoa(n, itoabuf, 10));
 					ret += strlen(itoabuf);
 					break;
 				
 				case 'p':
 					p = va_arg(args, void*);
 					if (p == NULL) {
-						kputs("(nil)");
+						kfputs(stream, "(nil)");
 						break;
 					}
-					kputs("0x");
+					kfputs(stream, "0x");
 					itoa((uint64_t)p, itoabuf, 16);
 					len = strlen(itoabuf);
 					ret += len;
-					for(int i = 0; i < sizeof(void*) * 2 - len; ++i) kputc('0');
-					kputs(itoabuf);
+					for(int i = 0; i < sizeof(void*) * 2 - len; ++i) kfputc(stream, '0');
+					kfputs(stream, itoabuf);
 					break;
 				
 				case 'f': // todo: floats
@@ -276,11 +304,11 @@ int kvprintf(const char *fmt, va_list args) {
 				case 'G':
 				case 'a':
 				case 'A':
-					kputs("[FLOAT]");
+					kfputs(stream, "[FLOAT]");
 					break;
 				
 				case 's': // todo: handle %ls
-					kputs(va_arg(args, char*));
+					kfputs(stream, va_arg(args, char*));
 					break;
 				
 				case 'n':
@@ -297,7 +325,7 @@ int kvprintf(const char *fmt, va_list args) {
 					break;
 					
 				case '%':
-					kputc('%');
+					kfputc(stream, '%');
 					break;
 					
 				default:
@@ -305,7 +333,7 @@ int kvprintf(const char *fmt, va_list args) {
 			}
 			++fmt;
 		} else {
-			kputc(c);
+			kfputc(stream, c);
 			++ret;
 		}
 	}
@@ -316,7 +344,18 @@ int kprintf(const char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 
-	int ret = kvprintf(fmt, args);
+	int ret = kvfprintf(stdout, fmt, args);
+
+	va_end(args);
+	
+	return ret;
+}
+
+int kfprintf(FILE *stream, const char *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+
+	int ret = kvfprintf(stream, fmt, args);
 
 	va_end(args);
 	
