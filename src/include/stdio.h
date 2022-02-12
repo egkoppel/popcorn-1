@@ -1,11 +1,10 @@
 #ifndef _HUG_STDIO_H
 #define _HUG_STDIO_H
 
-#include <unistd.h>
-
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
