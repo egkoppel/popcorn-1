@@ -14,6 +14,10 @@ section .text
 extern __cxa_init
 extern kputs
 long_mode_start:
+	; jump to higher half
+	mov rax, .1
+	jmp rax
+.1:
 	; ENABLE SSE
 	lea rdi, [rel sse_enabling]
 	call kputs

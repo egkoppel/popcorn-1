@@ -1,16 +1,17 @@
 ENTRY(_start)
 
 SECTIONS {
-	. = 0xC0100000;
+	KERNEL_OFFSET = 0xFFFFFF8000000000;
+	. = 1M + KERNEL_OFFSET;
  
-	.text ALIGN(4K) : AT(ADDR(.text) - 0xC0000000)
+	.text ALIGN(4K) : AT(ADDR(.text) - KERNEL_OFFSET)
 	{
 		*(.multiboot2)
 		*(.text)
 	}
  
 	/* Read-only data. */
-	.rodata ALIGN(4K) : AT(ADDR(.rodata) - 0xC0000000)
+	.rodata ALIGN(4K) : AT(ADDR(.rodata) - KERNEL_OFFSET)
 	{
 		ALIGN(64)
 		preinit_array_start = .;
@@ -36,13 +37,13 @@ SECTIONS {
 	}
  
 	/* Read-write data (initialized) */
-	.data ALIGN(4K) : AT(ADDR(.data) - 0xC0000000)
+	.data ALIGN(4K) : AT(ADDR(.data) - KERNEL_OFFSET)
 	{
 		*(.data)
 	}
  
 	/* Read-write data (uninitialized) and stack */
-	.bss ALIGN(4K) : AT(ADDR(.bss) - 0xC0000000)
+	.bss ALIGN(4K) : AT(ADDR(.bss) - KERNEL_OFFSET)
 	{
 		*(COMMON)
 		*(.bss)

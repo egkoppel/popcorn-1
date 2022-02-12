@@ -1,6 +1,6 @@
 bits 32
 
-KERNEL_VIRTUAL_BASE: equ 0xC0000000
+KERNEL_VIRTUAL_BASE: equ 0xFFFFFF8000000000
 
 section .bss
 global x

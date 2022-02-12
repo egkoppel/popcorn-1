@@ -1,6 +1,6 @@
 bits 32
 
-KERNEL_VIRTUAL_BASE: equ 0xC0000000
+KERNEL_VIRTUAL_BASE: equ 0xFFFFFF8000000000
 
 section .rodata
 
@@ -181,12 +181,12 @@ _start:
 
 	mov eax, level3_page_table - KERNEL_VIRTUAL_BASE
 	or eax, 0b11 ; set present and write bits
-	mov [level4_page_table - KERNEL_VIRTUAL_BASE], eax ; map p4[0] to p3
+	mov [level4_page_table + 8*0 - KERNEL_VIRTUAL_BASE], eax ; map p4[0] to p3_0
+	mov [level4_page_table + 8*511 - KERNEL_VIRTUAL_BASE], eax ; map p4[511] to p3_0
 
 	mov eax, level2_page_table_0 - KERNEL_VIRTUAL_BASE
 	or eax, 0b11 ; set present and write bits
 	mov [level3_page_table + 8*0 - KERNEL_VIRTUAL_BASE], eax ; map p3[0] to p2_0
-	mov [level3_page_table + 8*3 - KERNEL_VIRTUAL_BASE], eax ; map p3[3] to p2_0 for higher half kernel
 
 	mov eax, level2_page_table_1 - KERNEL_VIRTUAL_BASE
 	or eax, 0b11 ; set present and write bits
@@ -252,12 +252,12 @@ _start:
 	mov cr0, eax
 
 	; load gdt
-	lgdt [gdt64.pointer]
-	mov eax, lm_gdt_load
+	lgdt [gdt64.pointer - KERNEL_VIRTUAL_BASE]
+	mov eax, lm_gdt_load - KERNEL_VIRTUAL_BASE
 	push eax
 	call _32_puts
 	add esp, 4 ; clear args
-	jmp gdt64.code_kernel:long_mode_start
+	jmp gdt64.code_kernel:long_mode_start - KERNEL_VIRTUAL_BASE
 error:
 loop: hlt
 	jmp loop
