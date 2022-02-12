@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <utils.hpp>
+#include <utils.h>
 
 namespace multiboot {
 	enum class tag_types {
@@ -75,7 +75,7 @@ namespace multiboot {
 				return &first_entry;
 			}
 			memory_map_entry* end() {
-				return reinterpret_cast<memory_map_entry*>(add_bytes(this, this->header.size));//(memory_map_entry*)((uintptr_t)this + this->header.size);
+				return reinterpret_cast<memory_map_entry*>(ADD_BYTES(this, this->header.size));//(memory_map_entry*)((uintptr_t)this + this->header.size);
 			}
 		};
 
