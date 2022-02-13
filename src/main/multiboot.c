@@ -18,9 +18,9 @@ multiboot_memory_map_entry* multiboot_tag_memory_map_end(multiboot_tag_memory_ma
 }
 
 void multiboot_data_init(multiboot_data* self, uint32_t info_struct) {
-	multiboot_info_header *header = (multiboot_info_header*)info_struct;
+	multiboot_info_header *header = (multiboot_info_header*)(int64_t)info_struct;
 	self->mb_data_start = (multiboot_tag_header*)(info_struct + sizeof(multiboot_info_header));
-	self->mb_data_end = (multiboot_tag_header*)(info_struct + header->size);
+	self->mb_data_end = (multiboot_tag_header*)(int64_t)(info_struct + header->size);
 }
 
 multiboot_tag_header* multiboot_data_find_tag(multiboot_data* self, multiboot_tag_types type) {
