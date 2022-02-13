@@ -13,7 +13,7 @@ QEMU_ARGS ?=
 BUILD_DIR ?= build
 ISODIR ?= $(BUILD_DIR)/isodir
 
-OBJS = $(patsubst src/%,$(BUILD_DIR)/%,$(patsubst %.S,%.S.o,$(wildcard src/bootstrap/*.S)) $(patsubst %.c,%.c.o,$(wildcard src/init/*.c)) $(patsubst %.cpp,%.cpp.o,$(wildcard src/main/*.cpp)) $(patsubst %.c,%.c.o,$(wildcard src/main/*.c)))
+OBJS = $(patsubst src/%,$(BUILD_DIR)/%,$(patsubst %.S,%.S.o,$(wildcard src/bootstrap/*.S)) $(patsubst %.c,%.c.o,$(wildcard src/init/*.c)) $(patsubst %.c,%.c.o,$(wildcard src/main/*.c)))
 LINKER_SCRIPT ?= src/linker.ld
 GRUBCFG = src/grub.cfg
 
@@ -41,9 +41,6 @@ $(BUILD_DIR)/bootstrap/%.S.o: src/bootstrap/%.S | $(BUILD_DIR)/bootstrap
 
 $(BUILD_DIR)/init/%.c.o: src/init/%.c | $(BUILD_DIR)/init
 	$(CC) $(CFLAGS) -o $@ $<
-
-$(BUILD_DIR)/main/%.cpp.o: src/main/%.cpp | $(BUILD_DIR)/main
-	$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ $<
 
 $(BUILD_DIR)/main/%.c.o: src/main/%.c | $(BUILD_DIR)/main
 	$(CC) $(CFLAGS) -o $@ $<

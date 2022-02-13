@@ -3,10 +3,6 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 enum vga_color {
 	VGA_COLOR_BLACK = 0,
 	VGA_COLOR_BLUE = 1,
@@ -29,10 +25,5 @@ enum vga_color {
 uint16_t vga_entry(unsigned char uc, uint8_t color);
 void shift_up();
 void set_fg_col(uint8_t newcol);
-
-#ifdef __cplusplus
-}
-#endif
-
 
 #endif

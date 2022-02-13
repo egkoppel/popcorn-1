@@ -7,7 +7,7 @@ SECTIONS {
 	.text ALIGN(4K) : AT(ADDR(.text) - KERNEL_OFFSET)
 	{
 		*(.multiboot2)
-		*(.text)
+		*(.text*)
 	}
  
 	/* Read-only data. */
@@ -33,7 +33,7 @@ SECTIONS {
         *(SORT(.dtors))
         end_dtors = .;
 
-		*(.rodata)
+		*(.rodata*)
 	}
  
 	/* Read-write data (initialized) */
@@ -46,6 +46,6 @@ SECTIONS {
 	.bss ALIGN(4K) : AT(ADDR(.bss) - KERNEL_OFFSET)
 	{
 		*(COMMON)
-		*(.bss)
+		*(.bss*)
 	}
 }

@@ -3,7 +3,7 @@
 #define PORT 0x3f8          // COM1
 
 static inline void outb(uint16_t port, uint8_t val) {
-	asm volatile ( "outb %0, %1" : : "a"(val), "Nd"(port) );
+	__asm__ volatile ( "outb %0, %1" : : "a"(val), "Nd"(port) );
 	/* There's an outb %al, $imm8  encoding, for compile-time constant port numbers that fit in 8b.  (N constraint).
 	* Wider immediate constants would be truncated at assemble-time (e.g. "i" constraint).
 	* The  outb  %al, %dx  encoding is the only option for all other cases.
@@ -12,13 +12,13 @@ static inline void outb(uint16_t port, uint8_t val) {
 
 static inline uint8_t inb(uint16_t port) {
 	uint8_t ret;
-	asm volatile ( "inb %1, %0"
+	__asm__ volatile ( "inb %1, %0"
 					: "=a"(ret)
 					: "Nd"(port) );
 	return ret;
 }
 
-int init_serial() {
+__attribute__((constructor)) int init_serial() {
 	outb(PORT + 1, 0x00);    // Disable all interrupts
 	outb(PORT + 3, 0x80);    // Enable DLAB (set baud rate divisor)
 	outb(PORT + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
