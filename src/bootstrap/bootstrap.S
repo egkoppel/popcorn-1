@@ -34,38 +34,48 @@ enable_paging_done db "[", col_green, " OK ", col_reset, "] Paging enabled", 0xa
 lm_enabling db "[    ] Entering long mode", 0xa, 0
 lm_gdt_load db "[", col_green, " OK ", col_reset, "] Loaded GDT", 0xa, 0
 
-PRESENT        equ 1 << 7
-NOT_SYS        equ 1 << 4
-EXEC           equ 1 << 3
-DC             equ 1 << 2
-RW             equ 1 << 1
-ACCESSED       equ 1 << 0
-
-GRAN_4K       equ 1 << 7
-SZ_32         equ 1 << 6
-LONG_MODE     equ 1 << 5
-
 gdt64:
-	.null: equ $ - gdt64 - KERNEL_VIRTUAL_BASE
+	.null:
 		dq 0 ; null entry
-	.code_kernel: equ $ - gdt64 - KERNEL_VIRTUAL_BASE
-		dd 0xFFFF
-		db 0
-		db PRESENT | NOT_SYS | EXEC | RW
-		db GRAN_4K | LONG_MODE | 0xF
-		db 0
-	.data_kernel: equ $ - gdt64 - KERNEL_VIRTUAL_BASE
-		dd 0xFFFF
-		db 0
-		db PRESENT | NOT_SYS | RW
-		db GRAN_4K | SZ_32 | 0xF
-		db 0
-	.tss: equ $ - gdt64 - KERNEL_VIRTUAL_BASE
-		dd 0x00000068
-		dd 0x00CF8900
+	.code_kernel:
+		dd 0xFFFF ; limit low
+		db 0 ; base low
+		db .PRESENT | .S_BIT | .EXEC | .RW ; present, S bit, code, read/write, ring 0
+		db .GRANULARITY | .LONG_MODE | 0xF ; granular, long mode, limit high
+		db 0 ; base high
+	.data_kernel:
+		dd 0xFFFF ; limit low
+		db 0 ; base low
+		db .PRESENT | .S_BIT | .RW ; present, S bit, data, read/write, ring 0
+		db .GRANULARITY | .S_BIT | 0xF ; granular, long mode, limit high
+		db 0 ; base high
+	.code_user:
+		dd 0xFFFF ; limit low
+		db 0 ; base low
+		db .PRESENT | .S_BIT | .EXEC | .RW| .RING_3 ; present, S bit, code, read/write, ring 3
+		db .GRANULARITY | .LONG_MODE | 0xF ; granular, long mode, limit high
+		db 0 ; base high
+	.data_user:
+		dd 0xFFFF ; limit low
+		db 0 ; base low
+		db .PRESENT | .S_BIT | .RW | .RING_3 ; present, S bit, data, read/write, ring 3
+		db .GRANULARITY | .S_BIT | 0xF ; granular, long mode, limit high
+		db 0 ; base high
 	.pointer:
 		dw $ - gdt64 - 1 - KERNEL_VIRTUAL_BASE
 		dq gdt64 - KERNEL_VIRTUAL_BASE
+
+	.PRESENT		equ 1 << 7
+	.RING_3			equ 3 << 5
+	.S_BIT			equ 1 << 4
+	.EXEC			equ 1 << 3
+	.DC				equ 1 << 2
+	.RW				equ 1 << 1
+	.ACCESSED		equ 1 << 0
+
+	.GRANULARITY	equ 1 << 7
+	.SZ_32			equ 1 << 6
+	.LONG_MODE		equ 1 << 5
 
 section .text
 global _start
@@ -257,7 +267,7 @@ _start:
 	push eax
 	call _32_puts
 	add esp, 4 ; clear args
-	jmp gdt64.code_kernel:long_mode_start - KERNEL_VIRTUAL_BASE
+	jmp 0x8:long_mode_start - KERNEL_VIRTUAL_BASE
 error:
 loop: hlt
 	jmp loop

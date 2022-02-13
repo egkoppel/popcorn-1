@@ -14,6 +14,14 @@ section .text
 extern __cxa_init
 extern kputs
 long_mode_start:
+	; switch data segment registers
+	mov ax, 0x10
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+	mov ss, ax
+
 	; jump to higher half
 	mov rax, .1
 	jmp rax
