@@ -84,11 +84,24 @@ extern _32_utoa
 extern _32_print_cpu_info
 extern long_mode_start
 
+extern read_multiboot_info
+
+extern framebuffer_addr
+extern framebuffer_pitch
+extern framebuffer_width
+extern framebuffer_height
+extern framebuffer_bpp
+extern framebuffer_type
+
 _start:
 	mov esp, _stack_top - KERNEL_VIRTUAL_BASE
 	mov ebp, esp
 	push eax ; save multiboot magic
 	push ebx ; save multiboot info
+	
+	push ebx ; pass multiboot info
+	call read_multiboot_info
+	add esp, 4 ; clear args
 
 	; CHECK CPUID SUPPORTED
 	;push cpuid_check ; print checking for cpuid
