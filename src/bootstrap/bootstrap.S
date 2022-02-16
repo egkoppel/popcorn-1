@@ -287,6 +287,7 @@ loop: hlt
 
 section .bss
 align 4096
+global _stack_top
 level4_page_table:
 	resb 0x1000
 level3_page_table:

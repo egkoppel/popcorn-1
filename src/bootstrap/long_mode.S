@@ -13,6 +13,7 @@ sse_enabled db "[", col_green, " OK ", col_reset, "] SSE enabled", 0xa, 0
 section .text
 extern __cxa_init
 extern kputs
+extern _stack_top
 long_mode_start:
 	; switch data segment registers
 	mov ax, 0x10
@@ -45,6 +46,7 @@ long_mode_start:
 
 	mov esi, [rbp-8] ; pop multiboot info
 	mov edi, [rbp-4] ; pop multiboot magic
-	mov rsp, rbp ; reset stack pointer to stack top
+	mov rsp, _stack_top ; reset stack pointer to stack top
+
 	call __cxa_init
 	hlt
