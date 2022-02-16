@@ -19,7 +19,7 @@ col db 0x0f
 section .text
 global _32_utoa
 _32_utoa:
-	; prolog
+	; prologue
 	push ebp
 	mov ebp, esp
 
@@ -62,14 +62,14 @@ _32_utoa:
 	pop esi
 	pop ebx
 
-	; epilog
+	; epilogue
 	mov esp, ebp
 	pop ebp
 	ret
 
 global _32_shift_up
 _32_shift_up:
-	; prolog
+	; prologue
 	push ebp
 	mov ebp, esp
 
@@ -101,14 +101,14 @@ _32_shift_up:
 	pop esi
 	pop ebx
 
-	; epilog
+	; epilogue
 	mov esp, ebp
 	pop ebp
 	ret
 
 global _32_putc
 _32_putc:
-	; prolog
+	; prologue
 	push ebp
 	mov ebp, esp
 
@@ -166,14 +166,14 @@ _32_putc:
 	pop esi
 	pop ebx
 
-	; epilog
+	; epilogue
 	mov esp, ebp
 	pop ebp
 	ret
 
 global _32_puts
 _32_puts:
-	; prolog
+	; prologue
 	push ebp
 	mov ebp, esp
 
@@ -201,7 +201,7 @@ _32_puts:
 	pop esi
 	pop ebx
 
-	; epilog
+	; epilogue
 	mov esp, ebp
 	pop ebp
 	ret
