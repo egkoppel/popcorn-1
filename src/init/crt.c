@@ -62,6 +62,7 @@ void __cxa_init(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Ran ctors\n");
 
 	kprintf("[    ] Running elements of init array\n\tstart: %p\n\t  end: %p\n", &init_array_start, &init_array_end);
+	i = &init_array_start;
 	while (i < &init_array_end) {
 		//kprintf("Calling constructor at 0x%x\n", i);
 		if (*i != NULL) (*i)();
