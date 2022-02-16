@@ -6,8 +6,7 @@ QEMU ?= qemu-system-x86_64
 
 INCLUDE ?= -Isrc/include
 
-CFLAGS = $(INCLUDE) -mcmodel=large -MMD -MP -c -g -nostdlib -fno-exceptions -fno-rtti -fno-stack-protector -ffreestanding -target x86_64-unknown-none-elf -msse2 -mno-sse3 -mno-sse4 -mno-avx -mno-red-zone
-CXXFLAGS = -std=c++20
+CFLAGS = $(INCLUDE) -Werror=incompatible-pointer-types -masm=intel -Wall -Wextra -Wpedantic -mcmodel=large -MMD -MP -c -g -nostdlib -fno-exceptions -fno-rtti -fno-stack-protector -ffreestanding -target x86_64-unknown-none-elf -mno-mmx -mno-sse -mno-sse3 -mno-sse4 -mno-avx -mno-red-zone -msoft-float
 QEMU_ARGS ?=
 
 BUILD_DIR ?= build

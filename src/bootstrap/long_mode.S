@@ -31,15 +31,15 @@ long_mode_start:
 	lea rdi, [rel sse_enabling]
 	call kputs
 
-	mov rax, cr0
-	and ax, 0xFFFB ; clear CR0.EM
-	and ax, 0x2 ; enable coprocessor monitoring
-	mov cr0, rax
+	; mov rax, cr0
+	; and ax, 0xFFFB ; clear CR0.EM
+	; and ax, 0x2 ; enable coprocessor monitoring
+	; mov cr0, rax
 
-	mov rax, cr4
-	or ax, 1<<9 ; enable SSE instructions
-	or ax, 1<<10 ; enable SSE exceptions
-	mov cr4, rax
+	; mov rax, cr4
+	; or ax, 1<<9 ; enable SSE instructions
+	; or ax, 1<<10 ; enable SSE exceptions
+	; mov cr4, rax
 
 	lea rdi, [rel sse_enabled]
 	call kputs
