@@ -39,7 +39,7 @@ SECTIONS {
 	/* Read-write data (initialized) */
 	.data ALIGN(4K) : AT(ADDR(.data) - KERNEL_OFFSET)
 	{
-		*(.data)
+		*(.data*)
 	}
  
 	/* Read-write data (uninitialized) and stack */
@@ -47,5 +47,9 @@ SECTIONS {
 	{
 		*(COMMON)
 		*(.bss*)
+	}
+
+	/DISCARD/ : {
+		*(.debug_gdb_scripts*)
 	}
 }
