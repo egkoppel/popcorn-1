@@ -25,3 +25,4 @@ void idt_load(IDT* self);
 void idt_add_entry(IDT* self, uint8_t index, uint8_t dpl, void(*handler)());
 
 #endif
+

@@ -70,7 +70,7 @@ void kputc(unsigned char c) {
 			shift_up();
 		}
 	} else {
-		*(uint16_t*)((void*)0xB8000 + 2*(x + CONSOLE_SIZE_X*y)) = vga_entry(c, col);
+		*(uint16_t*)((uint8_t*)0xB8000 + 2*(x + CONSOLE_SIZE_X*y)) = vga_entry(c, col);
 		x++;
 	}
 }
@@ -303,7 +303,7 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 					}
 					kfputs(stream, "0x");
 					utoa((uint64_t)p, itoabuf, 16);
-					for(int i = 0; i < sizeof(void*) * 2 - strlen(itoabuf); ++i) kfputc(stream, '0');
+					for(size_t i = 0; i < sizeof(void*) * 2 - strlen(itoabuf); ++i) kfputc(stream, '0');
 					kfputs(stream, itoabuf);
 					break;
 				

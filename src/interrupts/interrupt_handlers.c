@@ -98,7 +98,7 @@ RETURN_ERROR_CODE(page_fault_handler, {
 	while (1);
 })
 
-__attribute__((constructor)) void init_idt() {
+void init_idt() {
 	idt_init(&idt);
 	idt_add_entry(&idt, 0x8, 0, double_fault_handler);
 	idt_add_entry(&idt, 0xe, 0, page_fault_handler);

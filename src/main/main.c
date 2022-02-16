@@ -7,6 +7,8 @@
 #include <termcolor.h>
 
 #include "multiboot.h"
+#include "../memory/paging.h"
+#include "../interrupts/interrupt_handlers.h"
 
 void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	if (multiboot_magic == 0x36d76289) {
@@ -72,5 +74,8 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	multiboot_data_print_tags(&mb);
 
 	kprintf("%s\n", cli);
+
+	init_idt();
+
 	while(1);
 }
