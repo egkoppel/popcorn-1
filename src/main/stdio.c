@@ -277,7 +277,7 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 					int base = 16;
 					if (*fmt == 'o') base = 8;
 					else if (*fmt == 'u') base = 10;
-					kfputs(stream, itoa(un, itoabuf, base));
+					kfputs(stream, utoa(un, itoabuf, base));
 					break;
 					
 				case 'd':
@@ -302,7 +302,7 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 						break;
 					}
 					kfputs(stream, "0x");
-					itoa((uint64_t)p, itoabuf, 16);
+					utoa((uint64_t)p, itoabuf, 16);
 					for(int i = 0; i < sizeof(void*) * 2 - strlen(itoabuf); ++i) kfputc(stream, '0');
 					kfputs(stream, itoabuf);
 					break;
