@@ -19,3 +19,13 @@ size_t strlen(const char *str) {
 	while (str[++len] != '\0');
 	return len;
 }
+
+int memcmp(const void *ptr1, const void *ptr2, size_t count) {
+	const char *s1 = ptr1;
+	const char *s2 = ptr2;
+	while (count-- > 0) {
+	if (*s1++ != *s2++)
+		return s1[-1] < s2[-1] ? -1 : 1;
+	}
+return 0;
+}
