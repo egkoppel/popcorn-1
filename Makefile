@@ -25,7 +25,7 @@ GRUBCFG = src/grub.cfg
 
 DEPENDS = $(patsubst %.o, %.d, $(OBJS))
 
-.PHONY: all default clean run
+.PHONY: all default clean run run_debug
 default: $(BUILD_DIR)/hug.iso
 all: $(BUILD_DIR)/hug.iso
 
@@ -78,3 +78,5 @@ clean:
 	rm -rf $(BUILD_DIR)
 run: $(BUILD_DIR)/hug.iso
 	$(QEMU) $(QEMU_ARGS) -drive file=$<,format=raw
+run_debug: $(BUILD_DIR)/hug.iso
+	$(QEMU) $(QEMU_ARGS) -s -S -drive file=$<,format=raw
