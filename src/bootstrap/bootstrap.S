@@ -106,7 +106,37 @@ _start:
 	push ebx ; pass multiboot info
 	call read_multiboot_info
 	add esp, 4 ; clear args
-	
+
+	; IN CASE BOOTED TO TEXT TERMINAL
+	mov eax, [framebuffer_addr - KERNEL_VIRTUAL_BASE]
+	cmp eax, 0xb8000
+	jne .1
+		mov eax, 0x0C450C54 ; TE
+		mov [0xb8000], eax
+		mov eax, 0x0C540C58 ; XT
+		mov [0xb8004], eax
+		mov eax, 0x0C4D0C20 ;  M
+		mov [0xb8008], eax
+		mov eax, 0x0C440C4F ; OD
+		mov [0xb800c], eax
+		mov eax, 0x0C200C45 ; E 
+		mov [0xb8010], eax
+		mov eax, 0x0C4F0C4E ; NO
+		mov [0xb8014], eax
+		mov ax, 0x0C54 ; T
+		mov [0xb8018], ax
+		mov eax, 0x0C530C20 ;  S
+		mov [0xb801a], eax
+		mov eax, 0x0C500C55 ; UP
+		mov [0xb801e], eax
+		mov eax, 0x0C4F0C50 ; PO
+		mov [0xb8022], eax
+		mov eax, 0x0C540C52 ; RT
+		mov [0xb8026], eax
+		mov eax, 0x0C440C45 ; ED
+		mov [0xb802a], eax
+		jmp error
+.1:
 	call parse_psf
 	
 	call _32_init_io
@@ -131,13 +161,13 @@ _start:
 	popfd ; restore old flags
 
 	xor eax, ebx
-	jnz .1
+	jnz .2
 		mov eax, cpuid_not_found - KERNEL_VIRTUAL_BASE
 		push eax
 		call _32_puts
 		add esp, 4 ; clear args
 		jmp error
-	.1: 
+	.2: 
 		mov eax, cpuid_found - KERNEL_VIRTUAL_BASE
 		push eax
 		call _32_puts
@@ -155,13 +185,13 @@ _start:
 	push eax ; save max extended feature set
 
 	cmp eax, 0x80000001
-	jnb .2
+	jnb .3
 		mov eax, cpuid_max_not_found - KERNEL_VIRTUAL_BASE
 		push eax
 		call _32_puts
 		add esp, 4 ; clear args
 		jmp error
-	.2: 
+	.3: 
 		mov eax, cpuid_max_found - KERNEL_VIRTUAL_BASE
 		push eax
 		call _32_puts
@@ -192,13 +222,13 @@ _start:
 	mov eax, 0x80000001
 	cpuid
 	test edx, 1<<29 ; test LM bit
-	jnz .3
+	jnz .4
 		mov eax, long_mode_not_found - KERNEL_VIRTUAL_BASE
 		push eax
 		call _32_puts
 		add esp, 4 ; clear args
 		jmp error
-	.3:
+	.4:
 		mov eax, long_mode_found - KERNEL_VIRTUAL_BASE
 		push eax
 		call _32_puts
