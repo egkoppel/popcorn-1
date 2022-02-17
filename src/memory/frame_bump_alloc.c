@@ -8,13 +8,13 @@ virtual_address frame_bump_alloc_allocate(frame_bump_alloc_state *self) {
 	while (1) {
 		kfprintf(stdserial, "Attempt alloc at %p\n", attempt);
 		if (attempt >= self->kernel_start && attempt < self->kernel_end) {
-			kfprintf(stdserial, "bump alloc kernel jump");
+			kfprintf(stdserial, "bump alloc kernel jump\n");
 			attempt = ALIGN_UP(self->kernel_end, 0x1000);
 			continue;
 		}
 
 		if (attempt >= self->multiboot_start && attempt < self->multiboot_end) {
-			kfprintf(stdserial, "bump alloc multiboot jump");
+			kfprintf(stdserial, "bump alloc multiboot jump\n");
 			attempt = ALIGN_UP(self->multiboot_end, 0x1000);
 			continue;
 		}
