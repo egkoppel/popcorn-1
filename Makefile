@@ -7,7 +7,7 @@ OBJCOPY ?= llvm-objcopy
 
 INCLUDE ?= -Isrc/libk/include
 
-CFLAGS = $(INCLUDE) -Wall -Wextra -Wpedantic -Wno-language-extension-token -Werror=incompatible-pointer-types -mcmodel=large -MMD -MP -c -g -nostdlib -fno-exceptions -fno-rtti -fno-stack-protector -ffreestanding -target x86_64-unknown-none-elf -mno-mmx -mno-sse -mno-sse3 -mno-sse4 -mno-avx -mno-red-zone -msoft-float
+CFLAGS = $(INCLUDE) -Wall -Wextra -Wpedantic -Wno-language-extension-token -Werror=incompatible-pointer-types -Wno-address-of-packed-member -mcmodel=large -MMD -MP -c -g -nostdlib -fno-exceptions -fno-rtti -fno-stack-protector -ffreestanding -target x86_64-unknown-none-elf -mno-mmx -mno-sse -mno-sse3 -mno-sse4 -mno-avx -mno-red-zone -msoft-float
 LDFLAGS ?= 
 QEMU_ARGS ?= -serial stdio
 

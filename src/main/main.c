@@ -71,8 +71,8 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 		.next_alloc = 0,
 		.kernel_start = kernel_min,
 		.kernel_end = kernel_max,
-		.multiboot_start = mb.mb_data_start,
-		.multiboot_end = mb.mb_data_end,
+		.multiboot_start = (uint64_t)mb.mb_data_start,
+		.multiboot_end = (uint64_t)mb.mb_data_end,
 		.mem_map = mmap
 	};
 

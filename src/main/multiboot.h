@@ -112,20 +112,18 @@ enum multiboot_tag_elf_symbols_entry_type {
 	SHT_NUM
 };
 
-enum multiboot_tag_elf_symbols_entry_flags {
-	SHF_WRITE = 0x1,
-	SHF_ALLOC = 0x2,
-	SHF_EXECINSTR = 0x4,
-	SHF_MERGE = 0x10,
-	SHF_STRINGS = 0x20,
-	SHF_INFO_LINK = 0x40,
-	SHF_LINK_ORDER = 0x80,
-	SHF_OS_NONCONFORMING = 0x100,
-	SHF_GROUP = 0x200,
-	SHF_TLS = 0x400,
-	SHF_MASKOS = 0x0ff00000,
-	SHF_MASKPROC = 0xf0000000,
-};
+#define SHF_WRITE 0x1
+#define SHF_ALLOC 0x2
+#define SHF_EXECINSTR 0x4
+#define SHF_MERGE 0x10
+#define SHF_STRINGS 0x20
+#define SHF_INFO_LINK 0x40
+#define SHF_LINK_ORDER 0x80
+#define SHF_OS_NONCONFORMING 0x100
+#define SHF_GROUP 0x200
+#define SHF_TLS 0x400
+#define SHF_MASKOS 0x0ff00000
+#define SHF_MASKPROC 0xf0000000
 
 typedef struct {
 	uint32_t name_index;
