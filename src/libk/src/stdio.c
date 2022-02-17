@@ -330,7 +330,7 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 				
 				case 'p':
 					p = va_arg(args, void*);
-					if (p == NULL) {
+					if (p == NULL && !(options.length == PRINTF_LENGTH_l)) {
 						kfputs(stream, "(nil)");
 						break;
 					}

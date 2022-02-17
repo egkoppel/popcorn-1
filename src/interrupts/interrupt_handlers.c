@@ -76,10 +76,10 @@ typedef struct __attribute__((packed)) {
 N0_RETURN_ERROR_CODE(double_fault_handler, {
 	kfprintf(stdserial, "Double fault!\n");
 	kfprintf(stdserial, "Error code: %d\n", frame->error_code);
-	kfprintf(stdserial, "IP: %p\n", frame->ip);
+	kfprintf(stdserial, "IP: %lp\n", frame->ip);
 	kfprintf(stdserial, "CS: 0x%04x\n", frame->cs);
 	kfprintf(stdserial, "Flags: 0x%08x\n", frame->flags);
-	kfprintf(stdserial, "SP: %p\n", frame->sp);
+	kfprintf(stdserial, "SP: %lp\n", frame->sp);
 	kfprintf(stdserial, "SS: 0x%04x\n", frame->ss);
 	while (1);
 })
@@ -87,14 +87,14 @@ N0_RETURN_ERROR_CODE(double_fault_handler, {
 RETURN_ERROR_CODE(page_fault_handler, {
 	kfprintf(stdserial, "Page fault!\n");
 	kfprintf(stdserial, "Error code: %d\n", frame->error_code);
-	kfprintf(stdserial, "IP: %p\n", frame->ip);
+	kfprintf(stdserial, "IP: %lp\n", frame->ip);
 	kfprintf(stdserial, "CS: 0x%04x\n", frame->cs);
 	kfprintf(stdserial, "Flags: 0x%08x\n", frame->flags);
-	kfprintf(stdserial, "SP: %p\n", frame->sp);
+	kfprintf(stdserial, "SP: %lp\n", frame->sp);
 	kfprintf(stdserial, "SS: 0x%04x\n", frame->ss);
 	uint64_t cr2;
 	__asm__ volatile("movq %%cr2, %0" : "=r"(cr2));
-	kfprintf(stdserial, "Attempted access to: %p\n", cr2);
+	kfprintf(stdserial, "Attempted access to: %lp\n", cr2);
 	while (1);
 })
 

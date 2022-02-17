@@ -19,7 +19,7 @@ multiboot_memory_map_entry* multiboot_tag_memory_map_end(multiboot_tag_memory_ma
 }
 
 void multiboot_elf_symbols_entry_print(multiboot_elf_symbols_entry* self) {
-	kprintf("\tphys: %p virt: %p S: 0x%llx F: 0x%llx\n", self->addr > 0xFFFFFF8000000000 ? self->addr - 0xFFFFFF8000000000 : self->addr, self->addr, self->size, self->flags);
+	kprintf("\tphys: %lp virt: %lp S: 0x%llx F: 0x%llx\n", self->addr > 0xFFFFFF8000000000 ? self->addr - 0xFFFFFF8000000000 : self->addr, self->addr, self->size, self->flags);
 }
 
 multiboot_elf_symbols_entry* multiboot_tag_elf_symbols_begin(multiboot_tag_elf_symbols* self) {

@@ -49,7 +49,7 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 			if ((i->addr > 0xFFFFFF8000000000 ? i->addr - 0xFFFFFF8000000000 : i->addr) + i->size > kernel_max) kernel_max = (i->addr > 0xFFFFFF8000000000 ? i->addr - 0xFFFFFF8000000000 : i->addr) + i->size;
 		}
 	}
-	kprintf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Kernel executable: %p -> %p\n", kernel_min, kernel_max);
+	kprintf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Kernel executable: %lp -> %lp\n", kernel_min, kernel_max);
 
 	uint64_t available_ram = 0;
 	uint64_t total_ram = 0;
@@ -63,7 +63,7 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	kprintf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Detected %d MiB of available memory (%d MiB total):\n", available_ram / (1024 * 1024), total_ram / (1024 * 1024));
 
 	for (multiboot_memory_map_entry *entry = multiboot_tag_memory_map_begin(mmap); entry < multiboot_tag_memory_map_end(mmap); entry++) {
-		kprintf("\t%p - %p (%s)\n", entry->base_addr, entry->base_addr + entry->length, entry->type == AVAILABLE ? "AVAILABLE" : "RESERVED");
+		kprintf("\t%lp - %lp (%s)\n", entry->base_addr, entry->base_addr + entry->length, entry->type == AVAILABLE ? "AVAILABLE" : "RESERVED");
 	}
 
 	frame_bump_alloc_state init_alloc = {
@@ -82,7 +82,7 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	void *bitmap_frame_starts[needed_frames];
 	for (uint64_t i = 0; i < needed_frames; ++i) {
 		bitmap_frame_starts[i] = frame_bump_alloc_allocate(&init_alloc);
-		//kprintf("\t%p\n", bitmap_frame_starts[i]);
+		//kprintf("\t%lp\n", bitmap_frame_starts[i]);
 	}
 
 	if (bitmap_frame_starts[needed_frames - 1] > (void*)0x40000000) panic("Could not fit memory bitmap in 1st GiB");
