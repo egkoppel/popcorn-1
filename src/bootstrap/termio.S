@@ -249,7 +249,6 @@ _32_init_io: ; inits the termsize vars, parse_psf and read_multiboot_info must b
 	mov eax, [framebuffer_height - KERNEL_VIRTUAL_BASE]
 	xor edx, edx
 	mov ecx, [psf_height - KERNEL_VIRTUAL_BASE]
-	inc ecx
 	div dword ecx
 	mov [termsize_y - KERNEL_VIRTUAL_BASE], eax
 	
