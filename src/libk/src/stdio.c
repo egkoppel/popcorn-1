@@ -14,7 +14,7 @@
 
 extern uint16_t x, y;
 extern uint32_t col;
-extern uint32_t termsize_x, termsize_y;
+extern uint16_t termsize_x, termsize_y;
 
 extern char font_psf_start;
 extern char font_psf_end;
@@ -105,6 +105,8 @@ void kputc(unsigned char c) {
 		}
 		
 		x++;
+		
+		if (x >= termsize_x) goto newline;
 	}
 }
 
