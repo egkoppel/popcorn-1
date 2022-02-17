@@ -4,6 +4,7 @@ NASM ?= nasm
 LD = ld.lld
 QEMU ?= qemu-system-x86_64
 OBJCOPY ?= llvm-objcopy
+AR = llvm-ar
 
 INCLUDE ?= -Isrc/libk/include
 
@@ -20,8 +21,9 @@ OBJS = $(patsubst src/%,$(BUILD_DIR)/%, \
 	$(patsubst %.c,%.c.o,$(wildcard src/main/*.c)) \
 	$(patsubst %.c,%.c.o,$(wildcard src/memory/*.c)) \
 	$(patsubst %.c,%.c.o,$(wildcard src/interrupts/*.c)) \
-	$(patsubst %.c,%.c.o,$(wildcard src/libk/src/*.c)) \
 	$(patsubst %.psf,%.psf.o,$(wildcard src/fonts/*.psf)))
+OBJS_LIBK = $(patsubst src/%,$(BUILD_DIR)/%, \
+	$(patsubst %.c,%.c.o,$(wildcard src/libk/src/*.c)))
 LINKER_SCRIPT ?= src/linker.ld
 GRUBCFG = src/grub.cfg
 
@@ -78,8 +80,11 @@ $(BUILD_DIR)/interrupts/%.c.o: src/interrupts/%.c | $(BUILD_DIR)/interrupts
 $(BUILD_DIR)/libk/src/%.c.o: src/libk/src/%.c | $(BUILD_DIR)/libk/src
 	$(CC) $(CFLAGS) -o $@ $<
 
-$(BUILD_DIR)/hug.bin: $(OBJS)
-	$(LD) $(LDFLAGS) -T $(LINKER_SCRIPT) -o $@ $^
+$(BUILD_DIR)/libk.a: $(OBJS_LIBK) | $(BUILD_DIR)
+	$(AR) -rcs $@ $^
+
+$(BUILD_DIR)/hug.bin: $(OBJS) $(BUILD_DIR)/libk.a
+	$(LD) $(LDFLAGS) -T $(LINKER_SCRIPT) -o $@ $^ -L$(BUILD_DIR) -lk
 
 $(BUILD_DIR)/hug.iso: $(BUILD_DIR)/hug.bin $(GRUBCFG) | $(ISODIR)
 	cp $(BUILD_DIR)/hug.bin $(ISODIR)/boot/hug.bin
