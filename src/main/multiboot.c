@@ -1,5 +1,6 @@
 #include "multiboot.h"
 #include <utils.h>
+#include <stdio.h>
 
 const char* multiboot_tag_cli_get_str(multiboot_tag_cli* self) {
 	return &self->str;
@@ -15,6 +16,18 @@ multiboot_memory_map_entry* multiboot_tag_memory_map_begin(multiboot_tag_memory_
 
 multiboot_memory_map_entry* multiboot_tag_memory_map_end(multiboot_tag_memory_map* self) {
 	return (multiboot_memory_map_entry*)(ADD_BYTES(self, self->header.size));
+}
+
+void multiboot_elf_symbols_entry_print(multiboot_elf_symbols_entry* self) {
+	kprintf("\tphys: %p virt: %p S: 0x%llx F: 0x%llx\n", self->addr > 0xFFFFFF8000000000 ? self->addr - 0xFFFFFF8000000000 : self->addr, self->addr, self->size, self->flags);
+}
+
+multiboot_elf_symbols_entry* multiboot_tag_elf_symbols_begin(multiboot_tag_elf_symbols* self) {
+	return &self->first_entry;
+}
+
+multiboot_elf_symbols_entry* multiboot_tag_elf_symbols_end(multiboot_tag_elf_symbols* self) {
+	return ADD_BYTES(&self->first_entry, self->entry_count * self->entry_size);
 }
 
 void multiboot_data_init(multiboot_data* self, uint32_t info_struct) {

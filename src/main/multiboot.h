@@ -11,7 +11,8 @@ typedef enum {
 	CLI = 1,
 	BOOTLOADER_NAME = 2,
 	MEMORY_MAP = 6,
-	FRAMEBUFFER = 8
+	FRAMEBUFFER = 8,
+	ELF_SYMBOLS = 9
 } multiboot_tag_types;
 
 typedef struct __attribute__((packed)) {
@@ -89,6 +90,68 @@ typedef struct __attribute__((packed)) {
 		} rgb;
 	} color_info;
 } multiboot_tag_framebuffer;
+
+enum multiboot_tag_elf_symbols_entry_type {
+	SHT_NULL,
+	SHT_PROGBITS,
+	SHT_SYMTAB,
+	SHT_STRTAB,
+	SHT_RELA,
+	SHT_HASH,
+	SHT_DYNAMIC,
+	SHT_NOTE,
+	SHT_NOBITS,
+	SHT_REL,
+	SHT_SHLIB,
+	SHT_DYNSYM,
+	SHT_INIT_ARRAY,
+	SHT_FINI_ARRAY,
+	SHT_PREINIT_ARRAY,
+	SHT_GROUP,
+	SHT_SYMTAB_SHNDX,
+	SHT_NUM
+};
+
+enum multiboot_tag_elf_symbols_entry_flags {
+	SHF_WRITE = 0x1,
+	SHF_ALLOC = 0x2,
+	SHF_EXECINSTR = 0x4,
+	SHF_MERGE = 0x10,
+	SHF_STRINGS = 0x20,
+	SHF_INFO_LINK = 0x40,
+	SHF_LINK_ORDER = 0x80,
+	SHF_OS_NONCONFORMING = 0x100,
+	SHF_GROUP = 0x200,
+	SHF_TLS = 0x400,
+	SHF_MASKOS = 0x0ff00000,
+	SHF_MASKPROC = 0xf0000000,
+};
+
+typedef struct {
+	uint32_t name_index;
+	uint32_t type;
+	uint64_t flags;
+	uint64_t addr;
+	uint64_t offset;
+	uint64_t size;
+	uint32_t link;
+	uint32_t info;
+	uint64_t align;
+	uint64_t entry_size;
+} multiboot_elf_symbols_entry;
+
+void multiboot_elf_symbols_entry_print(multiboot_elf_symbols_entry* self);
+
+typedef struct __attribute__((packed)) {
+	multiboot_tag_header header;
+	uint32_t entry_count;
+	uint32_t entry_size;
+	uint32_t string_table;
+	multiboot_elf_symbols_entry first_entry;
+} multiboot_tag_elf_symbols;
+
+multiboot_elf_symbols_entry* multiboot_tag_elf_symbols_begin(multiboot_tag_elf_symbols* self);
+multiboot_elf_symbols_entry* multiboot_tag_elf_symbols_end(multiboot_tag_elf_symbols* self);
 
 typedef struct __attribute__((packed)) {
 	multiboot_tag_header *mb_data_start;
