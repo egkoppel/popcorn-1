@@ -10,7 +10,7 @@ INCLUDE ?= -Isrc/libk/include
 
 CFLAGS = $(INCLUDE) -Wall -Wextra -Wpedantic -Wno-language-extension-token -Werror=incompatible-pointer-types -Wno-address-of-packed-member -mcmodel=large -MMD -MP -c -g -nostdlib -fno-exceptions -fno-rtti -fno-stack-protector -ffreestanding -target x86_64-unknown-none-elf -mno-mmx -mno-sse -mno-sse3 -mno-sse4 -mno-avx -mno-red-zone -msoft-float
 LDFLAGS ?= 
-QEMU_ARGS ?= -serial stdio
+QEMU_ARGS ?=
 
 BUILD_DIR ?= build
 ISODIR ?= $(BUILD_DIR)/isodir
@@ -94,6 +94,6 @@ $(BUILD_DIR)/hug.iso: $(BUILD_DIR)/hug.bin $(GRUBCFG) | $(ISODIR)
 clean:
 	rm -rf $(BUILD_DIR)
 run: $(BUILD_DIR)/hug.iso
-	$(QEMU) $(QEMU_ARGS) -drive file=$<,format=raw
+	$(QEMU) $(QEMU_ARGS) -serial stdio -drive file=$<,format=raw
 run_debug: $(BUILD_DIR)/hug.iso
-	$(QEMU) $(QEMU_ARGS) -s -S -drive file=$<,format=raw
+	$(QEMU) $(QEMU_ARGS) -s -S -serial stdio -drive file=$<,format=raw
