@@ -5,8 +5,12 @@ KERNEL_VIRTUAL_BASE: equ 0xFFFFFF8000000000
 section .bss
 global x
 global y
-x: resb 1
-y: resb 1
+global termsize_x
+global termsize_y
+x: resb 2
+y: resb 2
+termsize_x: resb 2 ; assume nobody has a display with more than 16383 * psf_width along either axis
+termsize_y: resb 2
 itoa_buffer: resb 32
 
 section .rodata
@@ -14,7 +18,7 @@ itoa_str db "0123456789abcdefghijklmnopqrstuvwxyz"
 
 section .data
 global col
-col db 0x0f
+col dd 0xffffff
 
 section .text
 global _32_utoa
@@ -67,6 +71,11 @@ _32_utoa:
 	pop ebp
 	ret
 
+extern framebuffer_addr
+extern framebuffer_width
+extern framebuffer_height
+extern framebuffer_bpp
+extern psf_height
 global _32_shift_up
 _32_shift_up:
 	; prologue
@@ -77,23 +86,35 @@ _32_shift_up:
 	push ebx
 	push esi
 	push edi
-
-	mov ecx, 0
+	
+	mov eax, [framebuffer_bpp - KERNEL_VIRTUAL_BASE]
+	shr eax, 3
+	imul dword [framebuffer_width - KERNEL_VIRTUAL_BASE]
+	imul dword [psf_height - KERNEL_VIRTUAL_BASE]
+	mov esi, eax ; esi = stride for one row of text
+	imul dword [framebuffer_height - KERNEL_VIRTUAL_BASE]
+	add eax, [framebuffer_addr - KERNEL_VIRTUAL_BASE] ; eax = framebuffer end addr
+	
+	mov ecx, esi
+	add ecx, [framebuffer_addr - KERNEL_VIRTUAL_BASE] ; ecx = framebuffer_addr + stride for one row of text
 	.loop_start1:
-		movzx eax, word [0xB8000 + ecx*2]
-		lea ebx, [0xB8000 + ecx*2 + 80]
-		mov word [ebx], ax
-
+		mov edx, ecx
+		mov ebx, edx
+		sub ebx, esi ; dest
+		
+		mov dl, [edx]
+		mov byte [ebx], dl
+		
 		inc ecx
-	cmp ecx, 80*25
+	cmp ecx, eax
 	jl .loop_start1
-
-	mov ecx, 0
+	; ecx = end of framebuffer
+	
+	sub ecx, esi ; one row of text before end
 	.loop_start2:
-		lea eax, [0xB8000 + ecx*2 + 80*24*2]
-		mov word [eax], 0x0F20 ; white on black space
+		mov byte [ecx], 0
 		inc ecx
-	cmp ecx, 80
+	cmp ecx, eax
 	jl .loop_start2
 
 	; unsave regs
@@ -106,6 +127,7 @@ _32_shift_up:
 	pop ebp
 	ret
 
+extern psf_copychar
 global _32_putc
 _32_putc:
 	; prologue
@@ -127,37 +149,33 @@ _32_putc:
 	je .col_red
 	cmp cl, 130 ; c == [col_green]
 	je .col_green
-		movzx eax, byte [y - KERNEL_VIRTUAL_BASE] ; get current y
-		mov edx, 80
-		mul byte dl ; ax = y*80
-
-		movzx edx, byte [x - KERNEL_VIRTUAL_BASE]
-		add eax, edx ; eax = y*80 + x
-
-		lea ebx, [0xB8000 + 2*eax] ; eax = 0xB8000 + 2*(x + 80*y)
-
-		; upper bits already cleared by movzx before loop so can write to ch
-		mov ch, [col - KERNEL_VIRTUAL_BASE] ; ch:cl = col:char
-		mov word [ebx], cx
-
-		inc byte [x - KERNEL_VIRTUAL_BASE]
+		movzx eax, word [x - KERNEL_VIRTUAL_BASE]
+		push eax
+		movzx eax, word [y - KERNEL_VIRTUAL_BASE]
+		push eax
+		push ecx
+		call psf_copychar
+		add esp, 12
+		
+		inc word [x - KERNEL_VIRTUAL_BASE]
 		jmp .epi
 	.col_reset:
-		mov byte [col - KERNEL_VIRTUAL_BASE], 0x0f
+		mov dword [col - KERNEL_VIRTUAL_BASE], 0xffffff
 		jmp .epi
 	.col_green:
-		mov byte [col - KERNEL_VIRTUAL_BASE], 0x02
+		mov dword [col - KERNEL_VIRTUAL_BASE], 0x00ff00
 		jmp .epi
 	.col_red:
-		mov byte [col - KERNEL_VIRTUAL_BASE], 0x04
+		mov dword [col - KERNEL_VIRTUAL_BASE], 0xff0000
 		jmp .epi
 	.println:
-		mov byte [x - KERNEL_VIRTUAL_BASE], 0
-		inc byte [y - KERNEL_VIRTUAL_BASE]
-
-		cmp byte [y - KERNEL_VIRTUAL_BASE], 24
+		mov word [x - KERNEL_VIRTUAL_BASE], 0
+		inc word [y - KERNEL_VIRTUAL_BASE]
+		
+		mov ax, [termsize_y - KERNEL_VIRTUAL_BASE]
+		cmp word [y - KERNEL_VIRTUAL_BASE], ax
 		jle .epi
-			mov byte [y - KERNEL_VIRTUAL_BASE], 24
+			mov word [y - KERNEL_VIRTUAL_BASE], ax
 			call _32_shift_up
 	.epi:
 
@@ -196,6 +214,45 @@ _32_puts:
 		jmp .loop_cond
 	.loop_end:
 
+	; unsave regs
+	pop edi
+	pop esi
+	pop ebx
+
+	; epilogue
+	mov esp, ebp
+	pop ebp
+	ret
+
+extern psf_width
+extern psf_height
+extern framebuffer_width
+extern framebuffer_height
+global _32_init_io
+_32_init_io: ; inits the termsize vars, parse_psf and read_multiboot_info must be called first
+	; prologue
+	push ebp
+	mov ebp, esp
+
+	; save regs
+	push ebx
+	push esi
+	push edi
+	
+	mov eax, [framebuffer_width - KERNEL_VIRTUAL_BASE]
+	xor edx, edx
+	mov ecx, [psf_width - KERNEL_VIRTUAL_BASE]
+	inc ecx
+	div dword ecx
+	mov [termsize_x - KERNEL_VIRTUAL_BASE], eax
+	
+	mov eax, [framebuffer_height - KERNEL_VIRTUAL_BASE]
+	xor edx, edx
+	mov ecx, [psf_height - KERNEL_VIRTUAL_BASE]
+	inc ecx
+	div dword ecx
+	mov [termsize_y - KERNEL_VIRTUAL_BASE], eax
+	
 	; unsave regs
 	pop edi
 	pop esi

@@ -7,15 +7,29 @@
 #include <string.h>
 
 #include <stdio.h>
-
-#include <vga.h>
 #include <serial.h>
+#include <termcolor.h>
 
-#define CONSOLE_SIZE_X 80
-#define CONSOLE_SIZE_Y 25
 #define TABSIZE 8
 
-extern uint8_t x, y, col;
+extern uint16_t x, y;
+extern uint32_t col;
+extern uint32_t termsize_x, termsize_y;
+
+extern char font_psf_start;
+extern char font_psf_end;
+extern char font_psf_size;
+
+extern uint32_t psf_headersize;
+extern uint32_t psf_numglyph;
+extern uint32_t psf_bytesperglyph;
+extern uint32_t psf_height;
+extern uint32_t psf_width;
+
+extern uint32_t framebuffer_pitch;
+extern uint32_t framebuffer_width;
+extern uint32_t framebuffer_height;
+extern uint8_t framebuffer_bpp;
 
 static size_t stdio_char_count_theoretical = 0;
 static size_t stdio_char_count = 0;
@@ -33,6 +47,13 @@ FILE *stdout = &_stdout;
 FILE *stderr = &_stderr;
 FILE *stdserial = &_stdserial;
 static FILE *stdstrbuf = &_stdstrbuf;
+
+#define FRAMEBUFFER ((char*)0xffffff8040000000L)
+
+void shift_up() {
+	memmove(FRAMEBUFFER, FRAMEBUFFER + framebuffer_pitch * psf_height, framebuffer_pitch * psf_height * (termsize_y - 1)); // copy one line upwards
+	memset(FRAMEBUFFER + framebuffer_pitch * psf_height * (termsize_y - 1), 0, framebuffer_pitch * psf_height); // zero the final line
+}
 
 void kputc(unsigned char c) {
 	static bool esc = false;
@@ -60,17 +81,29 @@ void kputc(unsigned char c) {
 		do {
 			x++;
 		} while (x % TABSIZE);
-		if (x >= CONSOLE_SIZE_X) goto newline;
+		if (x >= termsize_x) goto newline;
 	} else if (c == '\n') {
 		newline:
 		x = 0;
 		y++;
-		if (y >= CONSOLE_SIZE_Y) {
-			y = CONSOLE_SIZE_Y - 1;
+		if (y >= termsize_y) {
+			y = termsize_y - 1;
 			shift_up();
 		}
 	} else {
-		*(uint16_t*)((uint8_t*)0xB8000 + 2*(x + CONSOLE_SIZE_X*y)) = vga_entry(c, col);
+		if (c >= psf_numglyph) return;
+		
+		char *fb_target = FRAMEBUFFER + y * framebuffer_pitch * psf_height + x * (psf_width + 1) * framebuffer_bpp / 8;
+		for (uint32_t yy = 0; yy < psf_height; ++yy) {
+			for (uint32_t xx = 0; xx < psf_width; ++xx) {
+				uint32_t bit_addr = yy * psf_width + xx;
+				char font_byte = *((char*)&font_psf_start + psf_headersize + c * psf_bytesperglyph + bit_addr / 8);
+				bool bit = (font_byte << (bit_addr % 8)) & (1 << 7);
+				*(uint32_t*)(fb_target + xx * framebuffer_bpp / 8) = bit ? col : 0;
+			}
+			fb_target += framebuffer_pitch;
+		}
+		
 		x++;
 	}
 }
@@ -434,14 +467,14 @@ int ksprintf(char *str, const char *fmt, ...) {
 
 void handle_esc_code(int code) {
 	switch (code) {
-		case 0: col = 0x0F; break;
-		case 30: set_fg_col(VGA_COLOR_BLACK); break;
-		case 31: set_fg_col(VGA_COLOR_RED); break;
-		case 32: set_fg_col(VGA_COLOR_GREEN); break;
-		case 33: set_fg_col(VGA_COLOR_YELLOW); break;
-		case 34: set_fg_col(VGA_COLOR_BLUE); break;
-		case 35: set_fg_col(VGA_COLOR_MAGENTA); break;
-		case 36: set_fg_col(VGA_COLOR_CYAN); break;
-		case 37: set_fg_col(VGA_COLOR_WHITE); break;
+		case 0:  col = COLOR_WHITE; break;
+		case 30: col = COLOR_BLACK; break;
+		case 31: col = COLOR_RED; break;
+		case 32: col = COLOR_GREEN; break;
+		case 33: col = COLOR_YELLOW; break;
+		case 34: col = COLOR_BLUE; break;
+		case 35: col = COLOR_MAGENTA; break;
+		case 36: col = COLOR_CYAN; break;
+		case 37: col = COLOR_WHITE; break;
 	}
 }

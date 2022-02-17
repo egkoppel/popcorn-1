@@ -1,15 +1,29 @@
 #include <stddef.h>
 
 void* memcpy(void *dest, const void *src, size_t num) {
-	for(size_t i = 0; i < num; ++i) {
+	for (size_t i = 0; i < num; ++i) {
 		((char*)dest)[i] = ((char*)src)[i];
 	}
 	
 	return dest;
 }
 
+void* memmove(void *dest, const void *src, size_t num) {
+	if (dest < src) { // copy left to right
+		for (size_t i = 0; i < num; ++i) {
+			((char*)dest)[i] = ((char*)src)[i];
+		}
+	} else { // copy right to left
+		for (size_t i = num - 1; i >= 0; --i) {
+			((char*)dest)[i] = ((char*)src)[i];
+		}
+	}
+	
+	return dest;
+}
+
 void* memset(void *ptr, int value, size_t n) {
-	for(size_t i = 0; i < n; ++i)
+	for (size_t i = 0; i < n; ++i)
 		((unsigned char*)ptr)[i] = (unsigned char)value;
 	return ptr;
 }

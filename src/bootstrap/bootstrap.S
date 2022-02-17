@@ -93,6 +93,10 @@ extern framebuffer_height
 extern framebuffer_bpp
 extern framebuffer_type
 
+extern psf_copychar
+extern parse_psf
+extern _32_init_io
+
 _start:
 	mov esp, _stack_top - KERNEL_VIRTUAL_BASE
 	mov ebp, esp
@@ -102,7 +106,11 @@ _start:
 	push ebx ; pass multiboot info
 	call read_multiboot_info
 	add esp, 4 ; clear args
-
+	
+	call parse_psf
+	
+	call _32_init_io
+	
 	; CHECK CPUID SUPPORTED
 	;push cpuid_check ; print checking for cpuid
 	mov eax, cpuid_check - KERNEL_VIRTUAL_BASE
@@ -232,7 +240,7 @@ _start:
 	.map_level2_1_table_loop:
 		mov eax, 0x200000 ; size of each entry (2MiB)
 		mul ecx ; real start address of entry (counter * 2MiB)
-		add eax, 0xfd000000 ; start mapping from 0xfd000000
+		add eax, [framebuffer_addr - KERNEL_VIRTUAL_BASE] ; start mapping from 0xfd000000
 		or eax, 0b10000011 ; present, write, and huge bits
 		mov [level2_page_table_1 + ecx * 8 - KERNEL_VIRTUAL_BASE], eax ; map p2[counter] to eax
 
@@ -274,6 +282,8 @@ _start:
 	or eax, 1<<31 ; set paging bit
 	mov cr0, eax
 
+	; update framebuffer_addr now that paging is enabled
+	mov dword [framebuffer_addr - KERNEL_VIRTUAL_BASE], 0x40000000
 	; load gdt
 	lgdt [gdt64.pointer - KERNEL_VIRTUAL_BASE]
 	mov eax, lm_gdt_load - KERNEL_VIRTUAL_BASE

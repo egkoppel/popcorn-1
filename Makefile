@@ -3,12 +3,13 @@ CXX ?= clang++
 NASM ?= nasm
 LD = ld.lld
 QEMU ?= qemu-system-x86_64
-LDFLAGS ?= 
+OBJCOPY ?= llvm-objcopy
 
 INCLUDE ?= -Isrc/libk/include
 
 CFLAGS = $(INCLUDE) -Wall -Wextra -Wpedantic -Wno-language-extension-token -Werror=incompatible-pointer-types -mcmodel=large -MMD -MP -c -g -nostdlib -fno-exceptions -fno-rtti -fno-stack-protector -ffreestanding -target x86_64-unknown-none-elf -mno-mmx -mno-sse -mno-sse3 -mno-sse4 -mno-avx -mno-red-zone -msoft-float
-QEMU_ARGS ?=-serial stdio
+LDFLAGS ?= 
+QEMU_ARGS ?= -serial stdio
 
 BUILD_DIR ?= build
 ISODIR ?= $(BUILD_DIR)/isodir
@@ -19,7 +20,8 @@ OBJS = $(patsubst src/%,$(BUILD_DIR)/%, \
 	$(patsubst %.c,%.c.o,$(wildcard src/main/*.c)) \
 	$(patsubst %.c,%.c.o,$(wildcard src/memory/*.c)) \
 	$(patsubst %.c,%.c.o,$(wildcard src/interrupts/*.c)) \
-	$(patsubst %.c,%.c.o,$(wildcard src/libk/src/*.c)))
+	$(patsubst %.c,%.c.o,$(wildcard src/libk/src/*.c)) \
+	$(patsubst %.psf,%.psf.o,$(wildcard src/fonts/*.psf)))
 LINKER_SCRIPT ?= src/linker.ld
 GRUBCFG = src/grub.cfg
 
@@ -37,6 +39,8 @@ $(ISODIR): | $(BUILD_DIR)
 	mkdir -p $(ISODIR)/boot/grub
 $(BUILD_DIR)/bootstrap: | $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)/bootstrap
+$(BUILD_DIR)/fonts: | $(BUILD_DIR)
+	mkdir -p $(BUILD_DIR)/fonts
 $(BUILD_DIR)/init: | $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)/init
 $(BUILD_DIR)/main: | $(BUILD_DIR)
@@ -50,6 +54,14 @@ $(BUILD_DIR)/interrupts: | $(BUILD_DIR)
 
 $(BUILD_DIR)/bootstrap/%.S.o: src/bootstrap/%.S | $(BUILD_DIR)/bootstrap
 	$(NASM) -felf64 -g -F dwarf -o $@ $<
+
+$(BUILD_DIR)/fonts/%.psf.o: src/fonts/%.psf | $(BUILD_DIR)/fonts
+	$(OBJCOPY) -O elf64-x86-64 -I binary \
+		--redefine-sym _binary_$(subst .,_,$(subst /,_,$<))_start=$(subst .,_,$(lastword $(subst /, ,$<)))_start \
+		--redefine-sym _binary_$(subst .,_,$(subst /,_,$<))_end=$(subst .,_,$(lastword $(subst /, ,$<)))_end \
+		--redefine-sym _binary_$(subst .,_,$(subst /,_,$<))_size=$(subst .,_,$(lastword $(subst /, ,$<)))_size \
+		--rename-section .data=.rodata \
+		$< $@
 
 $(BUILD_DIR)/init/%.c.o: src/init/%.c | $(BUILD_DIR)/init
 	$(CC) $(CFLAGS) -o $@ $<
