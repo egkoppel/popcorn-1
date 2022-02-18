@@ -33,4 +33,8 @@ typedef struct {
 	physical_address value;
 } optional_physical_address;
 
+
+optional_virt_address page_table_entry_get_address(page_table_entry* self);
+void page_table_entry_set_address(page_table_entry* self, virtual_address address);
+
 #endif
