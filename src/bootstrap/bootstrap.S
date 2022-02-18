@@ -240,6 +240,10 @@ _start:
 	call _32_puts
 	add esp, 4 ; clear args
 
+	mov eax, level4_page_table - KERNEL_VIRTUAL_BASE
+	or eax, 0b11 ; set present and write bits
+	mov [level4_page_table + 8*510 - KERNEL_VIRTUAL_BASE], eax ; map p4[510] to p4 for recursive mapping
+
 	mov eax, level3_page_table - KERNEL_VIRTUAL_BASE
 	or eax, 0b11 ; set present and write bits
 	mov [level4_page_table + 8*0 - KERNEL_VIRTUAL_BASE], eax ; map p4[0] to p3_0
