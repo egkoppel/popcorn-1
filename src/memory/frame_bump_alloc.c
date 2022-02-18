@@ -2,6 +2,11 @@
 #include <utils.h>
 #include <stdio.h>
 
+const allocator_vtable frame_bump_alloc_state_vtable = {
+	.allocate = (void*(*)(struct _allocator_vtable*))frame_bump_alloc_allocate,
+	.deallocate = NULL
+};
+
 virtual_address frame_bump_alloc_allocate(frame_bump_alloc_state *self) {
 	uint64_t attempt = ALIGN_UP(self->next_alloc, 0x1000);
 

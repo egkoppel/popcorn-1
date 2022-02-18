@@ -67,6 +67,7 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	}
 
 	frame_bump_alloc_state init_alloc = {
+		.vtable = frame_bump_alloc_state_vtable,
 		.next_alloc = 0,
 		.kernel_start = kernel_min,
 		.kernel_end = kernel_max,
@@ -81,8 +82,7 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	kprintf("[    ] Allocating %u bytes for memory bitmap (%u frames)\n", needed_bytes, needed_frames);
 	void *bitmap_frame_starts[needed_frames];
 	for (uint64_t i = 0; i < needed_frames; ++i) {
-		bitmap_frame_starts[i] = frame_bump_alloc_allocate(&init_alloc);
-		//kprintf("\t%lp\n", bitmap_frame_starts[i]);
+		bitmap_frame_starts[i] = allocator_allocate(&init_alloc.vtable);//frame_bump_alloc_allocate(&init_alloc);
 	}
 
 	if (bitmap_frame_starts[needed_frames - 1] > (void*)0x40000000) panic("Could not fit memory bitmap in 1st GiB");
