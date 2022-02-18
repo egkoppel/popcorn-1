@@ -10,6 +10,8 @@
 #include <serial.h>
 #include <termcolor.h>
 
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+
 #define TABSIZE 8
 
 extern uint16_t x, y;
@@ -143,14 +145,6 @@ inline void kputs(const char* str) {
 	}
 }
 
-enum printf_prepend_specifiers {
-	PRINTF_PREPEND_NONE,
-	
-	PRINTF_PREPEND_NUM_MODE,
-	PRINTF_PREPEND_SPACE,
-	PRINTF_PREPEND_ZERO,
-};
-
 enum printf_length_specifiers {
 	PRINTF_LENGTH_DEFAULT,
 	
@@ -167,18 +161,21 @@ enum printf_length_specifiers {
 int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 	char c;
 	void *p;
-	static char itoabuf[32];
+	static char itoabuf[72];
 	
 	while ((c = *fmt++)) {
 		if (c == '%') {
 			struct {
-				bool left_justify;
-				bool force_sign;
-				enum printf_prepend_specifiers prepend;
+				bool left_justify; // NOT SUPPORTED
+				bool force_sign; // NOT SUPPORTED
+				bool space_if_no_sign; // NOT SUPPORTED
+				bool num_mode; // NOT SUPPORTED
+				bool zeropad;
 				int width;
-				int precision;
+				int precision; // only supported for floats and strings
 				enum printf_length_specifiers length;
 			} options = {false};
+			options.width = options.precision = -1;
 			
 			bool done_with_flags = false;
 			while (*fmt != '\0' && !done_with_flags) {
@@ -192,15 +189,15 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 						break;
 					
 					case ' ':
-						options.prepend = PRINTF_PREPEND_SPACE;
+						options.space_if_no_sign = true;
 						break;
 					
 					case '#':
-						options.prepend = PRINTF_PREPEND_NUM_MODE;
+						options.num_mode = true;
 						break;
 					
 					case '0':
-						options.prepend = PRINTF_PREPEND_ZERO;
+						options.zeropad = true;
 						break;
 					
 					default:
@@ -216,6 +213,7 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 					break;
 					
 				default:
+					if ('0' <= *fmt && *fmt <= '9') options.width = 0;
 					while ('0' <= *fmt && *fmt <= '9') {
 						options.width *= 10;
 						options.width += *fmt - '0';
@@ -232,6 +230,7 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 						break;
 						
 					default:
+						if ('0' <= *fmt && *fmt <= '9') options.precision = 0;
 						while ('0' <= *fmt && *fmt <= '9') {
 							options.precision *= 10;
 							options.precision += *fmt - '0';
@@ -286,6 +285,11 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 			
 			int64_t n;
 			uint64_t un;
+			long len;
+			char *str;
+			//double f_val; // for floats, which currently are unsupported so are commented out
+			//uint64_t f_intpart, f_floatpart;
+			//bool neg;
 			switch (*fmt) {
 				case 'c': // todo: handle %lc
 					kfputc(stream, va_arg(args, int /*char*/));
@@ -295,10 +299,7 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 				case 'o':
 				case 'x':
 				case 'X':
-					if (options.prepend == PRINTF_PREPEND_NUM_MODE) {
-						if (*fmt == 'o') kfputc(stream, '0');
-						else if (*fmt != 'd') kfputs(stream, "0x"); // 'x' or 'X'
-					}
+				case 'b': // unofficial extension: formats as binary
 					switch (options.length) {
 						case PRINTF_LENGTH_hh: un = va_arg(args, int /*unsigned char*/); break;
 						case PRINTF_LENGTH_h:  un = va_arg(args, int /*unsigned short int*/); break;
@@ -312,7 +313,17 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 					int base = 16;
 					if (*fmt == 'o') base = 8;
 					else if (*fmt == 'u') base = 10;
-					kfputs(stream, utoa(un, itoabuf, base));
+					else if (*fmt == 'b') base = 2;
+					utoa(un, itoabuf, base);
+					len = strlen(itoabuf);
+					if (options.width != -1) {
+						options.width -= len;
+						while (options.width > 0) {
+							kfputc(stream, options.zeropad ? '0' : ' ');
+							--options.width;
+						}
+					}
+					kfputs(stream, itoabuf);
 					break;
 					
 				case 'd':
@@ -327,7 +338,17 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 						case PRINTF_LENGTH_t:  n = va_arg(args, ptrdiff_t); break;
 						default:               n = va_arg(args, int); break;
 					}
-					kfputs(stream, itoa(n, itoabuf, 10));
+					itoa(n, itoabuf, 10);
+					if (n < 0) kfputc(stream, '-');
+					len = strlen(itoabuf);
+					if (options.width != -1) {
+						options.width -= len;
+						while (options.width > 0) {
+							kfputc(stream, options.zeropad ? '0' : ' ');
+							--options.width;
+						}
+					}
+					kfputs(stream, n < 0 ? itoabuf + 1 : itoabuf);
 					break;
 				
 				case 'p':
@@ -342,19 +363,68 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 					kfputs(stream, itoabuf);
 					break;
 				
-				case 'f': // todo: floats
+				case 'f':
 				case 'F':
-				case 'e':
+				/* // while we compile with -mno-sse, floats are basically broken, so this won't work anyway. If we ever enable floats again, we can uncomment this.
+					if (options.precision < 0) options.precision = 6;
+					
+					//f_val = va_arg(args, double);
+					f_val = ((union{uint64_t i; double f;})va_arg(args, uint64_t)).f;
+					if ((neg = (f_val < 0.0))) {
+						f_val *= -1.0;
+					}
+					f_intpart = (uint64_t)f_val;
+					utoa(f_intpart, itoabuf, 10);
+					const char too_big[] = "TOOBIG";
+					if (f_val > (double)UINT64_MAX) memcpy(itoabuf, too_big, sizeof(too_big));
+					
+					len = (neg ? 1 : 0) + strlen(itoabuf) + 1 + options.precision;
+					
+					f_val -= f_intpart;
+					for (int i = 0; i < options.precision; ++i) f_val *= 10;
+					f_floatpart = (uint64_t)f_val;
+					
+					while(len < options.width) {
+						kfputc(stream, options.zeropad ? '0' : ' ');
+						--options.width;
+					}
+					if (neg) kfputc(stream, '-');
+					kfputs(stream, itoabuf);
+					kfputc(stream, '.');
+					if (options.precision) {
+						utoa(f_floatpart, itoabuf, 10);
+						kfputs(stream, itoabuf);
+						if ((long)strlen(itoabuf) != options.precision) {
+							int diff = options.precision - (long)strlen(itoabuf);
+							while (diff > 0) {
+								kfputc(stream, '?');
+								--diff;
+							}
+						}
+					}
+					break;
+				*/
+				case 'e': // todo: other floats
 				case 'E':
 				case 'g':
 				case 'G':
 				case 'a':
 				case 'A':
-					kfputs(stream, "[FLOAT]");
+					kfputs(stream, "[UNSUPPORTED]");
 					break;
 				
 				case 's': // todo: handle %ls
-					kfputs(stream, va_arg(args, char*));
+					str = va_arg(args, char*);
+					len = strlen(str);
+					
+					if (options.precision >= 0) len = MIN((long)len, options.precision);
+					
+					if (len < options.width) {
+						for (int i = 0; i < options.width - len; ++i) kfputc(stream, ' ');
+					}
+					
+					for (int i = 0; i < len; ++i) kfputc(stream, *str++);
+					
 					break;
 				
 				case 'n':
