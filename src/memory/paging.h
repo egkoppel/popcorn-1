@@ -33,8 +33,11 @@ typedef struct {
 	physical_address value;
 } optional_physical_address;
 
+extern page_table *p4;
 
 optional_virt_address page_table_entry_get_address(page_table_entry* self);
 void page_table_entry_set_address(page_table_entry* self, virtual_address address);
 
+void page_table_clear(page_table* self);
+page_table* page_table_get_child(page_table* self, uintptr_t i);
 #endif
