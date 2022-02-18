@@ -19,4 +19,18 @@ typedef struct __attribute__((packed)) {
 	uint64_t no_execute : 1;
 } page_table_entry;
 
+typedef struct __attribute__((packed)) {
+	page_table_entry entries[512];
+} page_table;
+
+typedef struct {
+	char valid;
+	virtual_address value;
+} optional_virt_address;
+
+typedef struct {
+	char valid;
+	physical_address value;
+} optional_physical_address;
+
 #endif
