@@ -84,7 +84,7 @@ $(BUILD_DIR)/libk.a: $(OBJS_LIBK) | $(BUILD_DIR)
 	$(AR) -rcs $@ $^
 
 $(BUILD_DIR)/hug.bin: $(OBJS) $(BUILD_DIR)/libk.a
-	$(LD) $(LDFLAGS) -T $(LINKER_SCRIPT) -o $@ $^ -L$(BUILD_DIR) -lk
+	$(LD) $(LDFLAGS) -T $(LINKER_SCRIPT) -o $@ $(OBJS) -L$(BUILD_DIR) -lk
 
 $(BUILD_DIR)/hug.iso: $(BUILD_DIR)/hug.bin $(GRUBCFG) | $(ISODIR)
 	cp $(BUILD_DIR)/hug.bin $(ISODIR)/boot/hug.bin
