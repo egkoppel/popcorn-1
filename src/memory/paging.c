@@ -9,7 +9,7 @@ page_table *p4 = (page_table*)01777777767767767760000;
 optional_virt_address page_table_entry_get_address(page_table_entry* self) {
 	optional_virt_address result;
 	result.valid = self->present;
-	result.value = self->address << 12;
+	result.value = (void*)(self->address << 12);
 	return result;
 }
 
@@ -76,7 +76,7 @@ optional_physical_address translate_address(virtual_address address) {
 	if (p1 == NULL) {
 		if (p2->entries[p2_index].huge) {
 			result.valid = 1;
-			result.value = (p2->entries[p2_index].address << 12) + (p1_index << 12) + offset;
+			result.value = (void*)((p2->entries[p2_index].address << 12) + (p1_index << 12) + offset);
 			return result;
 		} else {
 			result.valid = 0;
@@ -90,7 +90,7 @@ optional_physical_address translate_address(virtual_address address) {
 		return result;
 	}
 	result.valid = 1;
-	result.value = (p1_entry->address << 12) + offset;
+	result.value = (void*)((p1_entry->address << 12) + offset);
 
 	return result;
 }
