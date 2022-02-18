@@ -2,6 +2,7 @@
 #define _HUGOS_PAGING_H
 
 #include <stdint.h>
+#include "memory.h"
 
 typedef struct __attribute__((packed)) {
 	uint64_t present: 1;
@@ -40,4 +41,6 @@ void page_table_entry_set_address(page_table_entry* self, virtual_address addres
 
 void page_table_clear(page_table* self);
 page_table* page_table_get_child(page_table* self, uintptr_t i);
+optional_physical_address translate_address(virtual_address address);
+
 #endif
