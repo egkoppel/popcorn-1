@@ -20,6 +20,15 @@ typedef struct __attribute__((packed)) {
 	uint64_t no_execute : 1;
 } page_table_entry;
 
+typedef struct {
+	uint8_t writable: 1;
+	uint8_t user_accessible: 1;
+	uint8_t write_through: 1;
+	uint8_t cache_disabled: 1;
+	uint8_t global: 1;
+	uint8_t no_execute : 1;
+} page_table_entry_flags;
+
 typedef struct __attribute__((packed)) {
 	page_table_entry entries[512];
 } page_table;
@@ -37,6 +46,8 @@ typedef struct {
 extern page_table *p4;
 
 optional_virt_address page_table_entry_get_address(page_table_entry* self);
+void page_table_entry_set(page_table_entry* self, virtual_address address, page_table_entry_flags flags);
+void page_table_entry_set_flags(page_table_entry* self, page_table_entry_flags flags);
 void page_table_entry_set_address(page_table_entry* self, virtual_address address);
 
 void page_table_clear(page_table* self);

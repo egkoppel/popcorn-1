@@ -19,6 +19,20 @@ void page_table_entry_set_address(page_table_entry* self, virtual_address addres
 	self->address = (uintptr_t)address >> 12;
 }
 
+void page_table_entry_set_flags(page_table_entry* self, page_table_entry_flags flags) {
+	self->writable = 1;
+	self->user_accessible = 1;
+	self->write_through = flags.write_through;
+	self->cache_disabled = flags.cache_disabled;
+	self->global = flags.global;
+	self->no_execute = flags.no_execute;
+}
+
+void page_table_entry_set(page_table_entry* self, virtual_address address, page_table_entry_flags flags) {
+	page_table_entry_set_address(self, address);
+	page_table_entry_set_flags(self, flags);
+}
+
 void page_table_clear(page_table* self) {
 	for (int i = 0; i < 512; i++) {
 		self->entries[i].present = 0;
