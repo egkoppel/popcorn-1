@@ -6,6 +6,22 @@
 
 page_table *p4 = (page_table*)01777777767767767760000;
 
+static inline uint64_t address_p4_index(virtual_address address) {
+	return ((uint64_t)address >> 39) & 0777;
+}
+
+static inline uint64_t address_p3_index(virtual_address address) {
+	return ((uint64_t)address >> 30) & 0777;
+}
+
+static inline uint64_t address_p2_index(virtual_address address) {
+	return ((uint64_t)address >> 21) & 0777;
+}
+
+static inline uint64_t address_p1_index(virtual_address address) {
+	return ((uint64_t)address >> 12) & 0777;
+}
+
 optional_virt_address page_table_entry_get_address(page_table_entry* self) {
 	optional_virt_address result;
 	result.valid = self->present;
@@ -35,7 +51,7 @@ void page_table_entry_set(page_table_entry* self, virtual_address address, page_
 
 void page_table_clear(page_table* self) {
 	for (int i = 0; i < 512; i++) {
-		self->entries[i].present = 0;
+		*(uint64_t*)(&self->entries[i]) = 0;
 	}
 }
 
@@ -46,20 +62,26 @@ page_table* page_table_get_child(page_table* self, uintptr_t i) {
 	} else return NULL;
 }
 
-static inline uint64_t address_p4_index(virtual_address address) {
-	return ((uint64_t)address >> 39) & 0777;
+page_table* page_table_create_child(page_table* self, uintptr_t i, allocator_vtable *allocator, page_table_entry_flags flags) {
+	page_table *new_frame_addr = page_table_get_child(self, i);
+	if (new_frame_addr == NULL) {
+		new_frame_addr = (page_table*)allocator_allocate(allocator);
+		page_table_clear(new_frame_addr);
+		page_table_entry_set_address(&self->entries[i], (virtual_address)new_frame_addr);
+	}
+	page_table_entry_set_flags(&self->entries[i], flags);
+	return new_frame_addr;
 }
 
-static inline uint64_t address_p3_index(virtual_address address) {
-	return ((uint64_t)address >> 30) & 0777;
+void map_frame(virtual_address address, allocator_vtable *allocator, page_table_entry_flags flags) {
+	page_table *p3 = page_table_create_child(p4, address_p4_index(address), allocator, flags);
+	page_table *p2 = page_table_create_child(p3, address_p3_index(address), allocator, flags);
+	page_table *p1 = page_table_create_child(p2, address_p2_index(address), allocator, flags);
+	page_table_entry_set(&p1->entries[address_p1_index(address)], address, flags);
 }
 
-static inline uint64_t address_p2_index(virtual_address address) {
-	return ((uint64_t)address >> 21) & 0777;
-}
-
-static inline uint64_t address_p1_index(virtual_address address) {
-	return ((uint64_t)address >> 12) & 0777;
+void map_frame_containing(virtual_address address, allocator_vtable *allocator, page_table_entry_flags flags) {
+	map_frame((virtual_address)((uint64_t)address & ~0xfff), allocator, flags);
 }
 
 static inline uint64_t address_offset(virtual_address address) {
