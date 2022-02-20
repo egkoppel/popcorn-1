@@ -99,7 +99,7 @@ void unmap_page(virtual_address page) {
 	page_table *p2 = page_table_get_child(p3, address_p3_index(page));
 	page_table *p1 = page_table_get_child(p2, address_p2_index(page));
 	page_table_entry_unmap(&p1->entries[address_p1_index(page)]);
-	__asm__ volatile("invlpg %0" : : "m"(page));
+	__asm__ volatile("invlpg (%0)" : : "r"((uint64_t)page));
 }
 
 void unmap_page_and_free_frame(virtual_address page, allocator_vtable *allocator) {
