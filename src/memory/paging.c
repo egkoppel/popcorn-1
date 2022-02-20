@@ -36,17 +36,22 @@ void page_table_entry_set_address(page_table_entry* self, virtual_address addres
 }
 
 void page_table_entry_set_flags(page_table_entry* self, page_table_entry_flags flags) {
-	self->writable = 1;
-	self->user_accessible = 1;
+	self->writable = flags.writable;
+	self->user_accessible = flags.user_accessible;
 	self->write_through = flags.write_through;
 	self->cache_disabled = flags.cache_disabled;
 	self->global = flags.global;
 	self->no_execute = flags.no_execute;
+	self->huge = 0;
 }
 
 void page_table_entry_set(page_table_entry* self, virtual_address address, page_table_entry_flags flags) {
 	page_table_entry_set_address(self, address);
 	page_table_entry_set_flags(self, flags);
+}
+
+void page_table_entry_unmap(page_table_entry* self) {
+	self->present = 0;
 }
 
 void page_table_clear(page_table* self) {
@@ -73,15 +78,35 @@ page_table* page_table_create_child(page_table* self, uintptr_t i, allocator_vta
 	return new_frame_addr;
 }
 
-void map_frame(virtual_address address, allocator_vtable *allocator, page_table_entry_flags flags) {
-	page_table *p3 = page_table_create_child(p4, address_p4_index(address), allocator, flags);
-	page_table *p2 = page_table_create_child(p3, address_p3_index(address), allocator, flags);
-	page_table *p1 = page_table_create_child(p2, address_p2_index(address), allocator, flags);
-	page_table_entry_set(&p1->entries[address_p1_index(address)], address, flags);
+void map_page_to(virtual_address page, physical_address frame, allocator_vtable *allocator, page_table_entry_flags flags) {
+	page_table *p3 = page_table_create_child(p4, address_p4_index(page), allocator, flags);
+	page_table *p2 = page_table_create_child(p3, address_p3_index(page), allocator, flags);
+	page_table *p1 = page_table_create_child(p2, address_p2_index(page), allocator, flags);
+	page_table_entry_set(&p1->entries[address_p1_index(page)], frame, flags);
 }
 
-void map_frame_containing(virtual_address address, allocator_vtable *allocator, page_table_entry_flags flags) {
-	map_frame((virtual_address)((uint64_t)address & ~0xfff), allocator, flags);
+void map_page(virtual_address page, allocator_vtable *allocator, page_table_entry_flags flags) {
+	physical_address frame = allocator_allocate(allocator);
+	map_page_to(page, frame, allocator, flags);
+}
+
+void map_address(virtual_address address, allocator_vtable *allocator, page_table_entry_flags flags) {
+	map_page((virtual_address)((uint64_t)address & ~0xfff), allocator, flags);
+}
+
+void unmap_page(virtual_address page) {
+	page_table *p3 = page_table_get_child(p4, address_p4_index(page));
+	page_table *p2 = page_table_get_child(p3, address_p3_index(page));
+	page_table *p1 = page_table_get_child(p2, address_p2_index(page));
+	page_table_entry_unmap(&p1->entries[address_p1_index(page)]);
+	__asm__ volatile("invlpg %0" : : "m"(page));
+}
+
+void unmap_page_and_free_frame(virtual_address page, allocator_vtable *allocator) {
+	physical_address frame = UNWRAP(translate_address(page));
+	unmap_page(page);
+	allocator_deallocate(allocator, frame);
+	// TODO: Free parent page table frames if empty
 }
 
 static inline uint64_t address_offset(virtual_address address) {
@@ -113,6 +138,7 @@ optional_physical_address translate_address(virtual_address address) {
 		if (p2->entries[p2_index].huge) {
 			result.valid = 1;
 			result.value = (void*)((p2->entries[p2_index].address << 12) + (p1_index << 12) + offset);
+			kprintf("huge");
 			return result;
 		} else {
 			result.valid = 0;

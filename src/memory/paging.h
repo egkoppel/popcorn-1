@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "memory.h"
 #include "allocator.h"
+#include <utils.h>
 
 typedef struct __attribute__((packed)) {
 	uint64_t present: 1;
@@ -56,7 +57,10 @@ page_table* page_table_get_child(page_table* self, uintptr_t i);
 page_table* page_table_create_child(page_table* self, uintptr_t i, allocator_vtable *allocator, page_table_entry_flags flags);
 optional_physical_address translate_address(virtual_address address);
 
+void map_page(virtual_address page, allocator_vtable *allocator, page_table_entry_flags flags);
+void unmap_page(virtual_address page);
+void unmap_page_and_free_frame(virtual_address page, allocator_vtable *allocator);
 void map_address(virtual_address address, allocator_vtable *allocator, page_table_entry_flags flags);
-void map_frame_containing(virtual_address address, allocator_vtable *allocator, page_table_entry_flags flags);
+void map_page_to(virtual_address page, physical_address frame, allocator_vtable *allocator, page_table_entry_flags flags);
 
 #endif
