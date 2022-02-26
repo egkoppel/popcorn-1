@@ -34,7 +34,7 @@ impl Mapper<'_> {
 			.and_then(|p3| p3.get_child_table_mut(page.start_address().p3_index()))
 			.and_then(|p2| p2.get_child_table_mut(page.start_address().p2_index()))
 			.expect("Attempted to unmap unmapped address");
-		let mut entry = p1[page.start_address().p1_index()];
+		let entry = &mut p1[page.start_address().p1_index()];
 		allocator.deallocate_frame(entry.get_frame().unwrap());
 		entry.clear();
 		unsafe { asm!("invlpg [{}]", in(reg) page.start_address().0); }

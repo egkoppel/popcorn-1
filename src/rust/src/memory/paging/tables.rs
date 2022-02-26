@@ -33,7 +33,7 @@ use modular_bitfield::specifiers::*;
 
 #[bitfield(bytes = 8)]
 #[repr(C, u64)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug)]
 pub struct Entry {
 	pub present: bool,
 	pub writeable: bool,
