@@ -54,6 +54,10 @@ impl Entry {
 	pub fn set_frame(&mut self, frame: Frame) {
 		assert!(!self.present(), "Entry is already mapped");
 		self.set_present(true);
+		self.overwrite_frame(frame);
+	}
+
+	pub fn overwrite_frame(&mut self, frame: Frame) {
 		self.set_internal_address(frame.start_address().0 >> 12);
 	}
 
@@ -68,7 +72,7 @@ impl Entry {
 	}
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 pub struct PageTable<L> where L:TableLevel {
 	entries: [Entry; 512],
 	level: PhantomData<L>
@@ -80,6 +84,13 @@ impl<L> PageTable<L> where L:TableLevel {
 			entry.clear();
 		}
 		return self;
+	}
+}
+
+impl PageTable<Level4> {
+	pub unsafe fn new_from_addr<'a>(addr: u64) -> &'a mut PageTable<Level4> {
+		assert_eq!(addr & 0xfff, 0, "Page table is not 4k aligned");
+		return &mut *(addr as *mut _);
 	}
 }
 
