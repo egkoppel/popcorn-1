@@ -105,6 +105,10 @@ impl Frame {
 	pub fn start_address(&self) -> PhysicalAddress {
 		return PhysicalAddress(self.number * 4096);
 	}
+
+	pub(self) fn clone(&self) -> Frame {
+		return Frame { number: self.number };
+	} 
 }
 
 impl fmt::Debug for Frame {
