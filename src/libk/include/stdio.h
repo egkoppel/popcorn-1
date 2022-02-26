@@ -18,6 +18,8 @@ extern FILE* stdserial;
 void kfputc(FILE *stream, unsigned char c);
 void kputc(unsigned char c);
 
+void term_clear();
+
 void kfputs(FILE *stream, const char* str);
 void kputs(const char* str);
 

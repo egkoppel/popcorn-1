@@ -550,3 +550,9 @@ void handle_esc_code(int code) {
 		case 37: col = COLOR_WHITE; break;
 	}
 }
+
+void term_clear() {
+	memset(FRAMEBUFFER, 0, framebuffer_pitch * psf_height * termsize_y); // zero whole screen
+	x = 0;
+	y = 0;
+}
