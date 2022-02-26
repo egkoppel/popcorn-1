@@ -3,11 +3,19 @@ pub mod mapper;
 
 use core::ptr::Unique;
 use spin::Mutex;
+use core::arch::asm;
 
 use self::{tables::{PageTable, Level4}, mapper::Mapper};
-use super::{Page, Frame, VirtualAddress, PhysicalAddress};
+use super::{Page, Frame, VirtualAddress, PhysicalAddress, frame_alloc::Allocator};
 
 pub static PAGE_TABLE: Mutex<ActivePageTable> = Mutex::new(unsafe { ActivePageTable::new() });
+
+fn flush_tlb() {
+	unsafe {
+		asm!("mov rax, cr3
+		  mov cr3, rax", out("rax") _);
+	}
+}
 
 pub struct ActivePageTable {
 	p4: Unique<PageTable<Level4>>
