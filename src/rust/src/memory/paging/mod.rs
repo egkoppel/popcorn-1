@@ -65,7 +65,7 @@ pub struct InactivePageTable {
 
 impl InactivePageTable {
 	pub fn new(allocator: &mut dyn Allocator) -> InactivePageTable {
-		let p4_addr = 0xFFFFFF80deadb000u64;
+		let p4_addr = 0xFFFFFF80cafeb000u64;
 
 		let p4_frame = allocator.allocate_frame().unwrap();
 		PAGE_TABLE.lock().mapper().map_page_to(Page::containing_address(VirtualAddress(p4_addr)), p4_frame.clone(), allocator);

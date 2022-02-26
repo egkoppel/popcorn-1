@@ -35,12 +35,17 @@ pub extern "C" fn rust_test(alloc: &mut BumpAllocator) {
 
 	let inactive = InactivePageTable::new(alloc);
 	PAGE_TABLE.lock().with_inactive_table(inactive, |mut mapper, frame_alloc| {
+		println!("In inactive table closure");
 		let v = memory::Page::containing_address(memory::VirtualAddress(0xdeadbeef));
 		let a = mapper.translate_page(v);
 		println!("Translate in inactive {:x?} -> {:x?}", v, a);
 
 		mapper.map_page(v, frame_alloc);
 
+		let a = mapper.translate_page(v);
+		println!("Translate in inactive {:x?} -> {:x?}", v, a);
+
+		mapper.unmap_page(v, frame_alloc);
 		let a = mapper.translate_page(v);
 		println!("Translate in inactive {:x?} -> {:x?}", v, a);
 	}, alloc);
