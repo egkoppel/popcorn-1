@@ -40,15 +40,44 @@ impl ActivePageTable {
 		return Mapper::new(self.p4_as_mut());
 	}
 
-	pub fn translate_page(&self, page: Page) -> Option<Frame> {
-		return self.p4_as_ref().get_child_table(page.start_address().p4_index())
-			.and_then(|p3| p3.get_child_table(page.start_address().p3_index()))
-			.and_then(|p2| p2.get_child_table(page.start_address().p2_index()))
-			.and_then(|p1| p1[page.start_address().p1_index()].get_frame());
-	}
+	pub fn with_inactive_table<F>(&mut self, inactive: InactivePageTable, f: F, allocator: &mut dyn Allocator) where F: (Fn(Mapper, &mut dyn Allocator) -> ()) {
+		let mut backup_table_addr: u64;
+		unsafe {
+			asm!("mov {}, cr3", out(reg) backup_table_addr);
+		}
+		backup_table_addr &= 0xfffffffffffff000;
+		self.mapper().map_page_to(Page::containing_address(VirtualAddress(0xFFFFFF80cafebabe)), Frame::containing_address(PhysicalAddress(backup_table_addr)), allocator);
+		let old_p4 = unsafe { PageTable::<Level4>::new_from_addr(backup_table_addr) };
 
-	pub fn translate_address(&self, addr: VirtualAddress) -> Option<PhysicalAddress> {
-		return self.translate_page(Page::containing_address(addr))
-			.and_then(|frame| Some(frame.start_address() + addr.p1_offset()));
+		self.p4_as_mut()[510].overwrite_frame(inactive.p4);
+		flush_tlb();
+		f(self.mapper(), allocator);
+
+		old_p4[510].overwrite_frame(Frame::containing_address(PhysicalAddress(backup_table_addr)));
+		flush_tlb();
+		self.mapper().unmap_page_no_free(Page::containing_address(VirtualAddress(0xFFFFFF80cafebabe)));
+	}
+}
+
+pub struct InactivePageTable {
+	p4: Frame
+}
+
+impl InactivePageTable {
+	pub fn new(allocator: &mut dyn Allocator) -> InactivePageTable {
+		let p4_addr = 0xFFFFFF80deadb000u64;
+
+		let p4_frame = allocator.allocate_frame().unwrap();
+		PAGE_TABLE.lock().mapper().map_page_to(Page::containing_address(VirtualAddress(p4_addr)), p4_frame.clone(), allocator);
+
+		let p4 = unsafe { PageTable::<Level4>::new_from_addr(p4_addr) };
+		p4.clear();
+		p4[510].set_frame(p4_frame.clone());
+
+		PAGE_TABLE.lock().mapper().unmap_page_no_free(Page::containing_address(VirtualAddress(p4_addr)));
+
+		return InactivePageTable {
+			p4: p4_frame
+		}
 	}
 }

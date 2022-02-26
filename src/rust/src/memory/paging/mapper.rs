@@ -49,4 +49,17 @@ impl Mapper<'_> {
 		let entry = &mut p1[page.start_address().p1_index()];
 		entry.clear();
 		unsafe { asm!("invlpg [{}]", in(reg) page.start_address().0); }
+	}
+
+	pub fn translate_page(&self, page: Page) -> Option<Frame> {
+		return self.p4.get_child_table(page.start_address().p4_index())
+			.and_then(|p3| p3.get_child_table(page.start_address().p3_index()))
+			.and_then(|p2| p2.get_child_table(page.start_address().p2_index()))
+			.and_then(|p1| p1[page.start_address().p1_index()].get_frame());
+	}
+
+	pub fn translate_address(&self, addr: VirtualAddress) -> Option<PhysicalAddress> {
+		return self.translate_page(Page::containing_address(addr))
+			.and_then(|frame| Some(frame.start_address() + addr.p1_offset()));
+	}
 }
