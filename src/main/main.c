@@ -13,6 +13,7 @@
 #include <panic.h>
 
 multiboot_data mb;
+void rust_test(void*);
 
 void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	if (multiboot_magic == 0x36d76289) {
@@ -79,7 +80,11 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	uint64_t needed_bytes = IDIV_ROUND_UP(total_ram / 0x1000, 8);
 	uint64_t needed_frames = IDIV_ROUND_UP(needed_bytes, 0x1000);
 
-	kprintf("[    ] Allocating %u bytes for memory bitmap (%u frames)\n", needed_bytes, needed_frames);
+	rust_test(&init_alloc);
+	while (1);
+	
+
+	/*kprintf("[    ] Allocating %u bytes for memory bitmap (%u frames)\n", needed_bytes, needed_frames);
 	void *bitmap_frame_starts[needed_frames];
 	for (uint64_t i = 0; i < needed_frames; ++i) {
 		bitmap_frame_starts[i] = allocator_allocate(&init_alloc.vtable);//frame_bump_alloc_allocate(&init_alloc);
@@ -87,7 +92,8 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 
 	if (bitmap_frame_starts[needed_frames - 1] > (void*)0x40000000) panic("Could not fit memory bitmap in 1st GiB");
 
-	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Allocated bitmap frames\n");
+	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Allocated bitmap frames\n");*/
+
 
 	while(1);
 }
