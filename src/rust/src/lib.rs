@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(asm)]
 #![feature(ptr_internals)]
 
 #[macro_use]

@@ -2,6 +2,7 @@ use crate::memory::{Page, Frame};
 use crate::memory::frame_alloc::Allocator;
 
 use super::tables::{PageTable, Level4};
+use core::arch::asm;
 
 pub struct Mapper<'a> {
 	p4: &'a mut PageTable<Level4>
