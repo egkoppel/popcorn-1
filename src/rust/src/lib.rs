@@ -10,7 +10,7 @@ mod memory;
 
 use core::panic::PanicInfo;
 use crate::memory::frame_alloc::*;
-use crate::memory::paging::PAGE_TABLE;
+use crate::memory::paging::{PAGE_TABLE, InactivePageTable};
 
 /// This function is called on panic.
 #[panic_handler]
@@ -22,17 +22,28 @@ fn panic(info: &PanicInfo) -> ! {
 #[no_mangle]
 pub extern "C" fn rust_test(alloc: &mut BumpAllocator) {
 	let v = memory::Page::containing_address(memory::VirtualAddress(0xdeadbeef));
-	let a = PAGE_TABLE.lock().translate_page(v);
+	let a = PAGE_TABLE.lock().mapper().translate_page(v);
 	println!("Translate {:x?} -> {:?}", v, a);
 
 	PAGE_TABLE.lock().mapper().map_page(v, alloc);
-	let a = PAGE_TABLE.lock().translate_address(memory::VirtualAddress(0xdeadbeef));
+	let a =  PAGE_TABLE.lock().mapper().translate_page(v);
 	println!("Translate {:x?} -> {:x?}", v, a);
 
-	let v2 = memory::Page::containing_address(memory::VirtualAddress(0xdeadbeef));
-	PAGE_TABLE.lock().mapper().unmap_page(v2, alloc);
-	let a = PAGE_TABLE.lock().translate_page(v2);
-	println!("Translate {:x?} -> {:x?}", v2, a);
+	PAGE_TABLE.lock().mapper().unmap_page(v, alloc);
+	let a = PAGE_TABLE.lock().mapper().translate_page(v);
+	println!("Translate {:x?} -> {:x?}", v, a);
+
+	let inactive = InactivePageTable::new(alloc);
+	PAGE_TABLE.lock().with_inactive_table(inactive, |mut mapper, frame_alloc| {
+		let v = memory::Page::containing_address(memory::VirtualAddress(0xdeadbeef));
+		let a = mapper.translate_page(v);
+		println!("Translate in inactive {:x?} -> {:x?}", v, a);
+
+		mapper.map_page(v, frame_alloc);
+
+		let a = mapper.translate_page(v);
+		println!("Translate in inactive {:x?} -> {:x?}", v, a);
+	}, alloc);
 
 	loop {}
 }
