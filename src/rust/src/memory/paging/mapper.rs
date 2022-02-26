@@ -1,4 +1,4 @@
-use crate::memory::{Page, Frame};
+use crate::memory::{Page, Frame, PhysicalAddress, VirtualAddress};
 use crate::memory::frame_alloc::Allocator;
 
 use super::tables::{PageTable, Level4};
@@ -39,4 +39,14 @@ impl Mapper<'_> {
 		entry.clear();
 		unsafe { asm!("invlpg [{}]", in(reg) page.start_address().0); }
 	}
+
+	pub fn unmap_page_no_free(&mut self, page: Page) {
+		let p1 = self.p4
+			.get_child_table_mut(page.start_address().p4_index())
+			.and_then(|p3| p3.get_child_table_mut(page.start_address().p3_index()))
+			.and_then(|p2| p2.get_child_table_mut(page.start_address().p2_index()))
+			.expect("Attempted to unmap unmapped address");
+		let entry = &mut p1[page.start_address().p1_index()];
+		entry.clear();
+		unsafe { asm!("invlpg [{}]", in(reg) page.start_address().0); }
 }
