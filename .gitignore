@@ -1,3 +1,4 @@
 build/
 _*
 .vscode
+src/rust/target
