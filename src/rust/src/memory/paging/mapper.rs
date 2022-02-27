@@ -23,7 +23,7 @@ impl Mapper<'_> {
 
 	pub fn map_page(&mut self, page: Page, allocator: &mut dyn Allocator) {
 		let frame_ = allocator.allocate_frame();
-		assert!(frame_.is_ok(), "Couldn't allocate frame to map to {:?}", page);
+		assert!(frame_.is_some(), "Couldn't allocate frame to map to {:?}", page);
 		let frame = frame_.unwrap();
 		self.map_page_to(page, frame, allocator);
 	}

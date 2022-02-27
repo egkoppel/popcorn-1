@@ -3,7 +3,7 @@ use core::ffi::c_void;
 use super::{PhysicalAddress, Frame};
 
 pub trait Allocator {
-	fn allocate_frame(&mut self) -> Result<Frame, ()>;
+	fn allocate_frame(&mut self) -> Option<Frame>;
 	fn deallocate_frame(&mut self, _addr: Frame) {}
 }
 
@@ -23,10 +23,12 @@ extern "C" {
 }
 
 impl Allocator for BumpAllocator {
-	fn allocate_frame(&mut self) -> Result<Frame, ()> {
+	fn allocate_frame(&mut self) -> Option<Frame> {
 		unsafe {
 			let new_frame = frame_bump_alloc_allocate(self as *mut _);
-			return Ok(Frame::containing_address(PhysicalAddress(new_frame as u64)));
+			return Some(Frame::with_address(PhysicalAddress(new_frame as u64)));
 		}
+	}
+}
 	}
 }

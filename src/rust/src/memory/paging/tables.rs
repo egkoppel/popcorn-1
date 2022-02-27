@@ -63,7 +63,7 @@ impl Entry {
 
 	pub fn get_frame(&self) -> Option<Frame> {
 		if self.present() {
-			return Some(Frame::containing_address(PhysicalAddress(self.internal_address() << 12)));
+			return Some(Frame::with_address(PhysicalAddress(self.internal_address() << 12)));
 		} else { return None; }
 	}
 
