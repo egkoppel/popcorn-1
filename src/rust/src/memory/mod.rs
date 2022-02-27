@@ -3,7 +3,7 @@ use core::{fmt, ops};
 pub mod frame_alloc;
 pub mod paging;
 
-#[repr(C)]
+#[repr(transparent)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VirtualAddress(pub u64);
 
@@ -45,7 +45,7 @@ impl ops::Sub<u64> for VirtualAddress {
 	}
 }
 
-#[repr(C)]
+#[repr(transparent)]
 #[derive(Debug, Copy, Clone)]
 pub struct PhysicalAddress(pub u64);
 
