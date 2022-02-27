@@ -92,3 +92,68 @@ impl InactivePageTable {
 		}
 	}
 }
+
+mod c_api {
+	use crate::{PAGE_TABLE, InactivePageTable};
+	use crate::memory::frame_alloc::CAllocatorVtable;
+	use crate::memory::{Frame, Page, PhysicalAddress, VirtualAddress};
+
+	#[no_mangle] extern "C" fn map_page(addr: VirtualAddress, allocator: Option<&mut CAllocatorVtable>) -> i32 {
+		if allocator.is_none() { return -1; }
+		PAGE_TABLE.lock().mapper().map_page(Page::with_address(addr), allocator.unwrap());
+		return 0;
+	}
+
+	#[no_mangle] extern "C" fn map_page_to(virt_addr: VirtualAddress, phys_addr: PhysicalAddress, allocator: Option<&mut CAllocatorVtable>) -> i32 {
+		if allocator.is_none() { return -1; }
+		PAGE_TABLE.lock().mapper().map_page_to(Page::with_address(virt_addr), Frame::with_address(phys_addr), allocator.unwrap());
+		return 0;
+	}
+
+	#[no_mangle] extern "C" fn unmap_page(addr: VirtualAddress, allocator: Option<&mut CAllocatorVtable>) -> i32 {
+		if allocator.is_none() { return -1; }
+		PAGE_TABLE.lock().mapper().unmap_page(Page::with_address(addr), allocator.unwrap());
+		return 0;
+	}
+
+	#[no_mangle] extern "C" fn unmap_page_no_free(addr: VirtualAddress) {
+		PAGE_TABLE.lock().mapper().unmap_page_no_free(Page::with_address(addr));
+	}
+
+	#[no_mangle] extern "C" fn translate_page(addr: VirtualAddress, ret: Option<&mut u64>) -> i32 {
+		let frame = PAGE_TABLE.lock().mapper().translate_page(Page::with_address(addr));
+		if frame.is_none() { return -1; }
+		if ret.is_some() { *ret.unwrap() = frame.unwrap().start_address().0; }
+		return 0;
+	}
+
+	#[no_mangle] extern "C" fn translate_addr(addr: VirtualAddress, ret: Option<&mut u64>) -> i32 {
+		let paddr = PAGE_TABLE.lock().mapper().translate_address(addr);
+		if paddr.is_none() { return -1; }
+		if ret.is_some() { *ret.unwrap() = paddr.unwrap().0; }
+		return 0;
+	}
+
+	#[repr(C)]
+	struct MapperCtx {
+		backup_table_addr: PhysicalAddress
+	}
+
+	#[no_mangle] extern "C" fn mapper_ctx_begin(inactive_table_frame: PhysicalAddress, allocator: Option<&mut CAllocatorVtable>) -> MapperCtx {
+		let backup_addr = PAGE_TABLE.lock().map_inactive_table(InactivePageTable {
+			p4: Frame::with_address(inactive_table_frame)
+		}, allocator.unwrap());
+
+		return MapperCtx {
+			backup_table_addr: backup_addr
+		};
+	}
+
+	#[no_mangle] extern "C" fn mapper_ctx_end(ctx: MapperCtx) {
+		PAGE_TABLE.lock().unmap_inactive_table(ctx.backup_table_addr);
+	}
+
+	#[no_mangle] extern "C" fn create_p4_table(allocator: Option<&mut CAllocatorVtable>) -> PhysicalAddress {
+		return InactivePageTable::new(allocator.unwrap()).p4.start_address();
+	}
+}
