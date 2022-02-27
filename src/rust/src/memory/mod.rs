@@ -71,7 +71,7 @@ pub struct Page {
 }
 
 impl Page {
-	pub fn containing_address(addr: VirtualAddress) -> Page {
+	pub const fn containing_address(addr: VirtualAddress) -> Page {
 		return Page {
 			number: addr.0 / 4096
 		};
