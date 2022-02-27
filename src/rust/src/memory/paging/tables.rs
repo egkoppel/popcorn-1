@@ -51,17 +51,17 @@ pub struct Entry {
 } 
 
 impl Entry {
-	pub fn set_frame(&mut self, frame: Frame) {
+	pub fn set_address(&mut self, frame: Frame) {
 		assert!(!self.present(), "Entry is already mapped");
 		self.set_present(true);
-		self.overwrite_frame(frame);
+		self.overwrite_address(frame);
 	}
 
-	pub fn overwrite_frame(&mut self, frame: Frame) {
+	pub fn overwrite_address(&mut self, frame: Frame) {
 		self.set_internal_address(frame.start_address().0 >> 12);
 	}
 
-	pub fn get_frame(&self) -> Option<Frame> {
+	pub fn get_address(&self) -> Option<Frame> {
 		if self.present() {
 			return Some(Frame::with_address(PhysicalAddress(self.internal_address() << 12)));
 		} else { return None; }
@@ -132,7 +132,7 @@ impl<L> PageTable<L> where L: HierarchicalTableLevel {
 		let child_table = self.get_child_table_mut(index);
 		if child_table.is_none() {
 			let new_table = frame_allocator.allocate_frame().expect("Unable to allocate frame for new page table");
-			self[index].set_frame(new_table);
+			self[index].set_address(new_table);
 			return self.get_child_table_mut(index).unwrap().clear();
 		} 
 		return self.get_child_table_mut(index).unwrap();

@@ -48,7 +48,7 @@ impl ActivePageTable {
 		backup_table_addr &= 0xfffffffffffff000;
 		self.mapper().map_page_to(Page::containing_address(VirtualAddress(0xFFFFFF80cafebabe)), Frame::with_address(PhysicalAddress(backup_table_addr)), allocator);
 
-		self.p4_as_mut()[510].overwrite_frame(inactive.p4);
+		self.p4_as_mut()[510].overwrite_address(inactive.p4);
 		flush_tlb();
 
 		return PhysicalAddress(backup_table_addr);
@@ -56,7 +56,7 @@ impl ActivePageTable {
 
 	fn unmap_inactive_table(&mut self, backup_table_addr: PhysicalAddress) {
 		let old_p4 = unsafe { PageTable::<Level4>::new_from_addr(0xFFFFFF80cafeb000) };
-		old_p4[510].overwrite_frame(Frame::containing_address(backup_table_addr));
+		old_p4[510].overwrite_address(Frame::containing_address(backup_table_addr));
 		flush_tlb();
 		self.mapper().unmap_page_no_free(Page::containing_address(VirtualAddress(0xFFFFFF80cafebabe)));
 	}
@@ -83,7 +83,7 @@ impl InactivePageTable {
 
 		let p4 = unsafe { PageTable::<Level4>::new_from_addr(p4_addr) };
 		p4.clear();
-		p4[510].set_frame(p4_frame.clone());
+		p4[510].set_address(p4_frame.clone());
 
 		PAGE_TABLE.lock().mapper().unmap_page_no_free(Page::with_address(VirtualAddress(p4_addr)));
 
