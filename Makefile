@@ -5,17 +5,33 @@ LD = ld.lld
 QEMU ?= qemu-system-x86_64
 OBJCOPY ?= llvm-objcopy
 AR = llvm-ar
+CARGO ?= cargo
 
 INCLUDE ?= -Isrc/libk/include
 
 OPT ?= 0
 CFLAGS = $(INCLUDE) -O$(OPT) -Wall -Wextra -Wpedantic -Wno-language-extension-token -Werror=incompatible-pointer-types -Wno-address-of-packed-member -mcmodel=large -MMD -MP -c -g -nostdlib -fno-exceptions -fno-rtti -fno-stack-protector -ffreestanding -target x86_64-unknown-none-elf -mno-mmx -mno-sse -mno-sse3 -mno-sse4 -mno-avx -mno-red-zone -msoft-float
+CARGOFLAGS ?=
 LDFLAGS ?= 
 QEMU_ARGS ?=
 QEMU_SERIAL ?= -serial stdio
 
+RUST_BUILD_TYPE ?= undefined
+RUST_TARGET_NAME ?= hugos-target
+
+ifeq ($(RUST_BUILD_TYPE),undefined)
+ifeq ($(filter $(OPT),2 3),)
+RUST_BUILD_TYPE = debug
+else
+RUST_BUILD_TYPE = release
+endif
+endif
+
 BUILD_DIR ?= build
 ISODIR ?= $(BUILD_DIR)/isodir
+RUST_DIR ?= src/rust
+
+RUST_LIB_DIR = $(RUST_DIR)/target/$(RUST_TARGET_NAME)/$(RUST_BUILD_TYPE)
 
 OBJS = $(patsubst src/%,$(BUILD_DIR)/%, \
 	$(patsubst %.S,%.S.o,$(wildcard src/bootstrap/*.S)) \
@@ -85,8 +101,16 @@ $(BUILD_DIR)/libk/src/%.c.o: src/libk/src/%.c | $(BUILD_DIR)/libk/src
 $(BUILD_DIR)/libk.a: $(OBJS_LIBK) | $(BUILD_DIR)
 	$(AR) -rcs $@ $^
 
-$(BUILD_DIR)/hug.bin: $(OBJS) $(BUILD_DIR)/libk.a
-	$(LD) $(LDFLAGS) -T $(LINKER_SCRIPT) -o $@ $(OBJS) -L$(BUILD_DIR) -lk
+-include $(RUST_LIB_DIR)/libhugos.d
+$(RUST_LIB_DIR)/libhugos.a:
+ifeq ($(RUST_BUILD_TYPE),release)
+	+cd $(RUST_DIR) && $(CARGO) build --release
+else
+	+cd $(RUST_DIR) && $(CARGO) build
+endif
+
+$(BUILD_DIR)/hug.bin: $(OBJS) $(BUILD_DIR)/libk.a $(RUST_LIB_DIR)/libhugos.a
+	$(LD) $(LDFLAGS) -T $(LINKER_SCRIPT) -o $@ $(OBJS) -L$(BUILD_DIR) -lk -L$(RUST_LIB_DIR) -lhugos
 
 $(BUILD_DIR)/hug.iso: $(BUILD_DIR)/hug.bin $(GRUBCFG) | $(ISODIR)
 	cp $(BUILD_DIR)/hug.bin $(ISODIR)/boot/hug.bin
@@ -95,6 +119,7 @@ $(BUILD_DIR)/hug.iso: $(BUILD_DIR)/hug.bin $(GRUBCFG) | $(ISODIR)
 
 clean:
 	rm -rf $(BUILD_DIR)
+	cd $(RUST_DIR) && $(CARGO) clean
 run: $(BUILD_DIR)/hug.iso
 	$(QEMU) $(QEMU_ARGS) $(QEMU_SERIAL) -drive file=$<,format=raw
 run_debug: $(BUILD_DIR)/hug.iso
