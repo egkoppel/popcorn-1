@@ -77,6 +77,13 @@ impl Page {
 		};
 	}
 
+	pub fn with_address(addr: VirtualAddress) -> Page {
+		assert_eq!(addr.0 & 0xfff, 0, "Page is not 4k aligned");
+		return Page {
+			number: addr.0 / 4096
+		};
+	}
+
 	pub fn start_address(&self) -> VirtualAddress {
 		return VirtualAddress(self.number * 4096);
 	}
@@ -97,6 +104,13 @@ pub struct Frame {
 
 impl Frame {
 	pub fn containing_address(addr: PhysicalAddress) -> Frame{
+		return Frame {
+			number: addr.0 / 4096
+		};
+	}
+
+	pub fn with_address(addr: PhysicalAddress) -> Frame {
+		assert_eq!(addr.0 & 0xfff, 0, "Frame is not 4k aligned");
 		return Frame {
 			number: addr.0 / 4096
 		};
