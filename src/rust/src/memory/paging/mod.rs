@@ -55,7 +55,7 @@ impl ActivePageTable {
 	}
 
 	fn unmap_inactive_table(&mut self, backup_table_addr: PhysicalAddress) {
-		let old_p4 = unsafe { PageTable::<Level4>::new_from_addr(backup_table_addr.0) };
+		let old_p4 = unsafe { PageTable::<Level4>::new_from_addr(0xFFFFFF80cafeb000) };
 		old_p4[510].overwrite_frame(Frame::containing_address(backup_table_addr));
 		flush_tlb();
 		self.mapper().unmap_page_no_free(Page::containing_address(VirtualAddress(0xFFFFFF80cafebabe)));
