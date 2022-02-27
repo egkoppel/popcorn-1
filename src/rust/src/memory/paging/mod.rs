@@ -13,7 +13,7 @@ pub static PAGE_TABLE: Mutex<ActivePageTable> = Mutex::new(unsafe { ActivePageTa
 fn flush_tlb() {
 	unsafe {
 		asm!("mov rax, cr3
-		  mov cr3, rax", out("rax") _);
+			  mov cr3, rax", out("rax") _);
 	}
 }
 
@@ -40,7 +40,7 @@ impl ActivePageTable {
 		return Mapper::new(self.p4_as_mut());
 	}
 
-	pub fn with_inactive_table<F>(&mut self, inactive: InactivePageTable, f: F, allocator: &mut dyn Allocator) where F: (Fn(Mapper, &mut dyn Allocator) -> ()) {
+	fn map_inactive_table(&mut self, inactive: InactivePageTable, allocator: &mut dyn Allocator) -> PhysicalAddress {
 		let mut backup_table_addr: u64;
 		unsafe {
 			asm!("mov {}, cr3", out(reg) backup_table_addr);
@@ -50,11 +50,23 @@ impl ActivePageTable {
 
 		self.p4_as_mut()[510].overwrite_frame(inactive.p4);
 		flush_tlb();
-		f(self.mapper(), allocator);
 
-		old_p4[510].overwrite_frame(Frame::containing_address(PhysicalAddress(backup_table_addr)));
+		return PhysicalAddress(backup_table_addr);
+	}
+
+	fn unmap_inactive_table(&mut self, backup_table_addr: PhysicalAddress) {
+		let old_p4 = unsafe { PageTable::<Level4>::new_from_addr(backup_table_addr.0) };
+		old_p4[510].overwrite_frame(Frame::containing_address(backup_table_addr));
 		flush_tlb();
 		self.mapper().unmap_page_no_free(Page::containing_address(VirtualAddress(0xFFFFFF80cafebabe)));
+	}
+
+	pub fn with_inactive_table<F>(&mut self, inactive: InactivePageTable, f: F, allocator: &mut dyn Allocator) where F: (Fn(Mapper, &mut dyn Allocator) -> ()) {
+		let backup = self.map_inactive_table(inactive, allocator);
+
+		f(self.mapper(), allocator);
+
+		self.unmap_inactive_table(backup);
 	}
 }
 
