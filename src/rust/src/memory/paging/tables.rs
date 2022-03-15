@@ -138,3 +138,43 @@ impl<L> PageTable<L> where L: HierarchicalTableLevel {
 		return self.get_child_table_mut(index).unwrap();
 	}
 }
+
+mod c_api {
+	use super::super::PAGE_TABLE;
+	use crate::memory::{VirtualAddress, Page};
+	use core::ops::IndexMut;
+
+	#[repr(C)]
+	struct EntryFlags {
+		pub writeable: bool,
+		pub user_accessible: bool,
+		pub write_through: bool,
+		pub cache_disabled: bool,
+		pub accessed: bool,
+		pub dirty: bool,
+		pub huge: bool,
+		pub global: bool,
+		pub no_execute: bool
+	}
+
+	#[no_mangle] extern "C" fn set_entry_flags_for_address(addr: VirtualAddress, flags: EntryFlags) -> i32 {
+		let page = Page::with_address(addr);
+		let mut p4 = PAGE_TABLE.lock();
+		let entry = p4.p4_as_mut().get_child_table_mut(page.start_address().p4_index())
+			.and_then(|p3| p3.get_child_table_mut(page.start_address().p3_index()))
+			.and_then(|p2| p2.get_child_table_mut(page.start_address().p2_index()))
+			.and_then(|p1| Some(p1.index_mut(page.start_address().p1_index())));
+		if let Some(entry) = entry {
+			entry.set_writeable(flags.writeable);
+			entry.set_user_accessible(flags.user_accessible);
+			entry.set_write_through(flags.write_through);
+			entry.set_cache_disabled(flags.cache_disabled);
+			entry.set_accessed(flags.accessed);
+			entry.set_dirty(flags.dirty);
+			entry.set_huge(flags.huge);
+			entry.set_global(flags.global);
+			entry.set_no_execute(flags.no_execute);
+			return 0;
+		} else { return -1; }
+	}
+}

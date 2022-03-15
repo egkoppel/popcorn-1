@@ -24,4 +24,18 @@ void mapper_ctx_end(mapper_ctx_t ctx);
 
 uint64_t create_p4_table(allocator_vtable *allocator);
 
+typedef struct {
+	_Bool writeable;
+	_Bool user_accessible;
+	_Bool write_through;
+	_Bool cache_disabled;
+	_Bool accessed;
+	_Bool dirty;
+	_Bool huge;
+	_Bool global;
+	_Bool no_execute;
+} entry_flags_t;
+
+int32_t set_entry_flags_for_address(uint64_t addr, entry_flags_t flags);
+
 #endif
