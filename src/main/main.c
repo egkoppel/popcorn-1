@@ -43,11 +43,11 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	uint64_t kernel_max = 0;
 	uint64_t kernel_min = UINT64_MAX;
 	for (multiboot_elf_symbols_entry *i = multiboot_tag_elf_symbols_begin(sections); i < multiboot_tag_elf_symbols_end(sections); ++i) {
-		if (i->flags != 0) {
+		if ((i->type != SHT_NULL) && (i->flags & SHF_ALLOC) != 0) {
 			multiboot_elf_symbols_entry_print(i);
 			
-			if ((i->addr > 0xFFFFFF8000000000 ? i->addr - 0xFFFFFF8000000000 : i->addr) < kernel_min) kernel_min = (i->addr > 0xFFFFFF8000000000 ? i->addr - 0xFFFFFF8000000000 : i->addr);
-			if ((i->addr > 0xFFFFFF8000000000 ? i->addr - 0xFFFFFF8000000000 : i->addr) + i->size > kernel_max) kernel_max = (i->addr > 0xFFFFFF8000000000 ? i->addr - 0xFFFFFF8000000000 : i->addr) + i->size;
+			if (i->addr - 0xFFFFFF8000000000 < kernel_min) kernel_min = i->addr - 0xFFFFFF8000000000;
+			if (i->addr - 0xFFFFFF8000000000 + i->size > kernel_max) kernel_max = i->addr - 0xFFFFFF8000000000 + i->size;
 		}
 	}
 	kprintf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Kernel executable: %lp -> %lp\n", kernel_min, kernel_max);
