@@ -40,6 +40,7 @@ SECTIONS {
 	.data ALIGN(4K) : AT(ADDR(.data) - KERNEL_OFFSET)
 	{
 		*(.data*)
+		*(.got*)
 	}
  
 	/* Read-write data (uninitialized) and stack */
