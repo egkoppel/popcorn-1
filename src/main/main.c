@@ -108,10 +108,46 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 			}
 		}
 
+		// Map the framebuffer
+		uint64_t virt_addr = 0xFFFFFF8040000000;
+		for (uint64_t phys_addr = fb->addr; phys_addr < ALIGN_UP(fb->addr + fb->height*fb->pitch, 0x1000); phys_addr+=0x1000, virt_addr+=0x1000) {
+			map_page_to(virt_addr, phys_addr, &init_alloc.vtable);
+
+			entry_flags_t flags = {
+				.accessed = 0,
+				.cache_disabled = 0,
+				.dirty = 0,
+				.global = 1,
+				.huge = 0,
+				.no_execute = 1,
+				.user_accessible = 0,
+				.write_through = 0,
+				.writeable = 1
+			};
+
+			set_entry_flags_for_address(virt_addr, flags);
+		}
+
 		mapper_ctx_end(ctx);
 	}
 
 	__asm__ volatile("mov %0, %%cr3" : : "r"(new_p4_table));
+
+	struct __attribute__((packed)) {
+		uint16_t size;
+		uint64_t address;
+	} idt_ptr;
+
+	__asm__ volatile("sidt %0" : "=m"(idt_ptr));
+
+	kfprintf(stdserial, "IDT at %p\n", idt_ptr.address);
+
+	uint64_t addr;
+	int mapped = translate_addr(idt_ptr.address, &addr);
+	kfprintf(stdserial, "Mapped to %p\n", mapped == 0 ? addr : 0xbadbadbadbadbad);
+
+	kfprintf(stdserial, "[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Reloaded page tables\n");
+	kfprintf(stdout, "[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Reloaded page tables\n");
 
 	while(1);
 
