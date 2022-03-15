@@ -131,22 +131,14 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 		mapper_ctx_end(ctx);
 	}
 
+	uint64_t old_p4_table_page;
+	__asm__ volatile("mov %%cr3, %0" : "=r"(old_p4_table_page));
+	old_p4_table_page += 0xFFFFFF8000000000;
 	__asm__ volatile("mov %0, %%cr3" : : "r"(new_p4_table));
 
-	struct __attribute__((packed)) {
-		uint16_t size;
-		uint64_t address;
-	} idt_ptr;
+	kfprintf(stdserial, "Creating stack guard page at %lp\n", old_p4_table_page);
+	unmap_page_no_free(old_p4_table_page);
 
-	__asm__ volatile("sidt %0" : "=m"(idt_ptr));
-
-	kfprintf(stdserial, "IDT at %p\n", idt_ptr.address);
-
-	uint64_t addr;
-	int mapped = translate_addr(idt_ptr.address, &addr);
-	kfprintf(stdserial, "Mapped to %p\n", mapped == 0 ? addr : 0xbadbadbadbadbad);
-
-	kfprintf(stdserial, "[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Reloaded page tables\n");
 	kfprintf(stdout, "[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Reloaded page tables\n");
 
 	while(1);
