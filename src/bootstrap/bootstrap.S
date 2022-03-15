@@ -34,6 +34,8 @@ enable_paging_done db "[", col_green, " OK ", col_reset, "] Paging enabled", 0xa
 lm_enabling db "[    ] Entering long mode", 0xa, 0
 lm_gdt_load db "[", col_green, " OK ", col_reset, "] Loaded GDT", 0xa, 0
 
+global gdt64.pointer64
+
 gdt64:
 	.null:
 		dq 0 ; null entry
@@ -64,6 +66,9 @@ gdt64:
 	.pointer:
 		dw $ - gdt64 - 1 - KERNEL_VIRTUAL_BASE
 		dq gdt64 - KERNEL_VIRTUAL_BASE
+	.pointer64:
+		dw .pointer - gdt64 - 1 - KERNEL_VIRTUAL_BASE
+		dq gdt64
 
 	.PRESENT		equ 1 << 7
 	.RING_3			equ 3 << 5

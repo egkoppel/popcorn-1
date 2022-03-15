@@ -14,6 +14,8 @@ section .text
 extern __cxa_init
 extern kputs
 extern _stack_top
+extern gdt64.pointer64
+
 long_mode_start:
 	; switch data segment registers
 	mov ax, 0x10
@@ -27,6 +29,8 @@ long_mode_start:
 	mov rax, .1
 	jmp rax
 .1:
+	mov rax, gdt64.pointer64
+	lgdt [rax]
 	; ENABLE SSE
 	lea rdi, [rel sse_enabling]
 	call kputs
