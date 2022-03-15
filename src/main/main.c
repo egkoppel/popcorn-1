@@ -80,9 +80,40 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	uint64_t needed_bytes = IDIV_ROUND_UP(total_ram / 0x1000, 8);
 	uint64_t needed_frames = IDIV_ROUND_UP(needed_bytes, 0x1000);
 
-	rust_test(&init_alloc);
-	while (1);
-	
+	uint64_t new_p4_table = create_p4_table(&init_alloc.vtable);
+
+	{
+		mapper_ctx_t ctx = mapper_ctx_begin(new_p4_table, &init_alloc.vtable);
+
+		// Map the kernel with section flags
+		for (multiboot_elf_symbols_entry *i = multiboot_tag_elf_symbols_begin(sections); i < multiboot_tag_elf_symbols_end(sections); ++i) {
+			if ((i->type != SHT_NULL) && (i->flags & SHF_ALLOC) != 0) {
+				for (uint64_t phys_addr = i->addr - 0xFFFFFF8000000000; phys_addr < ALIGN_UP(i->addr - 0xFFFFFF8000000000 + i->size, 0x1000); phys_addr+=0x1000) {
+					map_page_to(phys_addr + 0xFFFFFF8000000000, phys_addr, &init_alloc.vtable);
+
+					entry_flags_t flags = {
+						.accessed = 0,
+						.cache_disabled = 0,
+						.dirty = 0,
+						.global = 1,
+						.huge = 0,
+						.no_execute = !(i->flags & SHF_EXECINSTR),
+						.user_accessible = 0,
+						.write_through = 0,
+						.writeable = i->flags & SHF_WRITE
+					};
+
+					set_entry_flags_for_address(phys_addr + 0xFFFFFF8000000000, flags);
+				}
+			}
+		}
+
+		mapper_ctx_end(ctx);
+	}
+
+	__asm__ volatile("mov %0, %%cr3" : : "r"(new_p4_table));
+
+	while(1);
 
 	/*kprintf("[    ] Allocating %u bytes for memory bitmap (%u frames)\n", needed_bytes, needed_frames);
 	void *bitmap_frame_starts[needed_frames];
@@ -93,7 +124,4 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	if (bitmap_frame_starts[needed_frames - 1] > (void*)0x40000000) panic("Could not fit memory bitmap in 1st GiB");
 
 	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Allocated bitmap frames\n");*/
-
-
-	while(1);
 }
