@@ -156,7 +156,7 @@ typedef struct __attribute__((packed)) {
 	multiboot_tag_header *mb_data_end;
 } multiboot_data;
 
-void multiboot_data_init(multiboot_data* self, uint32_t info_struct);
+void multiboot_data_init(multiboot_data* self, uint64_t info_struct);
 multiboot_tag_header* multiboot_data_find_tag(multiboot_data* sef, multiboot_tag_types type);
 void multiboot_data_print_tags(multiboot_data* self);
 

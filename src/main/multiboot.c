@@ -30,10 +30,10 @@ multiboot_elf_symbols_entry* multiboot_tag_elf_symbols_end(multiboot_tag_elf_sym
 	return ADD_BYTES(&self->first_entry, self->entry_count * self->entry_size);
 }
 
-void multiboot_data_init(multiboot_data* self, uint32_t info_struct) {
-	multiboot_info_header *header = (multiboot_info_header*)(int64_t)info_struct;
+void multiboot_data_init(multiboot_data* self, uint64_t info_struct) {
+	multiboot_info_header *header = (multiboot_info_header*)info_struct;
 	self->mb_data_start = (multiboot_tag_header*)(info_struct + sizeof(multiboot_info_header));
-	self->mb_data_end = (multiboot_tag_header*)(int64_t)(info_struct + header->size);
+	self->mb_data_end = (multiboot_tag_header*)(info_struct + header->size);
 }
 
 multiboot_tag_header* multiboot_data_find_tag(multiboot_data* self, multiboot_tag_types type) {
