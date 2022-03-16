@@ -3,6 +3,6 @@
 
 #include <panic.h>
 
-#define assert(x, s) {if (!(x)) panic("Assertion failed: " s);}
+#define assert(x, s, ...) {if (!(x)) panic("Assertion failed: " #x "\n" s, ##__VA_ARGS__);}
 
 #endif

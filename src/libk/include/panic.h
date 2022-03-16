@@ -3,9 +3,11 @@
 
 #include <termcolor.h>
 
-#define panic(msg) \
+#define panic(msg, ...) \
 	{ \
-		kprintf("["TERMCOLOR_RED "ERR!" TERMCOLOR_RESET "]" TERMCOLOR_RED " Kernel panicked at %s:%d:\n\t%s\n", __FILE__, __LINE__, msg); \
+		kprintf("["TERMCOLOR_RED "ERR!" TERMCOLOR_RESET "]" TERMCOLOR_RED " Kernel panicked at %s:%d:\n\t", __FILE__, __LINE__); \
+		kprintf(msg, ##__VA_ARGS__); \
+		kprintf("\n"); \
 		asm volatile("cli; hlt"); \
 		while(1); \
 	}
