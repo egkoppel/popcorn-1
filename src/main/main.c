@@ -9,6 +9,7 @@
 #include "multiboot.h"
 #include "../memory/paging.h"
 #include "../memory/frame_bump_alloc.h"
+#include "../memory/frame_main_alloc.h"
 #include "../interrupts/interrupt_handlers.h"
 #include <panic.h>
 
@@ -176,15 +177,49 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 
 	kfprintf(stdout, "[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Reloaded page tables\n");
 
-	while(1);
+	// Reload multiboot info from new address
+	kfprintf(stdserial, "Remapped multiboot to %p\n", multiboot_virt_addr);
+	multiboot_data_init(&mb, multiboot_virt_addr);
+	fb = (multiboot_tag_framebuffer*)multiboot_data_find_tag(&mb, FRAMEBUFFER);
+	bootloader = (multiboot_tag_bootloader*)multiboot_data_find_tag(&mb, BOOTLOADER_NAME);
+	cli = (multiboot_tag_cli*)multiboot_data_find_tag(&mb, CLI);
+	mmap = (multiboot_tag_memory_map*)multiboot_data_find_tag(&mb, MEMORY_MAP);
+	sections = (multiboot_tag_elf_symbols*)multiboot_data_find_tag(&mb, ELF_SYMBOLS);
 
-	/*kprintf("[    ] Allocating %u bytes for memory bitmap (%u frames)\n", needed_bytes, needed_frames);
-	void *bitmap_frame_starts[needed_frames];
-	for (uint64_t i = 0; i < needed_frames; ++i) {
-		bitmap_frame_starts[i] = allocator_allocate(&init_alloc.vtable);//frame_bump_alloc_allocate(&init_alloc);
+	uint64_t *memory_bitmap_start = memory_bitmap;
+	uint64_t *memory_bitmap_end = (uint64_t)memory_bitmap_start + needed_frames*0x1000;
+
+	frame_main_alloc_state main_frame_allocator = {
+		.vtable = frame_main_alloc_state_vtable,
+		.bitmap_start = memory_bitmap_start,
+		.bitmap_end = memory_bitmap_end
+	};
+	kprintf("[    ] Initialising memory bitmap\n");
+	for (uint64_t *i = memory_bitmap_start; i < memory_bitmap_end; ++i) {
+		*i = 0;
 	}
+	for (uint64_t i = 0; i < init_alloc.next_alloc; i+=0x1000) {
+		frame_main_alloc_set_bit_for_addr(&main_frame_allocator, i);
+	}
+	for (uint64_t i = init_alloc.kernel_start; i < init_alloc.kernel_end; i+=0x1000) {
+		frame_main_alloc_set_bit_for_addr(&main_frame_allocator, i);
+	}
+	for (uint64_t i = init_alloc.multiboot_start; i < init_alloc.multiboot_end; i+=0x1000) {
+		frame_main_alloc_set_bit_for_addr(&main_frame_allocator, i);
+	}
+	for (multiboot_memory_map_entry *entry = multiboot_tag_memory_map_begin(mmap); entry < multiboot_tag_memory_map_end(mmap); ++entry) {
+		if (entry->type != AVAILABLE) {
+			for (uint64_t i = ALIGN_DOWN(entry->base_addr, 0x1000); i < ALIGN_UP(entry->base_addr + entry->length, 0x1000); i+=0x1000) {
+				frame_main_alloc_set_bit_for_addr(&main_frame_allocator, i);
+			}
+		}
+	}
+	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised memory bitmap\n");
 
-	if (bitmap_frame_starts[needed_frames - 1] > (void*)0x40000000) panic("Could not fit memory bitmap in 1st GiB");
+	global_frame_allocator = &main_frame_allocator.vtable;
 
-	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Allocated bitmap frames\n");*/
+
+	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised memory\n");
+
+	while(1);
 }
