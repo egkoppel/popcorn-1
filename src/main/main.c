@@ -15,6 +15,8 @@
 multiboot_data mb;
 void rust_test(void*);
 
+allocator_vtable *global_frame_allocator = NULL;
+
 void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	if (multiboot_magic == 0x36d76289) {
 		kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Mulitboot magic: 0x%x (correct)\n", multiboot_magic);
@@ -76,20 +78,22 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 		.multiboot_end = (uint64_t)mb.mb_data_end,
 		.mem_map = mmap
 	};
+	global_frame_allocator = &init_alloc.vtable;
 
 	uint64_t needed_bytes = IDIV_ROUND_UP(total_ram / 0x1000, 8);
 	uint64_t needed_frames = IDIV_ROUND_UP(needed_bytes, 0x1000);
 
 	uint64_t new_p4_table = create_p4_table(&init_alloc.vtable);
 
+	uint64_t multiboot_virt_addr, memory_bitmap;
 	{
-		mapper_ctx_t ctx = mapper_ctx_begin(new_p4_table, &init_alloc.vtable);
+		mapper_ctx_t ctx = mapper_ctx_begin(new_p4_table, global_frame_allocator);
 
 		// Map the kernel with section flags
 		for (multiboot_elf_symbols_entry *i = multiboot_tag_elf_symbols_begin(sections); i < multiboot_tag_elf_symbols_end(sections); ++i) {
 			if ((i->type != SHT_NULL) && (i->flags & SHF_ALLOC) != 0) {
 				for (uint64_t phys_addr = i->addr - 0xFFFFFF8000000000; phys_addr < ALIGN_UP(i->addr - 0xFFFFFF8000000000 + i->size, 0x1000); phys_addr+=0x1000) {
-					map_page_to(phys_addr + 0xFFFFFF8000000000, phys_addr, &init_alloc.vtable);
+					map_page_to(phys_addr + 0xFFFFFF8000000000, phys_addr, global_frame_allocator);
 
 					entry_flags_t flags = {
 						.accessed = 0,
@@ -111,7 +115,7 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 		// Map the framebuffer
 		uint64_t virt_addr = 0xFFFFFF8040000000;
 		for (uint64_t phys_addr = fb->addr; phys_addr < ALIGN_UP(fb->addr + fb->height*fb->pitch, 0x1000); phys_addr+=0x1000, virt_addr+=0x1000) {
-			map_page_to(virt_addr, phys_addr, &init_alloc.vtable);
+			map_page_to(virt_addr, phys_addr, global_frame_allocator);
 
 			entry_flags_t flags = {
 				.accessed = 0,
@@ -128,6 +132,37 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 			set_entry_flags_for_address(virt_addr, flags);
 		}
 
+		// Map multiboot
+		uint64_t multiboot_phys_addr = ALIGN_DOWN(multiboot_addr, 0x1000);
+		multiboot_virt_addr = ALIGN_UP(0xFFFFFF8040000000 + fb->height*fb->pitch, 0x1000); 
+		uint64_t multiboot_virt_end = ALIGN_UP(multiboot_virt_addr + (uint64_t)mb.mb_data_end - (uint64_t)mb.mb_data_start, 0x1000);
+		for (; multiboot_virt_addr < multiboot_virt_end; multiboot_virt_addr+=0x1000, multiboot_phys_addr+=0x1000) {
+			map_page_to(multiboot_virt_addr, multiboot_phys_addr, global_frame_allocator);
+
+			entry_flags_t flags = {
+				.accessed = 0,
+				.cache_disabled = 0,
+				.dirty = 0,
+				.global = 0,
+				.huge = 0,
+				.no_execute = 1,
+				.user_accessible = 0,
+				.write_through = 0,
+				.writeable = 0
+			};
+
+			set_entry_flags_for_address(multiboot_virt_addr, flags);
+		}
+		multiboot_virt_addr = ALIGN_UP(0xFFFFFF8040000000 + fb->height*fb->pitch, 0x1000) + (multiboot_addr - ALIGN_DOWN(multiboot_addr, 0x1000));
+
+		// Map bitmap
+		memory_bitmap = multiboot_virt_end;
+		kprintf("[    ] Allocating %u bytes for memory bitmap (%u frames) at %p\n", needed_bytes, needed_frames, memory_bitmap);
+		for (uint64_t i = 0; i < needed_frames; ++i) {
+			map_page(memory_bitmap + i*0x1000, global_frame_allocator);
+		}
+		kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Allocated memory bitmap (ends at %p)\n", memory_bitmap + needed_frames*0x1000);
+		
 		mapper_ctx_end(ctx);
 	}
 
