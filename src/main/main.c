@@ -7,6 +7,7 @@
 #include <termcolor.h>
 
 #include "multiboot.h"
+#include "../memory/memory.h"
 #include "../memory/paging.h"
 #include "../memory/frame_bump_alloc.h"
 #include "../memory/frame_main_alloc.h"
@@ -187,7 +188,7 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	sections = (multiboot_tag_elf_symbols*)multiboot_data_find_tag(&mb, ELF_SYMBOLS);
 
 	uint64_t *memory_bitmap_start = memory_bitmap;
-	uint64_t *memory_bitmap_end = (uint64_t)memory_bitmap_start + needed_frames*0x1000;
+	uint64_t *memory_bitmap_end = (uint64_t)memory_bitmap_start + needed_bytes;
 
 	frame_main_alloc_state main_frame_allocator = {
 		.vtable = frame_main_alloc_state_vtable,
@@ -218,8 +219,13 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 
 	global_frame_allocator = &main_frame_allocator.vtable;
 
-
 	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised memory\n");
+	kprintf("[    ] Initialising sbrk and heap\n");
+	global_sbrk_state = (sbrk_state_t){
+		.kernel_end = memory_bitmap_end,
+		.current_break = ALIGN_UP(memory_bitmap_end, 0x1000)
+	};
+	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised sbrk and heap\n");
 
 	while(1);
 }
