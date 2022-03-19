@@ -6,6 +6,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
 	uint32_t fd;
 } FILE;
@@ -33,5 +37,9 @@ int kvsprintf(char *str, const char *fmt, va_list args);
 int ksprintf(char *str, const char *fmt, ...);
 
 void handle_esc_code(int code);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

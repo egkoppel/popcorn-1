@@ -6,37 +6,36 @@
 
 #include <termcolor.h>
 
-#include "multiboot.h"
+#include "multiboot.hxx"
 #include "../memory/memory.h"
 #include "../memory/paging.h"
-#include "../memory/frame_bump_alloc.h"
-#include "../memory/frame_main_alloc.h"
-#include "../interrupts/interrupt_handlers.h"
+#include "../memory/frame_bump_alloc.hxx"
+#include "../memory/frame_main_alloc.hxx"
+#include "../interrupts/interrupt_handlers.hxx"
 #include <panic.h>
 
-multiboot_data mb;
 void rust_test(void*);
 
-allocator_vtable *global_frame_allocator = NULL;
+extern "C" allocator_vtable *global_frame_allocator = NULL;
 
-void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
+extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	if (multiboot_magic == 0x36d76289) {
 		kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Mulitboot magic: 0x%x (correct)\n", multiboot_magic);
 	} else {
 		kprintf("[" TERMCOLOR_RED "FAIL" TERMCOLOR_RESET "] Mulitboot magic: 0x%x (incorrect)\n", multiboot_magic);
 	}
 
-	multiboot_data_init(&mb, multiboot_addr);
+	multiboot::Data mb(multiboot_addr);
 	
-	multiboot_tag_framebuffer *fb = (multiboot_tag_framebuffer*)multiboot_data_find_tag(&mb, FRAMEBUFFER);
-	multiboot_tag_bootloader *bootloader = (multiboot_tag_bootloader*)multiboot_data_find_tag(&mb, BOOTLOADER_NAME);
-	multiboot_tag_cli *cli = (multiboot_tag_cli*)multiboot_data_find_tag(&mb, CLI);
-	multiboot_tag_memory_map *mmap = (multiboot_tag_memory_map*)multiboot_data_find_tag(&mb, MEMORY_MAP);
-	multiboot_tag_elf_symbols *sections = (multiboot_tag_elf_symbols*)multiboot_data_find_tag(&mb, ELF_SYMBOLS);
+	multiboot::framebuffer_tag *fb = mb.find_tag<multiboot::framebuffer_tag >(multiboot::tag_type::FRAMEBUFFER);
+	multiboot::bootloader_tag *bootloader = mb.find_tag<multiboot::bootloader_tag >(multiboot::tag_type::BOOTLOADER_NAME);
+	multiboot::cli_tag *cli = mb.find_tag<multiboot::cli_tag>(multiboot::tag_type::CLI);
+	multiboot::memory_map_tag *mmap = mb.find_tag<multiboot::memory_map_tag>(multiboot::tag_type::MEMORY_MAP);
+	multiboot::elf_sections_tag *sections = mb.find_tag<multiboot::elf_sections_tag>(multiboot::tag_type::ELF_SECTIONS);
 	
 	if (!mmap) panic("No memory map tag found");
 
-	if (bootloader) kprintf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Booted by %s\n", multiboot_tag_bootloader_get_name(bootloader));
+	if (bootloader) kprintf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Booted by %s\n", bootloader->get_name());
 
 	init_idt();
 	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded IDT\n");
@@ -46,29 +45,29 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 
 	uint64_t kernel_max = 0;
 	uint64_t kernel_min = UINT64_MAX;
-	for (multiboot_elf_symbols_entry *i = multiboot_tag_elf_symbols_begin(sections); i < multiboot_tag_elf_symbols_end(sections); ++i) {
-		if ((i->type != SHT_NULL) && (i->flags & SHF_ALLOC) != 0) {
-			multiboot_elf_symbols_entry_print(i);
+	for (multiboot::elf_sections_entry i : *sections) {
+		if ((i.type != SHT_NULL) && (i.flags & SHF_ALLOC) != 0) {
+			i.print();
 			
-			if (i->addr - 0xFFFFFF8000000000 < kernel_min) kernel_min = i->addr - 0xFFFFFF8000000000;
-			if (i->addr - 0xFFFFFF8000000000 + i->size > kernel_max) kernel_max = i->addr - 0xFFFFFF8000000000 + i->size;
+			if (i.addr - 0xFFFFFF8000000000 < kernel_min) kernel_min = i.addr - 0xFFFFFF8000000000;
+			if (i.addr - 0xFFFFFF8000000000 + i.size > kernel_max) kernel_max = i.addr - 0xFFFFFF8000000000 + i.size;
 		}
 	}
 	kprintf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Kernel executable: %lp -> %lp\n", kernel_min, kernel_max);
 
 	uint64_t available_ram = 0;
 	uint64_t total_ram = 0;
-	for (multiboot_memory_map_entry *i = multiboot_tag_memory_map_begin(mmap); i < multiboot_tag_memory_map_end(mmap); ++i) {
-		if (i->type == AVAILABLE) {
-			available_ram += i->length;
+	for (multiboot::memory_map_entry i : *mmap) {
+		if (i.type == multiboot::memory_type::AVAILABLE) {
+			available_ram += i.length;
 
-			if (i->base_addr + i->length > total_ram) total_ram = i->base_addr + i->length;
+			if (i.base_addr + i.length > total_ram) total_ram = i.base_addr + i.length;
 		}
 	}
 	kprintf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Detected %d MiB of available memory (%d MiB total):\n", available_ram / (1024 * 1024), total_ram / (1024 * 1024));
 
-	for (multiboot_memory_map_entry *entry = multiboot_tag_memory_map_begin(mmap); entry < multiboot_tag_memory_map_end(mmap); entry++) {
-		kprintf("\t%lp - %lp (%s)\n", entry->base_addr, entry->base_addr + entry->length, entry->type == AVAILABLE ? "AVAILABLE" : "RESERVED");
+	for (multiboot::memory_map_entry entry : *mmap) {
+		kprintf("\t%lp - %lp (%s)\n", entry.base_addr, entry.base_addr + entry.length, entry.type == multiboot::memory_type::AVAILABLE ? "AVAILABLE" : "RESERVED");
 	}
 
 	frame_bump_alloc_state init_alloc = {
@@ -92,21 +91,21 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 		mapper_ctx_t ctx = mapper_ctx_begin(new_p4_table, global_frame_allocator);
 
 		// Map the kernel with section flags
-		for (multiboot_elf_symbols_entry *i = multiboot_tag_elf_symbols_begin(sections); i < multiboot_tag_elf_symbols_end(sections); ++i) {
-			if ((i->type != SHT_NULL) && (i->flags & SHF_ALLOC) != 0) {
-				for (uint64_t phys_addr = i->addr - 0xFFFFFF8000000000; phys_addr < ALIGN_UP(i->addr - 0xFFFFFF8000000000 + i->size, 0x1000); phys_addr+=0x1000) {
+		for (multiboot::elf_sections_entry i : *sections) {
+			if ((i.type != SHT_NULL) && (i.flags & SHF_ALLOC) != 0) {
+				for (uint64_t phys_addr = i.addr - 0xFFFFFF8000000000; phys_addr < ALIGN_UP(i.addr - 0xFFFFFF8000000000 + i.size, 0x1000); phys_addr+=0x1000) {
 					map_page_to(phys_addr + 0xFFFFFF8000000000, phys_addr, global_frame_allocator);
 
 					entry_flags_t flags = {
-						.accessed = 0,
-						.cache_disabled = 0,
-						.dirty = 0,
-						.global = 1,
-						.huge = 0,
-						.no_execute = !(i->flags & SHF_EXECINSTR),
+						.writeable = static_cast<bool>(i.flags & SHF_WRITE),
 						.user_accessible = 0,
 						.write_through = 0,
-						.writeable = i->flags & SHF_WRITE
+						.cache_disabled = 0,
+						.accessed = 0,
+						.dirty = 0,
+						.huge = 0,
+						.global = 1,
+						.no_execute = !(i.flags & SHF_EXECINSTR)
 					};
 
 					set_entry_flags_for_address(phys_addr + 0xFFFFFF8000000000, flags);
@@ -120,15 +119,15 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 			map_page_to(virt_addr, phys_addr, global_frame_allocator);
 
 			entry_flags_t flags = {
-				.accessed = 0,
-				.cache_disabled = 0,
-				.dirty = 0,
-				.global = 1,
-				.huge = 0,
-				.no_execute = 1,
+				.writeable = 1,
 				.user_accessible = 0,
 				.write_through = 0,
-				.writeable = 1
+				.cache_disabled = 0,
+				.accessed = 0,
+				.dirty = 0,
+				.huge = 0,
+				.global = 1,
+				.no_execute = 1
 			};
 
 			set_entry_flags_for_address(virt_addr, flags);
@@ -142,15 +141,15 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 			map_page_to(multiboot_virt_addr, multiboot_phys_addr, global_frame_allocator);
 
 			entry_flags_t flags = {
-				.accessed = 0,
-				.cache_disabled = 0,
-				.dirty = 0,
-				.global = 0,
-				.huge = 0,
-				.no_execute = 1,
+				.writeable = 0,
 				.user_accessible = 0,
 				.write_through = 0,
-				.writeable = 0
+				.cache_disabled = 0,
+				.accessed = 0,
+				.dirty = 0,
+				.huge = 0,
+				.global = 0,
+				.no_execute = 1
 			};
 
 			set_entry_flags_for_address(multiboot_virt_addr, flags);
@@ -180,38 +179,38 @@ void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 
 	// Reload multiboot info from new address
 	kfprintf(stdserial, "Remapped multiboot to %p\n", multiboot_virt_addr);
-	multiboot_data_init(&mb, multiboot_virt_addr);
-	fb = (multiboot_tag_framebuffer*)multiboot_data_find_tag(&mb, FRAMEBUFFER);
-	bootloader = (multiboot_tag_bootloader*)multiboot_data_find_tag(&mb, BOOTLOADER_NAME);
-	cli = (multiboot_tag_cli*)multiboot_data_find_tag(&mb, CLI);
-	mmap = (multiboot_tag_memory_map*)multiboot_data_find_tag(&mb, MEMORY_MAP);
-	sections = (multiboot_tag_elf_symbols*)multiboot_data_find_tag(&mb, ELF_SYMBOLS);
+	mb = multiboot::Data(multiboot_virt_addr);
+	fb = mb.find_tag<multiboot::framebuffer_tag >(multiboot::tag_type::FRAMEBUFFER);
+	bootloader = mb.find_tag<multiboot::bootloader_tag >(multiboot::tag_type::BOOTLOADER_NAME);
+	cli = mb.find_tag<multiboot::cli_tag>(multiboot::tag_type::CLI);
+	mmap = mb.find_tag<multiboot::memory_map_tag>(multiboot::tag_type::MEMORY_MAP);
+	sections = mb.find_tag<multiboot::elf_sections_tag>(multiboot::tag_type::ELF_SECTIONS);
 
-	uint64_t *memory_bitmap_start = memory_bitmap;
-	uint64_t *memory_bitmap_end = (uint64_t)memory_bitmap_start + needed_bytes;
+	uint64_t memory_bitmap_start = memory_bitmap;
+	uint64_t memory_bitmap_end = memory_bitmap_start + needed_bytes;
 
 	frame_main_alloc_state main_frame_allocator = {
 		.vtable = frame_main_alloc_state_vtable,
-		.bitmap_start = memory_bitmap_start,
-		.bitmap_end = memory_bitmap_end
+		.bitmap_start = reinterpret_cast<uint64_t*>(memory_bitmap_start),
+		.bitmap_end = reinterpret_cast<uint64_t*>(memory_bitmap_end)
 	};
 	kprintf("[    ] Initialising memory bitmap\n");
-	for (uint64_t *i = memory_bitmap_start; i < memory_bitmap_end; ++i) {
+	for (uint64_t *i = reinterpret_cast<uint64_t*>(memory_bitmap_start); i < reinterpret_cast<uint64_t*>(memory_bitmap_end); ++i) {
 		*i = 0;
 	}
 	for (uint64_t i = 0; i < init_alloc.next_alloc; i+=0x1000) {
-		frame_main_alloc_set_bit_for_addr(&main_frame_allocator, i);
+		main_frame_allocator.set_bit(i);
 	}
 	for (uint64_t i = init_alloc.kernel_start; i < init_alloc.kernel_end; i+=0x1000) {
-		frame_main_alloc_set_bit_for_addr(&main_frame_allocator, i);
+		main_frame_allocator.set_bit(i);
 	}
 	for (uint64_t i = init_alloc.multiboot_start; i < init_alloc.multiboot_end; i+=0x1000) {
-		frame_main_alloc_set_bit_for_addr(&main_frame_allocator, i);
+		main_frame_allocator.set_bit(i);
 	}
-	for (multiboot_memory_map_entry *entry = multiboot_tag_memory_map_begin(mmap); entry < multiboot_tag_memory_map_end(mmap); ++entry) {
-		if (entry->type != AVAILABLE) {
-			for (uint64_t i = ALIGN_DOWN(entry->base_addr, 0x1000); i < ALIGN_UP(entry->base_addr + entry->length, 0x1000); i+=0x1000) {
-				frame_main_alloc_set_bit_for_addr(&main_frame_allocator, i);
+	for (multiboot::memory_map_entry& entry : *mmap) {
+		if (entry.type != multiboot::memory_type::AVAILABLE) {
+			for (uint64_t i = ALIGN_DOWN(entry.base_addr, 0x1000); i < ALIGN_UP(entry.base_addr + entry.length, 0x1000); i+=0x1000) {
+				main_frame_allocator.set_bit(i);
 			}
 		}
 	}
