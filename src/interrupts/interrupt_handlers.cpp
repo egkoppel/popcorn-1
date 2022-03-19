@@ -1,8 +1,8 @@
-#include "idt.h"
+#include "idt.hxx"
 #include <stdio.h>
 #include <stdint.h>
 
-IDT idt;
+IDT idt = IDT();
 
 typedef struct __attribute__((packed)) {
 	uint64_t error_code;
@@ -99,8 +99,7 @@ RETURN_ERROR_CODE(page_fault_handler, {
 })
 
 void init_idt() {
-	idt_init(&idt);
-	idt_add_entry(&idt, 0x8, 0, double_fault_handler);
-	idt_add_entry(&idt, 0xe, 0, page_fault_handler);
-	idt_load(&idt);
+	idt.add_entry(0x8, 0, double_fault_handler);
+	idt.add_entry(0xe, 0, page_fault_handler);
+	idt.load();
 }

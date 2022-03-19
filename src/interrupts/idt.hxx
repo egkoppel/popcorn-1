@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-typedef struct __attribute__((packed)) {
+struct __attribute__((packed)) idt_entry {
 	uint16_t pointer_low;
 	uint16_t segment_selector;
 	uint8_t _0;
@@ -14,15 +14,15 @@ typedef struct __attribute__((packed)) {
 	uint16_t pointer_middle;
 	uint32_t pointer_high;
 	uint32_t _2;
-} idt_entry;
+};
 
-typedef struct __attribute__((packed)) {
+struct __attribute__((packed)) IDT {
 	idt_entry entries[16];
-} IDT;
 
-void idt_init(IDT* self);
-void idt_load(IDT* self);
-void idt_add_entry(IDT* self, uint8_t index, uint8_t dpl, void(*handler)());
+	IDT();
+	void load();
+	void add_entry(uint8_t index, uint8_t dpl, void(*handler)());
+};
 
 #endif
 
