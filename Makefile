@@ -29,7 +29,7 @@ endif
 
 BUILD_DIR ?= build
 ISODIR ?= $(BUILD_DIR)/isodir
-RUST_DIR ?= src/rust
+RUST_DIR ?= $(shell pwd)/src/rust
 
 RUST_LIB_DIR = $(RUST_DIR)/target/$(RUST_TARGET_NAME)/$(RUST_BUILD_TYPE)
 
