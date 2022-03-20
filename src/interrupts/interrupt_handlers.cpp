@@ -1,25 +1,26 @@
 #include "idt.hxx"
 #include <stdio.h>
 #include <stdint.h>
+#include <panic.h>
 
-IDT idt = IDT();
+idt::IDT interrupt_descriptor_table = idt::IDT();
 
-typedef struct __attribute__((packed)) {
+struct __attribute__((packed)) exception_stack_frame_error {
 	uint64_t error_code;
 	uint64_t ip;
 	uint64_t cs;
 	uint64_t flags;
 	uint64_t sp;
 	uint64_t ss;
-} exception_stack_frame_error;
+};
 
-typedef struct __attribute__((packed)) {
+struct __attribute__((packed)) exception_stack_frame {
 	uint64_t ip;
 	uint64_t cs;
 	uint64_t flags;
 	uint64_t sp;
 	uint64_t ss;
-} exception_stack_frame;
+};
 
 #define N0_RETURN_ERROR_CODE(name, body) \
 	void name ## _inner(exception_stack_frame_error *frame) { body } \
@@ -73,6 +74,8 @@ typedef struct __attribute__((packed)) {
  * 0x0F - reserved (no error code)
  */
 
+extern uint8_t level4_page_table;
+
 N0_RETURN_ERROR_CODE(double_fault_handler, {
 	kfprintf(stdserial, "Double fault!\n");
 	kfprintf(stdserial, "Error code: %d\n", frame->error_code);
@@ -81,6 +84,15 @@ N0_RETURN_ERROR_CODE(double_fault_handler, {
 	kfprintf(stdserial, "Flags: 0x%08x\n", frame->flags);
 	kfprintf(stdserial, "SP: %lp\n", frame->sp);
 	kfprintf(stdserial, "SS: 0x%04x\n", frame->ss);
+
+	uint64_t cr2;
+	__asm__ volatile("movq %%cr2, %0" : "=r"(cr2));
+
+	if (cr2 >= (uint64_t)&level4_page_table && cr2 < (uint64_t)&level4_page_table + 0x1000) {
+		kfprintf(stdserial, "CR2: %lp - possible stack overflow\n", cr2);
+		panic("Potential stack overflow");
+	}
+
 	while (1);
 })
 
@@ -99,7 +111,8 @@ RETURN_ERROR_CODE(page_fault_handler, {
 })
 
 void init_idt() {
-	idt.add_entry(0x8, 0, double_fault_handler);
-	idt.add_entry(0xe, 0, page_fault_handler);
-	idt.load();
+	interrupt_descriptor_table.add_entry(0x8, 0, double_fault_handler);
+	interrupt_descriptor_table.entries[0x8].ist = 1;
+	interrupt_descriptor_table.add_entry(0xe, 0, page_fault_handler);
+	interrupt_descriptor_table.load();
 }
