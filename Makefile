@@ -43,6 +43,8 @@ OBJS = $(patsubst src/%,$(BUILD_DIR)/%, \
 	$(patsubst %.cpp,%.cpp.o,$(wildcard src/memory/*.cpp)) \
 	$(patsubst %.c,%.c.o,$(wildcard src/interrupts/*.c)) \
 	$(patsubst %.cpp,%.cpp.o,$(wildcard src/interrupts/*.cpp)) \
+	$(patsubst %.c,%.c.o,$(wildcard src/gdt/*.c)) \
+	$(patsubst %.cpp,%.cpp.o,$(wildcard src/gdt/*.cpp)) \
 	$(patsubst %.psf,%.psf.o,$(wildcard src/fonts/*.psf)))
 OBJS_LIBK = $(patsubst src/%,$(BUILD_DIR)/%, \
 	$(patsubst %.c,%.c.o,$(wildcard src/libk/src/*.c)))
@@ -75,6 +77,8 @@ $(BUILD_DIR)/libk/src: | $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)/libk/src
 $(BUILD_DIR)/interrupts: | $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)/interrupts
+$(BUILD_DIR)/gdt: | $(BUILD_DIR)
+	mkdir -p $(BUILD_DIR)/gdt
 
 $(BUILD_DIR)/bootstrap/%.S.o: src/bootstrap/%.S | $(BUILD_DIR)/bootstrap
 	$(NASM) -felf64 -g -F dwarf -o $@ $<
@@ -107,6 +111,12 @@ $(BUILD_DIR)/interrupts/%.c.o: src/interrupts/%.c | $(BUILD_DIR)/interrupts
 
 $(BUILD_DIR)/interrupts/%.cpp.o: src/interrupts/%.cpp | $(BUILD_DIR)/interrupts
 	$(CXX) $(CFLAGS) $(C++FLAGS) -o $@ $<
+
+$(BUILD_DIR)/gdt/%.c.o: src/gdt/%.c | $(BUILD_DIR)/gdt
+	$(CC) $(CFLAGS) -o $@ $<
+
+$(BUILD_DIR)/gdt/%.cpp.o: src/gdt/%.cpp | $(BUILD_DIR)/gdt
+	$(CC) $(CFLAGS) -o $@ $<
 
 $(BUILD_DIR)/libk/src/%.c.o: src/libk/src/%.c | $(BUILD_DIR)/libk/src
 	$(CC) $(CFLAGS) -o $@ $<
