@@ -14,6 +14,8 @@ struct frame_main_alloc_state {
 	int set_bit(uint64_t addr);
 	uint64_t allocate();
 	void deallocate(uint64_t addr);
+	uint64_t free_frame_count();
+	uint64_t used_frame_count();
 
 	static uint64_t main_alloc_allocate(frame_main_alloc_state*);
 	static void main_alloc_deallocate(frame_main_alloc_state*, uint64_t addr);

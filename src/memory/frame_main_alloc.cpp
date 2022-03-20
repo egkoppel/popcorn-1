@@ -47,3 +47,19 @@ uint64_t frame_main_alloc_state::main_alloc_allocate(frame_main_alloc_state* all
 void frame_main_alloc_state::main_alloc_deallocate(frame_main_alloc_state* allocator, uint64_t addr) {
 	allocator->deallocate(addr);
 }
+
+uint64_t frame_main_alloc_state::free_frame_count() {
+	uint64_t ret = 0;
+	for (uint64_t *addr = this->bitmap_start; addr < this->bitmap_end; addr++) {
+		ret += __builtin_popcountll(~(*addr));
+	}
+	return ret;
+}
+
+uint64_t frame_main_alloc_state::used_frame_count() {
+	uint64_t ret = 0;
+	for (uint64_t *addr = this->bitmap_start; addr < this->bitmap_end; addr++) {
+		ret += __builtin_popcountll(*addr);
+	}
+	return ret;
+}
