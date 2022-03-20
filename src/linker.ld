@@ -34,6 +34,7 @@ SECTIONS {
         end_dtors = .;
 
 		*(.rodata*)
+		*(.eh_frame*)
 	}
  
 	/* Read-write data (initialized) */
