@@ -34,8 +34,6 @@ enable_paging_done db "[", col_green, " OK ", col_reset, "] Paging enabled", 0xa
 lm_enabling db "[    ] Entering long mode", 0xa, 0
 lm_gdt_load db "[", col_green, " OK ", col_reset, "] Loaded GDT", 0xa, 0
 
-global gdt64.pointer64
-
 gdt64:
 	.null:
 		dq 0 ; null entry
@@ -51,24 +49,9 @@ gdt64:
 		db .PRESENT | .S_BIT | .RW ; present, S bit, data, read/write, ring 0
 		db .GRANULARITY | .S_BIT | 0xF ; granular, long mode, limit high
 		db 0 ; base high
-	.code_user:
-		dd 0xFFFF ; limit low
-		db 0 ; base low
-		db .PRESENT | .S_BIT | .EXEC | .RW| .RING_3 ; present, S bit, code, read/write, ring 3
-		db .GRANULARITY | .LONG_MODE | 0xF ; granular, long mode, limit high
-		db 0 ; base high
-	.data_user:
-		dd 0xFFFF ; limit low
-		db 0 ; base low
-		db .PRESENT | .S_BIT | .RW | .RING_3 ; present, S bit, data, read/write, ring 3
-		db .GRANULARITY | .S_BIT | 0xF ; granular, long mode, limit high
-		db 0 ; base high
 	.pointer:
 		dw $ - gdt64 - 1 - KERNEL_VIRTUAL_BASE
 		dq gdt64 - KERNEL_VIRTUAL_BASE
-	.pointer64:
-		dw .pointer - gdt64 - 1 - KERNEL_VIRTUAL_BASE
-		dq gdt64
 
 	.PRESENT		equ 1 << 7
 	.RING_3			equ 3 << 5
@@ -334,6 +317,8 @@ _start:
 error:
 loop: hlt
 	jmp loop
+
+extern level4_page_table
 
 section .bss
 align 4096

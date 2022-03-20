@@ -9,14 +9,21 @@
 #include "multiboot.hxx"
 #include "../memory/memory.h"
 #include "../memory/paging.h"
+#include "../memory/stack.hxx"
 #include "../memory/frame_bump_alloc.hxx"
 #include "../memory/frame_main_alloc.hxx"
 #include "../interrupts/interrupt_handlers.hxx"
+#include "../gdt/gdt.hxx"
+#include "../gdt/tss.hxx"
 #include <panic.h>
 
-void rust_test(void*);
-
 extern "C" allocator_vtable *global_frame_allocator = NULL;
+
+void stackoveflow();
+void stackoveflow() {
+	stackoveflow();
+	__asm__ volatile("nop");
+}
 
 extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	if (multiboot_magic == 0x36d76289) {
@@ -39,6 +46,14 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 
 	init_idt();
 	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded IDT\n");
+	
+	gdt::GDT global_descriptor_table = gdt::GDT();
+	global_descriptor_table.add_entry(gdt::entry::new_code_segment(0));
+	global_descriptor_table.add_entry(gdt::entry::new_data_segment(0));
+	global_descriptor_table.add_entry(gdt::entry::new_code_segment(3));
+	global_descriptor_table.add_entry(gdt::entry::new_data_segment(3));
+	global_descriptor_table.load();
+	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded GDT\n");
 
 
 	kprintf("[    ] Initialising memory\n");
@@ -157,7 +172,7 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 		multiboot_virt_addr = ALIGN_UP(0xFFFFFF8040000000 + fb->height*fb->pitch, 0x1000) + (multiboot_addr - ALIGN_DOWN(multiboot_addr, 0x1000));
 
 		// Map bitmap
-		memory_bitmap = multiboot_virt_end;
+		memory_bitmap = ALIGN_UP(multiboot_virt_end, 0x1000);
 		kprintf("[    ] Allocating %u bytes for memory bitmap (%u frames) at %p\n", needed_bytes, needed_frames, memory_bitmap);
 		for (uint64_t i = 0; i < needed_frames; ++i) {
 			map_page(memory_bitmap + i*0x1000, global_frame_allocator);
@@ -172,11 +187,6 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	old_p4_table_page += 0xFFFFFF8000000000;
 	__asm__ volatile("mov %0, %%cr3" : : "r"(new_p4_table));
 
-	kfprintf(stdserial, "Creating stack guard page at %lp\n", old_p4_table_page);
-	unmap_page_no_free(old_p4_table_page);
-
-	kfprintf(stdout, "[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Reloaded page tables\n");
-
 	// Reload multiboot info from new address
 	kfprintf(stdserial, "Remapped multiboot to %p\n", multiboot_virt_addr);
 	mb = multiboot::Data(multiboot_virt_addr);
@@ -185,6 +195,11 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	cli = mb.find_tag<multiboot::cli_tag>(multiboot::tag_type::CLI);
 	mmap = mb.find_tag<multiboot::memory_map_tag>(multiboot::tag_type::MEMORY_MAP);
 	sections = mb.find_tag<multiboot::elf_sections_tag>(multiboot::tag_type::ELF_SECTIONS);
+
+	kfprintf(stdserial, "Creating stack guard page at %lp\n", old_p4_table_page);
+	unmap_page_no_free(old_p4_table_page);
+
+	kfprintf(stdout, "[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Reloaded page tables\n");
 
 	uint64_t memory_bitmap_start = memory_bitmap;
 	uint64_t memory_bitmap_end = memory_bitmap_start + needed_bytes;
@@ -218,13 +233,24 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 
 	global_frame_allocator = &main_frame_allocator.vtable;
 
+	Stack double_fault_stack(0x1000);
+	tss::TSS task_state_segment = tss::TSS();
+	task_state_segment.interrupt_stack_table[0] = double_fault_stack.top;
+	
+	uint8_t index = global_descriptor_table.add_tss_entry(gdt::tss_entry(reinterpret_cast<uint64_t>(&task_state_segment), sizeof(tss::TSS), 0));
+	kprintf("TSS index at %u\n", index);
+	task_state_segment.load(index);
+
+	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded TSS\n");
+
 	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised memory\n");
 	kprintf("[    ] Initialising sbrk and heap\n");
 	global_sbrk_state = (sbrk_state_t){
 		.kernel_end = memory_bitmap_end,
 		.current_break = ALIGN_UP(memory_bitmap_end, 0x1000)
 	};
+	//init_heap();
 	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised sbrk and heap\n");
-
+	stackoveflow();
 	while(1);
 }

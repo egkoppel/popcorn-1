@@ -8,7 +8,7 @@ global long_mode_start
 
 section .rodata
 sse_enabling db "[    ] Enabling SSE support", 0xa, 0
-sse_enabled db "[", col_green, " OK ", col_reset, "] SSE enabled", 0xa, 0
+sse_enabled db "[", col_red, "FAIL", col_reset, "] SSE not enabled", 0xa, 0
 
 section .text
 extern __cxa_init
@@ -29,8 +29,6 @@ long_mode_start:
 	mov rax, .1
 	jmp rax
 .1:
-	mov rax, gdt64.pointer64
-	lgdt [rax]
 	; ENABLE SSE
 	lea rdi, [rel sse_enabling]
 	call kputs
