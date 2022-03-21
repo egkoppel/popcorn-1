@@ -7,11 +7,11 @@ OBJCOPY ?= llvm-objcopy
 AR = llvm-ar
 CARGO ?= cargo
 
-INCLUDE ?= -Isrc/libk/include
+INCLUDE ?= -Isrc/libk/include -Isrc/stlport
 
 OPT ?= 0
 CFLAGS = $(INCLUDE) -O$(OPT) -Wall -Wextra -Wpedantic -Wno-language-extension-token -Werror=incompatible-pointer-types -Wno-address-of-packed-member -mcmodel=large -MMD -MP -c -g -nostdlib -fno-exceptions -fno-rtti -fno-stack-protector -ffreestanding -target x86_64-unknown-none-elf -mno-mmx -mno-sse -mno-sse3 -mno-sse4 -mno-avx -mno-red-zone -msoft-float
-C++FLAGS = -std=c++20
+CXXFLAGS = -std=c++20
 CARGOFLAGS ?=
 LDFLAGS ?= 
 QEMU_ARGS ?=
@@ -47,7 +47,8 @@ OBJS = $(patsubst src/%,$(BUILD_DIR)/%, \
 	$(patsubst %.cpp,%.cpp.o,$(wildcard src/gdt/*.cpp)) \
 	$(patsubst %.psf,%.psf.o,$(wildcard src/fonts/*.psf)))
 OBJS_LIBK = $(patsubst src/%,$(BUILD_DIR)/%, \
-	$(patsubst %.c,%.c.o,$(wildcard src/libk/src/*.c)))
+	$(patsubst %.c,%.c.o,$(wildcard src/libk/src/*.c)) \
+	$(patsubst %.cpp,%.cpp.o,$(wildcard src/libk/src/*.cpp)))
 LINKER_SCRIPT ?= src/linker.ld
 GRUBCFG = src/grub.cfg
 
@@ -98,19 +99,19 @@ $(BUILD_DIR)/main/%.c.o: src/main/%.c | $(BUILD_DIR)/main
 	$(CC) $(CFLAGS) -o $@ $<
 
 $(BUILD_DIR)/main/%.cpp.o: src/main/%.cpp | $(BUILD_DIR)/main
-	$(CXX) $(CFLAGS) $(C++FLAGS) -o $@ $<
+	$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ $<
 
 $(BUILD_DIR)/memory/%.c.o: src/memory/%.c | $(BUILD_DIR)/memory
 	$(CC) $(CFLAGS) -o $@ $<
 
 $(BUILD_DIR)/memory/%.cpp.o: src/memory/%.cpp | $(BUILD_DIR)/memory
-	$(CXX) $(CFLAGS) $(C++FLAGS) -o $@ $<
+	$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ $<
 
 $(BUILD_DIR)/interrupts/%.c.o: src/interrupts/%.c | $(BUILD_DIR)/interrupts
 	$(CC) $(CFLAGS) -o $@ $<
 
 $(BUILD_DIR)/interrupts/%.cpp.o: src/interrupts/%.cpp | $(BUILD_DIR)/interrupts
-	$(CXX) $(CFLAGS) $(C++FLAGS) -o $@ $<
+	$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ $<
 
 $(BUILD_DIR)/gdt/%.c.o: src/gdt/%.c | $(BUILD_DIR)/gdt
 	$(CC) $(CFLAGS) -o $@ $<
@@ -120,6 +121,9 @@ $(BUILD_DIR)/gdt/%.cpp.o: src/gdt/%.cpp | $(BUILD_DIR)/gdt
 
 $(BUILD_DIR)/libk/src/%.c.o: src/libk/src/%.c | $(BUILD_DIR)/libk/src
 	$(CC) $(CFLAGS) -o $@ $<
+
+$(BUILD_DIR)/libk/src/%.cpp.o: src/libk/src/%.cpp | $(BUILD_DIR)/libk/src
+	$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ $<
 
 $(BUILD_DIR)/libk.a: $(OBJS_LIBK) | $(BUILD_DIR)
 	$(AR) -rcs $@ $^
