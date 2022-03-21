@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "port.hxx"
+#include "port.h"
 
 class SerialPort {
 	private:
