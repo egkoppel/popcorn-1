@@ -113,6 +113,10 @@ public:
     : _M_t(_Compare(), allocator_type())
     { _M_t.insert_unique(__first, __last); }
 
+  map(initializer_list<pair<_Key, _Tp>> __il)
+    : _M_t(_Compare(), allocator_type())
+    { _M_t.insert_unique(__il.begin(), __il.end()); }
+
   template <class _InputIterator>
   map(_InputIterator __first, _InputIterator __last, const _Compare& __comp,
       const allocator_type& __a _STLP_ALLOCATOR_TYPE_DFL)

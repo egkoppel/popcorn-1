@@ -46,6 +46,8 @@
 #  include <stl/_uninitialized.h>
 #endif
 
+#include <initializer_list>
+
 _STLP_BEGIN_NAMESPACE
 
 // The vector base class serves one purpose, its constructor and
@@ -279,6 +281,13 @@ public:
     : _STLP_PRIV _Vector_base<_Tp, _Alloc>(__a) {
     typedef typename _IsIntegral<_InputIterator>::_Ret _Integral;
     _M_initialize_aux(__first, __last, _Integral());
+  }
+
+  vector(initializer_list<_Tp> __il,
+               const allocator_type& __a _STLP_ALLOCATOR_TYPE_DFL )
+    : _STLP_PRIV _Vector_base<_Tp, _Alloc>(__a) {
+		typedef typename _IsIntegral<initializer_list<_Tp>>::_Ret _Integral;
+    _M_initialize_aux(__il.begin(), __il.end(), _Integral());
   }
 
 #  if defined (_STLP_NEEDS_EXTRA_TEMPLATE_CONSTRUCTORS)
