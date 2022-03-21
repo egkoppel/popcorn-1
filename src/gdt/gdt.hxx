@@ -15,6 +15,8 @@ namespace gdt {
 		uint8_t S: 1;
 		uint8_t dpl: 2;
 		uint8_t present: 1;
+
+		operator uint8_t();
 	};
 
 	struct __attribute__((packed)) access_byte_user {
@@ -25,6 +27,8 @@ namespace gdt {
 		uint8_t S: 1;
 		uint8_t dpl: 2;
 		uint8_t present: 1;
+
+		operator uint8_t();
 	};
 
 	struct __attribute__((packed)) entry {
@@ -39,6 +43,7 @@ namespace gdt {
 		uint8_t granularity: 1;
 		uint8_t addr_high;
 
+		entry();
 		static entry new_code_segment(uint8_t dpl);
 		static entry new_data_segment(uint8_t dpl);
 	};

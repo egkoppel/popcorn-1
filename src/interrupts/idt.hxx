@@ -15,6 +15,8 @@ namespace idt {
 		uint16_t pointer_middle;
 		uint32_t pointer_high;
 		uint32_t _2;
+
+		entry();
 	};
 
 	struct __attribute__((packed)) IDT {
@@ -22,7 +24,7 @@ namespace idt {
 
 		IDT();
 		void load();
-		void add_entry(uint8_t index, uint8_t dpl, void(*handler)());
+		void add_entry(uint8_t index, uint8_t dpl, void(*handler)(), uint8_t ist = 0);
 	};
 }
 

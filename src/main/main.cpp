@@ -35,8 +35,8 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 
 	multiboot::Data mb(multiboot_addr);
 	
-	multiboot::framebuffer_tag *fb = mb.find_tag<multiboot::framebuffer_tag >(multiboot::tag_type::FRAMEBUFFER);
-	multiboot::bootloader_tag *bootloader = mb.find_tag<multiboot::bootloader_tag >(multiboot::tag_type::BOOTLOADER_NAME);
+	multiboot::framebuffer_tag *fb = mb.find_tag<multiboot::framebuffer_tag>(multiboot::tag_type::FRAMEBUFFER);
+	multiboot::bootloader_tag *bootloader = mb.find_tag<multiboot::bootloader_tag>(multiboot::tag_type::BOOTLOADER_NAME);
 	multiboot::cli_tag *cli = mb.find_tag<multiboot::cli_tag>(multiboot::tag_type::CLI);
 	multiboot::memory_map_tag *mmap = mb.find_tag<multiboot::memory_map_tag>(multiboot::tag_type::MEMORY_MAP);
 	multiboot::elf_sections_tag *sections = mb.find_tag<multiboot::elf_sections_tag>(multiboot::tag_type::ELF_SECTIONS);
@@ -91,8 +91,8 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 		.next_alloc = 0,
 		.kernel_start = kernel_min,
 		.kernel_end = kernel_max,
-		.multiboot_start = (uint64_t)mb.mb_data_start,
-		.multiboot_end = (uint64_t)mb.mb_data_end,
+		.multiboot_start = reinterpret_cast<uint64_t>(mb.mb_data_start),
+		.multiboot_end = reinterpret_cast<uint64_t>(mb.mb_data_end),
 		.mem_map = mmap
 	};
 	global_frame_allocator = &init_alloc.vtable;
@@ -191,8 +191,8 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	// Reload multiboot info from new address
 	fprintf(stdserial, "Remapped multiboot to %p\n", multiboot_virt_addr);
 	mb = multiboot::Data(multiboot_virt_addr);
-	fb = mb.find_tag<multiboot::framebuffer_tag >(multiboot::tag_type::FRAMEBUFFER);
-	bootloader = mb.find_tag<multiboot::bootloader_tag >(multiboot::tag_type::BOOTLOADER_NAME);
+	fb = mb.find_tag<multiboot::framebuffer_tag>(multiboot::tag_type::FRAMEBUFFER);
+	bootloader = mb.find_tag<multiboot::bootloader_tag>(multiboot::tag_type::BOOTLOADER_NAME);
 	cli = mb.find_tag<multiboot::cli_tag>(multiboot::tag_type::CLI);
 	mmap = mb.find_tag<multiboot::memory_map_tag>(multiboot::tag_type::MEMORY_MAP);
 	sections = mb.find_tag<multiboot::elf_sections_tag>(multiboot::tag_type::ELF_SECTIONS);
@@ -246,7 +246,7 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised memory\n");
 	printf("[    ] Initialising sbrk and heap\n");
-	global_sbrk_state = (sbrk_state_t){
+	global_sbrk_state = sbrk_state_t {
 		.kernel_end = memory_bitmap_end,
 		.current_break = ALIGN_UP(memory_bitmap_end, 0x1000)
 	};
