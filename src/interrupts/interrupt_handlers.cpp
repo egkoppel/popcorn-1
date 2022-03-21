@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <panic.h>
 
-idt::IDT interrupt_descriptor_table = idt::IDT();
+idt::IDT interrupt_descriptor_table = idt::IDT<48>();
 
 struct __attribute__((packed)) exception_stack_frame_error {
 	uint64_t error_code;
