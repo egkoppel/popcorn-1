@@ -17,7 +17,8 @@
 #include "../gdt/tss.hxx"
 #include <panic.h>
 
-extern "C" allocator_vtable *global_frame_allocator = NULL;
+
+extern "C" allocator_vtable *global_frame_allocator = nullptr;
 
 void stackoveflow();
 void stackoveflow() {
@@ -27,9 +28,9 @@ void stackoveflow() {
 
 extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	if (multiboot_magic == 0x36d76289) {
-		kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Mulitboot magic: 0x%x (correct)\n", multiboot_magic);
+		printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Mulitboot magic: 0x%x (correct)\n", multiboot_magic);
 	} else {
-		kprintf("[" TERMCOLOR_RED "FAIL" TERMCOLOR_RESET "] Mulitboot magic: 0x%x (incorrect)\n", multiboot_magic);
+		printf("[" TERMCOLOR_RED "FAIL" TERMCOLOR_RESET "] Mulitboot magic: 0x%x (incorrect)\n", multiboot_magic);
 	}
 
 	multiboot::Data mb(multiboot_addr);
@@ -42,10 +43,10 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	
 	if (!mmap) panic("No memory map tag found");
 
-	if (bootloader) kprintf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Booted by %s\n", bootloader->get_name());
+	if (bootloader) printf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Booted by %s\n", bootloader->get_name());
 
 	init_idt();
-	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded IDT\n");
+	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded IDT\n");
 	
 	gdt::GDT global_descriptor_table = gdt::GDT();
 	global_descriptor_table.add_entry(gdt::entry::new_code_segment(0));
@@ -53,10 +54,10 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	global_descriptor_table.add_entry(gdt::entry::new_code_segment(3));
 	global_descriptor_table.add_entry(gdt::entry::new_data_segment(3));
 	global_descriptor_table.load();
-	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded GDT\n");
+	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded GDT\n");
 
 
-	kprintf("[    ] Initialising memory\n");
+	printf("[    ] Initialising memory\n");
 
 	uint64_t kernel_max = 0;
 	uint64_t kernel_min = UINT64_MAX;
@@ -68,7 +69,7 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 			if (i.addr - 0xFFFFFF8000000000 + i.size > kernel_max) kernel_max = i.addr - 0xFFFFFF8000000000 + i.size;
 		}
 	}
-	kprintf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Kernel executable: %lp -> %lp\n", kernel_min, kernel_max);
+	printf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Kernel executable: %lp -> %lp\n", kernel_min, kernel_max);
 
 	uint64_t available_ram = 0;
 	uint64_t total_ram = 0;
@@ -79,10 +80,10 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 			if (i.base_addr + i.length > total_ram) total_ram = i.base_addr + i.length;
 		}
 	}
-	kprintf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Detected %d MiB of available memory (%d MiB total):\n", available_ram / (1024 * 1024), total_ram / (1024 * 1024));
+	printf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Detected %d MiB of available memory (%d MiB total):\n", available_ram / (1024 * 1024), total_ram / (1024 * 1024));
 
 	for (multiboot::memory_map_entry entry : *mmap) {
-		kprintf("\t%lp - %lp (%s)\n", entry.base_addr, entry.base_addr + entry.length, entry.type == multiboot::memory_type::AVAILABLE ? "AVAILABLE" : "RESERVED");
+		printf("\t%lp - %lp (%s)\n", entry.base_addr, entry.base_addr + entry.length, entry.type == multiboot::memory_type::AVAILABLE ? "AVAILABLE" : "RESERVED");
 	}
 
 	frame_bump_alloc_state init_alloc = {
@@ -173,11 +174,11 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 
 		// Map bitmap
 		memory_bitmap = ALIGN_UP(multiboot_virt_end, 0x1000);
-		kprintf("[    ] Allocating %u bytes for memory bitmap (%u frames) at %p\n", needed_bytes, needed_frames, memory_bitmap);
+		printf("[    ] Allocating %u bytes for memory bitmap (%u frames) at %p\n", needed_bytes, needed_frames, memory_bitmap);
 		for (uint64_t i = 0; i < needed_frames; ++i) {
 			map_page(memory_bitmap + i*0x1000, global_frame_allocator);
 		}
-		kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Allocated memory bitmap (ends at %p)\n", memory_bitmap + needed_frames*0x1000);
+		printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Allocated memory bitmap (ends at %p)\n", memory_bitmap + needed_frames*0x1000);
 		
 		mapper_ctx_end(ctx);
 	}
@@ -188,7 +189,7 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	__asm__ volatile("mov %0, %%cr3" : : "r"(new_p4_table));
 
 	// Reload multiboot info from new address
-	kfprintf(stdserial, "Remapped multiboot to %p\n", multiboot_virt_addr);
+	fprintf(stdserial, "Remapped multiboot to %p\n", multiboot_virt_addr);
 	mb = multiboot::Data(multiboot_virt_addr);
 	fb = mb.find_tag<multiboot::framebuffer_tag >(multiboot::tag_type::FRAMEBUFFER);
 	bootloader = mb.find_tag<multiboot::bootloader_tag >(multiboot::tag_type::BOOTLOADER_NAME);
@@ -196,10 +197,10 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	mmap = mb.find_tag<multiboot::memory_map_tag>(multiboot::tag_type::MEMORY_MAP);
 	sections = mb.find_tag<multiboot::elf_sections_tag>(multiboot::tag_type::ELF_SECTIONS);
 
-	kfprintf(stdserial, "Creating stack guard page at %lp\n", old_p4_table_page);
+	fprintf(stdserial, "Creating stack guard page at %lp\n", old_p4_table_page);
 	unmap_page_no_free(old_p4_table_page);
 
-	kfprintf(stdout, "[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Reloaded page tables\n");
+	fprintf(stdout, "[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Reloaded page tables\n");
 
 	uint64_t memory_bitmap_start = memory_bitmap;
 	uint64_t memory_bitmap_end = memory_bitmap_start + needed_bytes;
@@ -209,7 +210,7 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 		.bitmap_start = reinterpret_cast<uint64_t*>(memory_bitmap_start),
 		.bitmap_end = reinterpret_cast<uint64_t*>(memory_bitmap_end)
 	};
-	kprintf("[    ] Initialising memory bitmap\n");
+	printf("[    ] Initialising memory bitmap\n");
 	for (uint64_t *i = reinterpret_cast<uint64_t*>(memory_bitmap_start); i < reinterpret_cast<uint64_t*>(memory_bitmap_end); ++i) {
 		*i = 0;
 	}
@@ -229,7 +230,7 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 			}
 		}
 	}
-	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised memory bitmap\n");
+	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised memory bitmap\n");
 
 	global_frame_allocator = &main_frame_allocator.vtable;
 
@@ -238,19 +239,19 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	task_state_segment.interrupt_stack_table[0] = double_fault_stack.top;
 	
 	uint8_t index = global_descriptor_table.add_tss_entry(gdt::tss_entry(reinterpret_cast<uint64_t>(&task_state_segment), sizeof(tss::TSS), 0));
-	kprintf("TSS index at %u\n", index);
+	printf("TSS index at %u\n", index);
 	task_state_segment.load(index);
 
-	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded TSS\n");
+	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded TSS\n");
 
-	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised memory\n");
-	kprintf("[    ] Initialising sbrk and heap\n");
+	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised memory\n");
+	printf("[    ] Initialising sbrk and heap\n");
 	global_sbrk_state = (sbrk_state_t){
 		.kernel_end = memory_bitmap_end,
 		.current_break = ALIGN_UP(memory_bitmap_end, 0x1000)
 	};
 	//init_heap();
-	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised sbrk and heap\n");
-	stackoveflow();
+	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised sbrk and heap\n");
+
 	while(1);
 }

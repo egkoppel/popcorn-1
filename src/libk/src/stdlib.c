@@ -3,6 +3,7 @@
 #include <stdbool.h>
 
 #include <string.h>
+#include <panic.h>
 
 #define ATOI_BUFLEN 32
 
@@ -49,4 +50,12 @@ int atoi(const char *s) {
 		n = n*10 + *s++ - '0';
 	}
 	return n;
+}
+
+void abort(void) {
+	panic("abort() called");
+}
+
+void exit(int status) {
+	panic("exit() called with status code %i", status);
 }

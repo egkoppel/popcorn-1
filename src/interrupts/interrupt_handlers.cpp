@@ -77,19 +77,19 @@ struct __attribute__((packed)) exception_stack_frame {
 extern uint8_t level4_page_table;
 
 N0_RETURN_ERROR_CODE(double_fault_handler, {
-	kfprintf(stdserial, "Double fault!\n");
-	kfprintf(stdserial, "Error code: %d\n", frame->error_code);
-	kfprintf(stdserial, "IP: %lp\n", frame->ip);
-	kfprintf(stdserial, "CS: 0x%04x\n", frame->cs);
-	kfprintf(stdserial, "Flags: 0x%08x\n", frame->flags);
-	kfprintf(stdserial, "SP: %lp\n", frame->sp);
-	kfprintf(stdserial, "SS: 0x%04x\n", frame->ss);
+	fprintf(stdserial, "Double fault!\n");
+	fprintf(stdserial, "Error code: %d\n", frame->error_code);
+	fprintf(stdserial, "IP: %lp\n", frame->ip);
+	fprintf(stdserial, "CS: 0x%04x\n", frame->cs);
+	fprintf(stdserial, "Flags: 0x%08x\n", frame->flags);
+	fprintf(stdserial, "SP: %lp\n", frame->sp);
+	fprintf(stdserial, "SS: 0x%04x\n", frame->ss);
 
 	uint64_t cr2;
 	__asm__ volatile("movq %%cr2, %0" : "=r"(cr2));
 
 	if (cr2 >= (uint64_t)&level4_page_table && cr2 < (uint64_t)&level4_page_table + 0x1000) {
-		kfprintf(stdserial, "CR2: %lp - possible stack overflow\n", cr2);
+		fprintf(stdserial, "CR2: %lp - possible stack overflow\n", cr2);
 		panic("Potential stack overflow");
 	}
 
@@ -97,16 +97,16 @@ N0_RETURN_ERROR_CODE(double_fault_handler, {
 })
 
 RETURN_ERROR_CODE(page_fault_handler, {
-	kfprintf(stdserial, "Page fault!\n");
-	kfprintf(stdserial, "Error code: %d\n", frame->error_code);
-	kfprintf(stdserial, "IP: %lp\n", frame->ip);
-	kfprintf(stdserial, "CS: 0x%04x\n", frame->cs);
-	kfprintf(stdserial, "Flags: 0x%08x\n", frame->flags);
-	kfprintf(stdserial, "SP: %lp\n", frame->sp);
-	kfprintf(stdserial, "SS: 0x%04x\n", frame->ss);
+	fprintf(stdserial, "Page fault!\n");
+	fprintf(stdserial, "Error code: %d\n", frame->error_code);
+	fprintf(stdserial, "IP: %lp\n", frame->ip);
+	fprintf(stdserial, "CS: 0x%04x\n", frame->cs);
+	fprintf(stdserial, "Flags: 0x%08x\n", frame->flags);
+	fprintf(stdserial, "SP: %lp\n", frame->sp);
+	fprintf(stdserial, "SS: 0x%04x\n", frame->ss);
 	uint64_t cr2;
 	__asm__ volatile("movq %%cr2, %0" : "=r"(cr2));
-	kfprintf(stdserial, "Attempted access to: %lp\n", cr2);
+	fprintf(stdserial, "Attempted access to: %lp\n", cr2);
 	while (1);
 })
 

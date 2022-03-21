@@ -4,22 +4,22 @@
 
 const allocator_vtable frame_bump_alloc_state_vtable = {
 	.allocate = reinterpret_cast<uint64_t(*)(struct _allocator_vtable*)>(frame_bump_alloc_state::bump_alloc_allocate),
-	.deallocate = NULL
+	.deallocate = nullptr
 };
 
 uint64_t frame_bump_alloc_state::allocate() {
 	uint64_t attempt = ALIGN_UP(this->next_alloc, 0x1000);
 
 	while (1) {
-		kfprintf(stdserial, "Attempt alloc at %p\n", attempt);
+		fprintf(stdserial, "Attempt alloc at %p\n", attempt);
 		if (attempt >= this->kernel_start && attempt < this->kernel_end) {
-			kfprintf(stdserial, "bump alloc kernel jump\n");
+			fprintf(stdserial, "bump alloc kernel jump\n");
 			attempt = ALIGN_UP(this->kernel_end, 0x1000);
 			continue;
 		}
 
 		if (attempt >= this->multiboot_start && attempt < this->multiboot_end) {
-			kfprintf(stdserial, "bump alloc multiboot jump\n");
+			fprintf(stdserial, "bump alloc multiboot jump\n");
 			attempt = ALIGN_UP(this->multiboot_end, 0x1000);
 			continue;
 		}

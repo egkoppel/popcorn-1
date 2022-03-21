@@ -52,23 +52,23 @@ extern ctor_func init_array_end;
 void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr);
 
 void __cxa_init(uint32_t multiboot_magic, uint32_t multiboot_addr) {
-	kprintf("[    ] Running ctors\n\tstart: %lp\n\t  end: %lp\n", &start_ctors, &end_ctors);
+	printf("[    ] Running ctors\n\tstart: %lp\n\t  end: %lp\n", &start_ctors, &end_ctors);
 	ctor_func *i = &start_ctors;
 	while (i < &end_ctors) {
-		//kprintf("Calling constructor at %lp\n", i);
+		//printf("Calling constructor at %lp\n", i);
 		if (*i != NULL) (*i)();
 		i++;
 	}
-	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Ran ctors\n");
+	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Ran ctors\n");
 
-	kprintf("[    ] Running elements of init array\n\tstart: %lp\n\t  end: %lp\n", &init_array_start, &init_array_end);
+	printf("[    ] Running elements of init array\n\tstart: %lp\n\t  end: %lp\n", &init_array_start, &init_array_end);
 	i = &init_array_start;
 	while (i < &init_array_end) {
-		//kprintf("Calling constructor at 0x%x\n", i);
+		//printf("Calling constructor at 0x%x\n", i);
 		if (*i != NULL) (*i)();
 		i++;
 	}
-	kprintf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Done running elements of init array\n");
+	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Done running elements of init array\n");
 
 	kmain(multiboot_magic, multiboot_addr);
 

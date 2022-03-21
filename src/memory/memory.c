@@ -9,7 +9,7 @@ sbrk_state_t global_sbrk_state;
 void *sbrk(intptr_t increment) {
 	uint64_t ret = global_sbrk_state.current_break;
 	uint64_t new_break = ALIGN_UP(global_sbrk_state.current_break + increment, 0x1000);
-	kfprintf(stdserial, "sbrk old: %p, new: %p\n", ret, new_break);
+	fprintf(stdserial, "sbrk old: %p, new: %p\n", ret, new_break);
 
 	if (global_sbrk_state.current_break < new_break) {
 		for (uint64_t page_to_map = global_sbrk_state.current_break; page_to_map < new_break; page_to_map+=0x1000) {

@@ -8,7 +8,7 @@
 uint64_t stack_next_alloc = 0177777'775'777'777'777'7777;
 
 Stack::Stack(uint64_t size) {
-	kfprintf(stdserial, "Allocating new stack of size %llx\n", size);
+	fprintf(stdserial, "Allocating new stack of size %llx\n", size);
 	assert(size > 0, "Cannot have zero sized stack");
 	assert(0 == (size & (0x1000 - 1)), "Stack size must be a multiple of 4k");
 	this->top = stack_next_alloc;
@@ -26,7 +26,7 @@ Stack::Stack(uint64_t size) {
 		.writeable = 1
 	};
 
-	kfprintf(stdserial, "Creating new stack: %p -> %p - Guard at %p\n", this->bottom, this->top, this->bottom - 0x1000);
+	fprintf(stdserial, "Creating new stack: %p -> %p - Guard at %p\n", this->bottom, this->top, this->bottom - 0x1000);
 
 	for (uint64_t stack_addr = this->bottom; stack_addr < this->top; stack_addr += 0x1000) {
 		map_page(stack_addr, global_frame_allocator);

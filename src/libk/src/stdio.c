@@ -57,7 +57,7 @@ void shift_up() {
 	memset(FRAMEBUFFER + framebuffer_pitch * psf_height * (termsize_y - 1), 0, framebuffer_pitch * psf_height); // zero the final line
 }
 
-void kputc(unsigned char c) {
+void putchar(unsigned char c) {
 	static bool esc = false;
 	static int code = 0;
 	
@@ -112,16 +112,16 @@ void kputc(unsigned char c) {
 	}
 }
 
-void kfputc(FILE* stream, unsigned char c) {
+void fputc(unsigned char c, FILE* stream) {
 	++stdio_char_count_theoretical;
 	
 	if (stdio_char_count >= stdio_char_limit) return;
 	++stdio_char_count;
 	
 	if (stream->fd == stdout->fd) {
-		kputc(c);
+		putchar(c);
 	} else if (stream->fd == stderr->fd) {
-		kputc(c);
+		putchar(c);
 	} else if (stream->fd == stdserial->fd) {
 		write_serial(c);
 	} else if (stream->fd == _stdstrbuf.fd) {
@@ -131,17 +131,17 @@ void kfputc(FILE* stream, unsigned char c) {
 	}
 }
 
-inline void kfputs(FILE* stream, const char* str) {
+inline void fputs(const char* str, FILE* stream) {
 	char c;
 	while ((c = *str++)) {
-		kfputc(stream, c);
+		fputc(c, stream);
 	}
 }
 
-inline void kputs(const char* str) {
+inline void puts(const char* str) {
 	char c;
 	while ((c = *str++)) {
-		kputc(c);
+		putchar(c);
 	}
 }
 
@@ -292,7 +292,7 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 			//bool neg;
 			switch (*fmt) {
 				case 'c': // todo: handle %lc
-					kfputc(stream, va_arg(args, int /*char*/));
+					fputc(va_arg(args, int /*char*/), stream);
 					break;
 				
 				case 'u':
@@ -319,11 +319,11 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 					if (options.width != -1) {
 						options.width -= len;
 						while (options.width > 0) {
-							kfputc(stream, options.zeropad ? '0' : ' ');
+							fputc(options.zeropad ? '0' : ' ', stream);
 							--options.width;
 						}
 					}
-					kfputs(stream, itoabuf);
+					fputs(itoabuf, stream);
 					break;
 					
 				case 'd':
@@ -339,28 +339,28 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 						default:               n = va_arg(args, int); break;
 					}
 					itoa(n, itoabuf, 10);
-					if (n < 0) kfputc(stream, '-');
+					if (n < 0) fputc('-', stream);
 					len = strlen(itoabuf);
 					if (options.width != -1) {
 						options.width -= len;
 						while (options.width > 0) {
-							kfputc(stream, options.zeropad ? '0' : ' ');
+							fputc(options.zeropad ? '0' : ' ', stream);
 							--options.width;
 						}
 					}
-					kfputs(stream, n < 0 ? itoabuf + 1 : itoabuf);
+					fputs(n < 0 ? itoabuf + 1 : itoabuf, stream);
 					break;
 				
 				case 'p':
 					p = va_arg(args, void*);
 					if (p == NULL && !(options.length == PRINTF_LENGTH_l)) {
-						kfputs(stream, "(nil)");
+						fputs("(nil)", stream);
 						break;
 					}
-					kfputs(stream, "0x");
+					fputs("0x", stream);
 					utoa((uint64_t)p, itoabuf, 16);
-					for(size_t i = 0; i < sizeof(void*) * 2 - strlen(itoabuf); ++i) kfputc(stream, '0');
-					kfputs(stream, itoabuf);
+					for(size_t i = 0; i < sizeof(void*) * 2 - strlen(itoabuf); ++i) fputc('0', stream);
+					fputs(itoabuf, stream);
 					break;
 				
 				case 'f':
@@ -385,19 +385,19 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 					f_floatpart = (uint64_t)f_val;
 					
 					while(len < options.width) {
-						kfputc(stream, options.zeropad ? '0' : ' ');
+						fputc(stream, options.zeropad ? '0' : ' ');
 						--options.width;
 					}
-					if (neg) kfputc(stream, '-');
-					kfputs(stream, itoabuf);
-					kfputc(stream, '.');
+					if (neg) fputc(stream, '-');
+					fputs(stream, itoabuf);
+					fputc(stream, '.');
 					if (options.precision) {
 						utoa(f_floatpart, itoabuf, 10);
-						kfputs(stream, itoabuf);
+						fputs(stream, itoabuf);
 						if ((long)strlen(itoabuf) != options.precision) {
 							int diff = options.precision - (long)strlen(itoabuf);
 							while (diff > 0) {
-								kfputc(stream, '?');
+								fputc(stream, '?');
 								--diff;
 							}
 						}
@@ -410,7 +410,7 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 				case 'G':
 				case 'a':
 				case 'A':
-					kfputs(stream, "[UNSUPPORTED]");
+					fputs("[UNSUPPORTED]", stream);
 					break;
 				
 				case 's': // todo: handle %ls
@@ -420,10 +420,10 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 					if (options.precision >= 0) len = MIN((long)len, options.precision);
 					
 					if (len < options.width) {
-						for (int i = 0; i < options.width - len; ++i) kfputc(stream, ' ');
+						for (int i = 0; i < options.width - len; ++i) fputc(' ', stream);
 					}
 					
-					for (int i = 0; i < len; ++i) kfputc(stream, *str++);
+					for (int i = 0; i < len; ++i) fputc(*str++, stream);
 					
 					break;
 				
@@ -441,7 +441,7 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 					break;
 					
 				case '%':
-					kfputc(stream, '%');
+					fputc('%', stream);
 					break;
 					
 				default:
@@ -449,52 +449,52 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 			}
 			++fmt;
 		} else {
-			kfputc(stream, c);
+			fputc(c, stream);
 		}
 	}
 	return stdio_char_count;
 }
 
-int kvfprintf(FILE* stream, const char *fmt, va_list args) {
+int vfprintf(FILE* stream, const char *fmt, va_list args) {
 	stdio_char_count = 0;
 	stdio_char_limit = SIZE_MAX;
 	
 	return _kvfprintf(stream, fmt, args);
 }
 
-int kvprintf(const char *fmt, va_list args) {
-	return kvfprintf(stdout, fmt, args);
+int vprintf(const char *fmt, va_list args) {
+	return vfprintf(stdout, fmt, args);
 }
 
-int kfprintf(FILE *stream, const char *fmt, ...) {
+int fprintf(FILE *stream, const char *fmt, ...) {
 	stdio_char_count = 0;
 	stdio_char_limit = SIZE_MAX;
 	
 	va_list args;
 	va_start(args, fmt);
 
-	int ret = kvfprintf(stream, fmt, args);
+	int ret = vfprintf(stream, fmt, args);
 
 	va_end(args);
 	
 	return ret;
 }
 
-int kprintf(const char *fmt, ...) {
+int printf(const char *fmt, ...) {
 	stdio_char_count = 0;
 	stdio_char_limit = SIZE_MAX;
 	
 	va_list args;
 	va_start(args, fmt);
 
-	int ret = kvfprintf(stdout, fmt, args);
+	int ret = vfprintf(stdout, fmt, args);
 
 	va_end(args);
 	
 	return ret;
 }
 
-int kvsnprintf(char *str, size_t size, const char *fmt, va_list args) {
+int vsnprintf(char *str, size_t size, const char *fmt, va_list args) {
 	stdio_strbuf = str;
 	stdio_char_count = 0;
 	stdio_char_count_theoretical = 0;
@@ -511,26 +511,26 @@ int kvsnprintf(char *str, size_t size, const char *fmt, va_list args) {
 	return stdio_char_count_theoretical;
 }
 
-int ksnprintf(char *str, size_t size, const char *fmt, ...) {
+int snprintf(char *str, size_t size, const char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 
-	int ret = kvsnprintf(str, size, fmt, args);
+	int ret = vsnprintf(str, size, fmt, args);
 
 	va_end(args);
 	
 	return ret;
 }
 
-int kvsprintf(char *str, const char *fmt, va_list args) {
-	return kvsnprintf(str, SIZE_MAX, fmt, args);
+int vsprintf(char *str, const char *fmt, va_list args) {
+	return vsnprintf(str, SIZE_MAX, fmt, args);
 }
 
-int ksprintf(char *str, const char *fmt, ...) {
+int sprintf(char *str, const char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 
-	int ret = kvsprintf(str, fmt, args);
+	int ret = vsprintf(str, fmt, args);
 
 	va_end(args);
 	

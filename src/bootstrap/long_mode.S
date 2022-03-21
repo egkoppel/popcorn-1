@@ -12,7 +12,7 @@ sse_enabled db "[", col_red, "FAIL", col_reset, "] SSE not enabled", 0xa, 0
 
 section .text
 extern __cxa_init
-extern kputs
+extern puts
 extern _stack_top
 extern gdt64.pointer64
 
@@ -31,7 +31,7 @@ long_mode_start:
 .1:
 	; ENABLE SSE
 	lea rdi, [rel sse_enabling]
-	call kputs
+	call puts
 
 	; mov rax, cr0
 	; and ax, 0xFFFB ; clear CR0.EM
@@ -44,7 +44,7 @@ long_mode_start:
 	; mov cr4, rax
 
 	lea rdi, [rel sse_enabled]
-	call kputs
+	call puts
 
 	mov esi, [rbp-8] ; pop multiboot info
 	mov edi, [rbp-4] ; pop multiboot magic

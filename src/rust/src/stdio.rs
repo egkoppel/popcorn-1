@@ -13,7 +13,7 @@ extern "C" {
 	static stdserial: *const File;
 
 	fn term_clear();
-	fn kfputc(f: *const File, byte: u8);
+	fn fputc(byte: u8, f: *const File);
 }
 
 pub fn clear() {
@@ -71,7 +71,7 @@ impl Color {
 
 impl Writer {
 	pub fn write_byte(&mut self, byte: u8) {
-		unsafe { kfputc(self.fd, byte); }
+		unsafe { fputc(byte, self.fd); }
 	}
 
 	pub fn write_string(&mut self, s: &str) {
