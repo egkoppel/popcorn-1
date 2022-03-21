@@ -44,6 +44,7 @@ namespace gdt {
 		uint8_t addr_high;
 
 		entry();
+		entry(uint64_t addr, uint32_t limit, uint8_t access_byte, uint8_t db, uint8_t granularity);
 		static entry new_code_segment(uint8_t dpl);
 		static entry new_data_segment(uint8_t dpl);
 	};

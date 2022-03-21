@@ -21,6 +21,19 @@ entry::entry() {
 	this->addr_high = 0;
 }
 
+entry::entry(uint64_t addr, uint32_t limit, uint8_t access_byte, uint8_t db, uint8_t granularity) {
+	this->limit_low = limit;
+	this->addr_low = addr;
+	this->addr_mid = addr >> 16;
+	this->access_byte = access_byte;
+	this->limit_high = limit >> 16;
+	this->reserved = 0;
+	this->long_mode = 1;
+	this->db = db;	
+	this->granularity = granularity;
+	this->addr_high = addr >> 24;
+}
+
 GDT::GDT() {
 	this->next_free_entry = 1;
 	uint64_t zero = 0;
@@ -56,20 +69,7 @@ entry entry::new_code_segment(uint8_t dpl) {
 		.present = 1
 	};
 
-	entry ret = {
-		.limit_low = 0xFFFF,
-		.addr_low = 0,
-		.addr_mid = 0,
-		.access_byte = access_byte,
-		.limit_high = 0xF,
-		.reserved = 0,
-		.long_mode = 1,
-		.db = 0,
-		.granularity = 1,
-		.addr_high = 0
-	};
-
-	return ret;
+	return entry(0, 0xFFFFF, access_byte, 0, 1);
 }
 
 entry entry::new_data_segment(uint8_t dpl) {
@@ -83,20 +83,7 @@ entry entry::new_data_segment(uint8_t dpl) {
 		.present = 1
 	};
 
-	entry ret = {
-		.limit_low = 0xFFFF,
-		.addr_low = 0,
-		.addr_mid = 0,
-		.access_byte = access_byte,
-		.limit_high = 0xF,
-		.reserved = 0,
-		.long_mode = 1,
-		.db = 0,
-		.granularity = 1,
-		.addr_high = 0
-	};
-
-	return ret;
+	return entry(0, 0xFFFFF, access_byte, 0, 1);
 }
 
 tss_entry::tss_entry(uint64_t addr, uint32_t size, uint8_t dpl) {
@@ -107,18 +94,7 @@ tss_entry::tss_entry(uint64_t addr, uint32_t size, uint8_t dpl) {
 		.present = 1
 	};
 
-	entry low = {
-		.limit_low = size - 1,
-		.addr_low = addr,
-		.addr_mid = addr >> 16,
-		.access_byte = access_byte,
-		.limit_high = (size - 1) >> 16,
-		.reserved = 0,
-		.long_mode = 1,
-		.db = 0,
-		.granularity = 1,
-		.addr_high = addr >> 24
-	};
+	entry low = entry(addr, size - 1, access_byte, 0, 1);
 
 	uint64_t high = addr >> 32;
 
