@@ -2,8 +2,10 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <panic.h>
+#include "pic.hxx"
 
 idt::IDT interrupt_descriptor_table = idt::IDT<48>();
+pic::ATChainedPIC pics(0x20, 0x28);
 
 struct __attribute__((packed)) exception_stack_frame_error {
 	uint64_t error_code;
@@ -41,16 +43,54 @@ struct __attribute__((packed)) exception_stack_frame {
 #define RETURN_ERROR_CODE(name, body) \
 	void name ## _inner(exception_stack_frame_error *frame) { body } \
 	__attribute__((naked)) void name() { \
+		__asm__ volatile("pushq %rax"); \
+		__asm__ volatile("pushq %rcx"); \
+		__asm__ volatile("pushq %rdx"); \
+		__asm__ volatile("pushq %rsi"); \
+		__asm__ volatile("pushq %rdi"); \
+		__asm__ volatile("pushq %r8"); \
+		__asm__ volatile("pushq %r9"); \
+		__asm__ volatile("pushq %r10"); \
+		__asm__ volatile("pushq %r11"); \
 		__asm__ volatile("movq %rsp, %rdi"); \
+		__asm__ volatile("addq $72, %rdi"); \
 		__asm__ volatile("call %P0" : : "i"(name ## _inner)); \
+		__asm__ volatile("popq %r11"); \
+		__asm__ volatile("popq %r10"); \
+		__asm__ volatile("popq %r9"); \
+		__asm__ volatile("popq %r8"); \
+		__asm__ volatile("popq %rdi"); \
+		__asm__ volatile("popq %rsi"); \
+		__asm__ volatile("popq %rdx"); \
+		__asm__ volatile("popq %rcx"); \
+		__asm__ volatile("popq %rax"); \
 		__asm__ volatile("iretq"); \
 	}
 
 #define RETURN_NO_ERROR_CODE(name, body) \
 	void name ## _inner(exception_stack_frame *frame) { body } \
 	__attribute__((naked)) void name() { \
+		__asm__ volatile("pushq %rax"); \
+		__asm__ volatile("pushq %rcx"); \
+		__asm__ volatile("pushq %rdx"); \
+		__asm__ volatile("pushq %rsi"); \
+		__asm__ volatile("pushq %rdi"); \
+		__asm__ volatile("pushq %r8"); \
+		__asm__ volatile("pushq %r9"); \
+		__asm__ volatile("pushq %r10"); \
+		__asm__ volatile("pushq %r11"); \
 		__asm__ volatile("movq %rsp, %rdi"); \
+		__asm__ volatile("addq $72, %rdi"); \
 		__asm__ volatile("call %P0" : : "i"(name ## _inner)); \
+		__asm__ volatile("popq %r11"); \
+		__asm__ volatile("popq %r10"); \
+		__asm__ volatile("popq %r9"); \
+		__asm__ volatile("popq %r8"); \
+		__asm__ volatile("popq %rdi"); \
+		__asm__ volatile("popq %rsi"); \
+		__asm__ volatile("popq %rdx"); \
+		__asm__ volatile("popq %rcx"); \
+		__asm__ volatile("popq %rax"); \
 		__asm__ volatile("iretq"); \
 	}
 
@@ -110,8 +150,33 @@ RETURN_ERROR_CODE(page_fault_handler, {
 	while (1);
 })
 
+namespace PIC_IRQ { enum PIC_IRQ {
+	PIC1 = 0x20,
+	TIMER = PIC1,
+	KEYBOARD = PIC1 + 1,
+	COM2 = PIC1 + 3,
+	COM1 = PIC1 + 4,
+	LPT2_3 = PIC1 + 5,
+	FD = PIC1 + 6,
+	LPT1 = PIC1 + 7,
+
+	PIC2 = 0x28,
+	RTC = PIC2,
+	ACPI = PIC2 + 1,
+	MOUSE = PIC2 + 4,
+	X87 = PIC2 + 5,
+	ATA_P = PIC2 + 6,
+	ATA_S = PIC2 + 7
+};}
+
+RETURN_NO_ERROR_CODE(timer_interrupt_handler, {
+	printf("-");
+	pics.acknowledge_irq(PIC_IRQ::TIMER);
+})
+
 void init_idt() {
 	interrupt_descriptor_table.add_entry(0x8, 0, double_fault_handler, 1);
 	interrupt_descriptor_table.add_entry(0xe, 0, page_fault_handler);
+	interrupt_descriptor_table.add_entry(PIC_IRQ::TIMER, 0, timer_interrupt_handler);
 	interrupt_descriptor_table.load();
 }
