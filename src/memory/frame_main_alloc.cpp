@@ -1,4 +1,4 @@
-#include "frame_main_alloc.hxx"
+#include "frame_main_alloc.hpp"
 #include <utils.h>
 #include <stdio.h>
 #include <panic.h>

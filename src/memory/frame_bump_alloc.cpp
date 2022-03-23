@@ -1,4 +1,4 @@
-#include "frame_bump_alloc.hxx"
+#include "frame_bump_alloc.hpp"
 #include <utils.h>
 #include <stdio.h>
 

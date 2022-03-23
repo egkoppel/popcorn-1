@@ -2,7 +2,7 @@
 #define _HUGOS_FRAME_BUMP_ALLOC_H
 
 #include <stdint.h>
-#include "../main/multiboot.hxx"
+#include "../main/multiboot.hpp"
 #include "memory.h"
 #include "allocator.h"
 

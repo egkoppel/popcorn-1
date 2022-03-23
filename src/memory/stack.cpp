@@ -1,4 +1,4 @@
-#include "stack.hxx"
+#include "stack.hpp"
 #include "../main/main.h"
 #include "allocator.h"
 #include <assert.h>

@@ -1,4 +1,4 @@
-#include "pic.hxx"
+#include "pic.hpp"
 #include "../main/port.h"
 
 using namespace pic;

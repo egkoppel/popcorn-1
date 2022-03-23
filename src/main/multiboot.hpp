@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include <utils.h>
+#include <compare>
 
 namespace multiboot {
 	enum class tag_type: uint32_t {

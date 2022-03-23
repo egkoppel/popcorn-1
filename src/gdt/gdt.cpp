@@ -1,4 +1,4 @@
-#include "gdt.hxx"
+#include "gdt.hpp"
 #include <assert.h>
 
 using namespace gdt;

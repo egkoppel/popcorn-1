@@ -1,4 +1,4 @@
-#include "tss.hxx"
+#include "tss.hpp"
 
 using namespace tss;
 

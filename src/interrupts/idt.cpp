@@ -1,4 +1,4 @@
-#include "idt.hxx"
+#include "idt.hpp"
 
 using namespace idt;
 

@@ -1,4 +1,4 @@
-#include "multiboot.hxx"
+#include "multiboot.hpp"
 #include <utils.h>
 #include <stdio.h>
 

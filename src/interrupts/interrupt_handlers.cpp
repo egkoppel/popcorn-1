@@ -1,8 +1,8 @@
-#include "idt.hxx"
+#include "idt.hpp"
 #include <stdio.h>
 #include <stdint.h>
 #include <panic.h>
-#include "pic.hxx"
+#include "pic.hpp"
 
 idt::IDT interrupt_descriptor_table = idt::IDT<48>();
 pic::ATChainedPIC pics(0x20, 0x28);

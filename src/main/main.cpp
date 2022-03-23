@@ -7,15 +7,15 @@
 
 #include <termcolor.h>
 
-#include "multiboot.hxx"
+#include "multiboot.hpp"
 #include "../memory/memory.h"
 #include "../memory/paging.h"
-#include "../memory/stack.hxx"
-#include "../memory/frame_bump_alloc.hxx"
-#include "../memory/frame_main_alloc.hxx"
-#include "../interrupts/interrupt_handlers.hxx"
-#include "../gdt/gdt.hxx"
-#include "../gdt/tss.hxx"
+#include "../memory/stack.hpp"
+#include "../memory/frame_bump_alloc.hpp"
+#include "../memory/frame_main_alloc.hpp"
+#include "../interrupts/interrupt_handlers.hpp"
+#include "../gdt/gdt.hpp"
+#include "../gdt/tss.hpp"
 #include <panic.h>
 
 
