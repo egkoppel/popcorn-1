@@ -35,18 +35,18 @@ class SerialPort {
 		}
 };
 
-SerialPort com1(0x3f8);
+SerialPort serial1(0x3f8);
 
 extern "C" {
 	int is_transmit_empty() {
-		return com1.is_transmit_empty();
+		return serial1.is_transmit_empty();
 	}
 
 	void write_serial(char a) {
-		com1.write(a);
+		serial1.write(a);
 	}
 
 	void print_serial(char *a) {
-		com1.print(a);
+		serial1.print(a);
 	}
 }
