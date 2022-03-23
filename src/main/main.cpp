@@ -290,5 +290,7 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	size_t size = ramfs.locate_file("initramfs/.placeholder", &data);
 	for (int i = 0; i < size; ++i) fputc(reinterpret_cast<uint8_t*>(data)[i], stdout);
 	fputc('\n', stdout);
+
+	__asm__ volatile("sti");
 	while(1);
 }
