@@ -91,9 +91,16 @@ impl Page {
 
 impl fmt::Debug for Page {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let _end = (self.number + 1).checked_mul(4096);
 		f.debug_struct("Page")
 		 .field("start", &(self.number * 4096))
-		 .field("end", &((self.number + 1) * 4096))
+		 .field("end", {
+			if let Some(end) = _end.as_ref() {
+				end
+			} else {
+				&0
+			}
+		 })
 		 .finish()
 	}
 }
