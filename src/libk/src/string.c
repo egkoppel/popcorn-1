@@ -41,5 +41,25 @@ int memcmp(const void *ptr1, const void *ptr2, size_t count) {
 	if (*s1++ != *s2++)
 		return s1[-1] < s2[-1] ? -1 : 1;
 	}
-return 0;
+	return 0;
+}
+
+int strcmp(const char *s1, const char *s2) {
+	if (s1 == NULL || s2 == NULL) {
+		if (s1 < s2)  return -1;
+		if (s1 > s2)  return 1;
+		return 0;
+	}
+	
+	while (1) {
+		char c1 = *s1++, c2 = *s2++;
+		
+		if (c1 != c2) {
+			return c1 - c2;
+		}
+		
+		if (c1 == '\0') {
+			return c1 - c2;
+		}
+	}
 }
