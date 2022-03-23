@@ -32,6 +32,10 @@ elf_sections_entry* elf_sections_tag::end() {
 	return reinterpret_cast<elf_sections_entry*>(ADD_BYTES(&this->first_entry, this->entry_count * this->entry_size));
 }
 
+const char* boot_module_tag::get_name() {
+	return &this->str;
+}
+
 Data::Data(uint64_t info_struct) {
 	info_header *header = reinterpret_cast<info_header*>(info_struct);
 	this->mb_data_start = reinterpret_cast<tag_header*>(info_struct + sizeof(info_header));

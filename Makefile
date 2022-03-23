@@ -6,6 +6,7 @@ QEMU ?= qemu-system-x86_64
 OBJCOPY ?= llvm-objcopy
 AR = llvm-ar
 CARGO ?= cargo
+TAR ?= tar
 
 INCLUDE ?= -Isrc/libk/include -Isrc/stlport
 
@@ -51,6 +52,9 @@ OBJS_LIBK = $(patsubst src/%,$(BUILD_DIR)/%, \
 	$(patsubst %.cpp,%.cpp.o,$(wildcard src/libk/src/*.cpp)))
 LINKER_SCRIPT ?= src/linker.ld
 GRUBCFG = src/grub.cfg
+
+RAMDISK_IMG = $(BUILD_DIR)/initramfs.tar.gz
+RAMDISK = initramfs
 
 DEPENDS = $(patsubst %.o, %.d, $(OBJS))
 
@@ -139,8 +143,12 @@ endif
 $(BUILD_DIR)/hug.bin: $(OBJS) $(BUILD_DIR)/libk.a $(RUST_LIB_DIR)/libhugos.a
 	$(LD) $(LDFLAGS) -T $(LINKER_SCRIPT) -o $@ $(OBJS) -L$(BUILD_DIR) -lk -L$(RUST_LIB_DIR) -lhugos
 
-$(BUILD_DIR)/hug.iso: $(BUILD_DIR)/hug.bin $(GRUBCFG) | $(ISODIR)
+$(RAMDISK_IMG): $(RAMDISK)
+	$(TAR) -czf $@ $<
+
+$(BUILD_DIR)/hug.iso: $(BUILD_DIR)/hug.bin $(GRUBCFG) $(RAMDISK_IMG) | $(ISODIR)
 	cp $(BUILD_DIR)/hug.bin $(ISODIR)/boot/hug.bin
+	cp $(RAMDISK_IMG) $(ISODIR)/boot/initramfs.tar.gz
 	cp $(GRUBCFG) $(ISODIR)/boot/grub/grub.cfg
 	grub-mkrescue -o $@ $(ISODIR)
 

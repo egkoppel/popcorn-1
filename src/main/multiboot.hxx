@@ -11,6 +11,7 @@ namespace multiboot {
 	enum class tag_type: uint32_t {
 		CLI = 1,
 		BOOTLOADER_NAME = 2,
+		BOOT_MODULE = 3,
 		MEMORY_MAP = 6,
 		FRAMEBUFFER = 8,
 		ELF_SECTIONS = 9
@@ -66,6 +67,15 @@ namespace multiboot {
 
 		memory_map_entry* begin();
 		memory_map_entry* end();
+	};
+
+	struct __attribute__((packed)) boot_module_tag {
+		tag_header header;
+		uint32_t module_start;
+		uint32_t module_end;
+		char str;
+
+		const char* get_name();
 	};
 
 	struct __attribute__((packed)) framebuffer_tag {

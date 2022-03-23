@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <termcolor.h>
 
@@ -40,10 +41,14 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	multiboot::cli_tag *cli = mb.find_tag<multiboot::cli_tag>(multiboot::tag_type::CLI);
 	multiboot::memory_map_tag *mmap = mb.find_tag<multiboot::memory_map_tag>(multiboot::tag_type::MEMORY_MAP);
 	multiboot::elf_sections_tag *sections = mb.find_tag<multiboot::elf_sections_tag>(multiboot::tag_type::ELF_SECTIONS);
+	multiboot::boot_module_tag *boot_module = mb.find_tag<multiboot::boot_module_tag>(multiboot::tag_type::BOOT_MODULE);
 	
 	if (!mmap) panic("No memory map tag found");
 
 	if (bootloader) printf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Booted by %s\n", bootloader->get_name());
+
+	if (!boot_module) panic("No initramfs found");
+	if (strcmp(boot_module->get_name(), "initramfs") != 0) panic("No initramfs found");
 
 	init_idt();
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded IDT\n");
