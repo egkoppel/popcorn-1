@@ -103,7 +103,7 @@ tss_entry::tss_entry(uint64_t addr, uint32_t size, uint8_t dpl) {
 }
 
 uint8_t GDT::add_entry(entry entry) {
-	assert(this->next_free_entry < 8, "GDT is full");
+	assert_msg(this->next_free_entry < 8, "GDT is full");
 	uint8_t index = this->next_free_entry;
 	this->entries[index] = entry;
 	this->next_free_entry++;
@@ -111,7 +111,7 @@ uint8_t GDT::add_entry(entry entry) {
 }
 
 uint8_t GDT::add_tss_entry(tss_entry entry) {
-	assert(this->next_free_entry < 7, "GDT is full");
+	assert_msg(this->next_free_entry < 7, "GDT is full");
 	uint8_t index = this->next_free_entry;
 	this->entries[index] = entry.low;
 	this->entries[index + 1] = entry.high;

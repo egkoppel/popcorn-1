@@ -9,8 +9,8 @@ uint64_t stack_next_alloc = 0177777'775'777'777'777'7777;
 
 Stack::Stack(uint64_t size) {
 	fprintf(stdserial, "Allocating new stack of size %llx\n", size);
-	assert(size > 0, "Cannot have zero sized stack");
-	assert(0 == (size & (0x1000 - 1)), "Stack size must be a multiple of 4k");
+	assert_msg(size > 0, "Cannot have zero sized stack");
+	assert_msg(0 == (size & (0x1000 - 1)), "Stack size must be a multiple of 4k");
 	this->top = stack_next_alloc;
 	this->bottom = stack_next_alloc - size + 1;
 	
@@ -33,7 +33,7 @@ Stack::Stack(uint64_t size) {
 		set_entry_flags_for_address(stack_addr, flags);
 	}
 	int guard_page_mapped = translate_page(this->bottom - 0x1000, NULL);
-	assert(guard_page_mapped == -1, "Stack guard page already mapped");
+	assert_msg(guard_page_mapped == -1, "Stack guard page already mapped");
 
 	stack_next_alloc = this->bottom - 0x1000 - 1;
 }

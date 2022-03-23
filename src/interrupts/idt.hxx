@@ -44,7 +44,7 @@ namespace idt {
 		}
 
 		void add_entry(uint8_t index, uint8_t dpl, void(*handler)(), uint8_t ist = 0) {
-			assert(E > index, "Index out of bounds");
+			assert_msg(E > index, "Index out of bounds");
 			uint64_t ptr = (uint64_t)handler;
 
 			this->entries[index].pointer_low = (uint16_t)ptr;

@@ -16,7 +16,7 @@ void *sbrk(intptr_t increment) {
 			map_page(page_to_map, global_frame_allocator);
 		}
 	} else if (global_sbrk_state.current_break > new_break) {
-		assert(new_break > global_sbrk_state.kernel_end, "Attempt to unnmap kernel with sbrk");
+		assert_msg(new_break > global_sbrk_state.kernel_end, "Attempt to unnmap kernel with sbrk");
 		for (uint64_t page_to_unmap = new_break; page_to_unmap < global_sbrk_state.current_break; page_to_unmap+=0x1000) {
 			unmap_page(page_to_unmap, global_frame_allocator);
 		}

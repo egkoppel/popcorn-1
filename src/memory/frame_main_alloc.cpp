@@ -36,7 +36,7 @@ void frame_main_alloc_state::deallocate(uint64_t addr) {
 	uint64_t frame_num = addr / 0x1000;
 	uint64_t bitmap_index = frame_num / 64;
 	uint64_t bit_index = frame_num % 64;
-	assert(this->bitmap_start + bitmap_index < this->bitmap_end, "Attempted deallocation at %p outside of bitmap", addr);
+	assert_msg(this->bitmap_start + bitmap_index < this->bitmap_end, "Attempted deallocation at %p outside of bitmap", addr);
 	this->bitmap_start[bitmap_index] &= ~(1 << bit_index);
 }
 
