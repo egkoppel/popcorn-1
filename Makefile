@@ -46,6 +46,7 @@ OBJS = $(patsubst src/%,$(BUILD_DIR)/%, \
 	$(patsubst %.cpp,%.cpp.o,$(wildcard src/interrupts/*.cpp)) \
 	$(patsubst %.c,%.c.o,$(wildcard src/gdt/*.c)) \
 	$(patsubst %.cpp,%.cpp.o,$(wildcard src/gdt/*.cpp)) \
+	$(patsubst %.cpp,%.cpp.o,$(wildcard src/*.cpp)) \
 	$(patsubst %.psf,%.psf.o,$(wildcard src/fonts/*.psf)))
 OBJS_LIBK = $(patsubst src/%,$(BUILD_DIR)/%, \
 	$(patsubst %.c,%.c.o,$(wildcard src/libk/src/*.c)) \
@@ -121,7 +122,10 @@ $(BUILD_DIR)/gdt/%.c.o: src/gdt/%.c | $(BUILD_DIR)/gdt
 	$(CC) $(CFLAGS) -o $@ $<
 
 $(BUILD_DIR)/gdt/%.cpp.o: src/gdt/%.cpp | $(BUILD_DIR)/gdt
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ $<
+
+$(BUILD_DIR)/%.cpp.o: src/%.cpp | $(BUILD_DIR)
+	$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ $<
 
 $(BUILD_DIR)/libk/src/%.c.o: src/libk/src/%.c | $(BUILD_DIR)/libk/src
 	$(CC) $(CFLAGS) -o $@ $<
