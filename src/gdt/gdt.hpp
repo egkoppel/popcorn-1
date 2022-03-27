@@ -19,10 +19,22 @@ namespace gdt {
 		operator uint8_t();
 	};
 
-	struct __attribute__((packed)) access_byte_user {
-		uint8_t access: 1;
-		uint8_t writeable: 1;
+	struct __attribute__((packed)) access_byte_user_code {
+		uint8_t accessed: 1;
+		uint8_t readable: 1;
 		uint8_t conforming: 1;
+		uint8_t executable: 1;
+		uint8_t S: 1;
+		uint8_t dpl: 2;
+		uint8_t present: 1;
+
+		operator uint8_t();
+	};
+
+	struct __attribute__((packed)) access_byte_user_data {
+		uint8_t accessed: 1;
+		uint8_t writeable: 1;
+		uint8_t expand_down: 1;
 		uint8_t executable: 1;
 		uint8_t S: 1;
 		uint8_t dpl: 2;

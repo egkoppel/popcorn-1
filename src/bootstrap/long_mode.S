@@ -18,12 +18,13 @@ extern gdt64.pointer64
 
 long_mode_start:
 	; switch data segment registers
-	mov ax, 0
+	mov ax, 0x10
 	mov ds, ax
 	mov es, ax
+	mov ss, ax
+	mov ax, 0
 	mov fs, ax
 	mov gs, ax
-	mov ss, ax
 
 	; jump to higher half
 	mov rax, .1

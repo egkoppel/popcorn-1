@@ -50,7 +50,11 @@ void GDT::load() {
 	__asm__ volatile("pushq $0x8; leaq .1$(%%rip), %%rax; pushq %%rax; lretq; .1$:" : : : "rax");
 }
 
-access_byte_user::operator uint8_t() {
+access_byte_user_code::operator uint8_t() {
+	return *reinterpret_cast<uint8_t*>(this);
+}
+
+access_byte_user_data::operator uint8_t() {
 	return *reinterpret_cast<uint8_t*>(this);
 }
 
@@ -59,9 +63,9 @@ access_byte_system::operator uint8_t() {
 }
 
 entry entry::new_code_segment(uint8_t dpl) {
-	access_byte_user access_byte = {
-		.access = 0,
-		.writeable = 0,
+	access_byte_user_code access_byte = {
+		.accessed = 0,
+		.readable = 0,
 		.conforming = 0,
 		.executable = 1,
 		.S = 1,
@@ -73,10 +77,10 @@ entry entry::new_code_segment(uint8_t dpl) {
 }
 
 entry entry::new_data_segment(uint8_t dpl) {
-	access_byte_user access_byte = {
-		.access = 0,
-		.writeable = 0,
-		.conforming = 0,
+	access_byte_user_data access_byte = {
+		.accessed = 0,
+		.writeable = 1,
+		.expand_down = 0,
 		.executable = 0,
 		.S = 1,
 		.dpl = dpl,
