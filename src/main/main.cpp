@@ -55,10 +55,11 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded IDT\n");
 	
 	gdt::GDT global_descriptor_table = gdt::GDT();
-	global_descriptor_table.add_entry(gdt::entry::new_code_segment(0));
-	global_descriptor_table.add_entry(gdt::entry::new_data_segment(0));
-	global_descriptor_table.add_entry(gdt::entry::new_code_segment(3));
-	global_descriptor_table.add_entry(gdt::entry::new_data_segment(3));
+	global_descriptor_table.add_entry(gdt::entry::new_code_segment(0)); // Kernel code
+	global_descriptor_table.add_entry(gdt::entry::new_data_segment(0)); // Kernel data
+	global_descriptor_table.add_entry(gdt::entry()); // [Unused] - compatibility mode user code
+	global_descriptor_table.add_entry(gdt::entry::new_data_segment(3)); // User data
+	global_descriptor_table.add_entry(gdt::entry::new_code_segment(3)); // User code
 	global_descriptor_table.load();
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded GDT\n");
 
