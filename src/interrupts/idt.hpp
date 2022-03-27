@@ -5,7 +5,7 @@
 #include <assert.h>
 
 namespace idt {
-	struct __attribute__((packed)) entry {
+	struct __attribute__((packed, align(8))) entry {
 		uint16_t pointer_low;
 		uint16_t segment_selector;
 		uint8_t ist;
