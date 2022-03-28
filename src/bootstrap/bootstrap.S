@@ -297,6 +297,7 @@ _start:
 
 	mov ecx, 0xC0000080 ; EFER rregister
 	rdmsr
+	or eax, 1<<0 ; set syscall/sysret bit
 	or eax, 1<<8 ; set long mode bit
 	or eax, 1<<11 ; set NXE bit
 	wrmsr
