@@ -19,6 +19,7 @@ STATIC_ASSERT(sizeof(Footer) % MALLOC_ALIGNMENT == 0)
 
 static Header *first_free = NULL;
 static void *heap_start = NULL;
+static void *heap_end = NULL;
 static bool first_malloc = true;
 
 void* malloc(size_t size) {
@@ -34,9 +35,10 @@ void* malloc(size_t size) {
 		first_free = (Header*)sbrk(extend);
 		
 		if (first_malloc) {
-			heap_start = (void*)first_free;
+			heap_end = heap_start = (void*)first_free;
 			first_malloc = false;
 		}
+		heap_end = (void*)((char*)heap_end + extend);
 		
 		*first_free = (Header){
 			extend - sizeof(Header) - sizeof(Footer),
@@ -50,7 +52,7 @@ void* malloc(size_t size) {
 	
 	Header *free_space = first_free, *prev_free_space = NULL;
 	while (free_space->next_free != NULL && free_space->size < size) {
-		assert(free_space->size <= (intptr_t)sbrk(0) - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer));
+		assert(free_space->size <= (intptr_t)heap_end - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer));
 		assert(free_space->is_free);
 		assert(free_space->pad == HEADER_PADDING);
 		
@@ -61,7 +63,7 @@ void* malloc(size_t size) {
 	if (free_space->size < size) { // failed to find any free space big enough
 		assert(free_space->next_free == NULL);
 		
-		Footer *end_footer = (Footer*)((char*)sbrk(0) - sizeof(Footer));
+		Footer *end_footer = (Footer*)((char*)heap_end - sizeof(Footer));
 		Header *end = end_footer->header;
 		
 		assert(end_footer->pad == FOOTER_PADDING);
@@ -75,6 +77,7 @@ void* malloc(size_t size) {
 		}
 		
 		Header *new_free_space = sbrk(extend);
+		heap_end = (void*)((char*)heap_end + extend);
 		Footer *new_footer = (Footer*)((char*)new_free_space + extend - sizeof(Footer));
 		
 		if (end->is_free) {
@@ -171,7 +174,7 @@ void free(void *ptr) {
 	
 	assert(header->pad == HEADER_PADDING);
 	assert(!header->is_free);
-	assert(header->size <= (intptr_t)sbrk(0) - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer));
+	assert(header->size <= (intptr_t)heap_end - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer));
 	header->is_free = true;
 	
 	Footer *const prev_footer = ((Footer*)((char*)header - sizeof(Footer)));
@@ -193,10 +196,10 @@ void free(void *ptr) {
 		header = prev_header;
 		in_linked_list = true;
 		
-		assert(prev_header->size <= (intptr_t)sbrk(0) - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer));
+		assert(prev_header->size <= (intptr_t)heap_end - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer));
 	}
 	
-	if ((void*)next_header < sbrk(0) && next_header->is_free) {
+	if ((void*)next_header < heap_end && next_header->is_free) {
 		assert(next_header->pad == HEADER_PADDING);
 		
 		// remove from linked list
@@ -215,7 +218,7 @@ void free(void *ptr) {
 			if (first_free != NULL) first_free->prev_free = NULL;
 		}
 		
-		assert(next_header->size <= (intptr_t)sbrk(0) - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer));
+		assert(next_header->size <= (intptr_t)heap_end - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer));
 	}
 	
 	if (!in_linked_list) {
