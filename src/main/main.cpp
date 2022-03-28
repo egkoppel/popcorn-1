@@ -270,8 +270,10 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	global_frame_allocator = &main_frame_allocator.vtable;
 
 	Stack double_fault_stack(0x1000);
+	Stack kernel_interrupt_stack(0x1000);
 	tss::TSS task_state_segment = tss::TSS();
 	task_state_segment.interrupt_stack_table[0] = double_fault_stack.top;
+	task_state_segment.privilege_stack_table[0] = kernel_interrupt_stack.top;
 	
 	uint8_t index = global_descriptor_table.add_tss_entry(gdt::tss_entry(reinterpret_cast<uint64_t>(&task_state_segment), sizeof(tss::TSS), 0));
 	printf("TSS index at %u\n", index);
