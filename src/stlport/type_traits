@@ -25,6 +25,8 @@
 // while libstdc++ v3, 20050921 (4.0.2) not; use libstdc++ instead
 // # if defined(STLPORT) || (defined(__GNUC__) && (__GNUC__ < 4)) /* !defined(__GLIBCXX__) || (defined(__GNUC__) && (__GNUC__ < 4)) */
 
+#include <stl/_cstddef.h>
+
 _STLP_BEGIN_NAMESPACE
 
 _STLP_BEGIN_TR1_NAMESPACE
@@ -241,7 +243,7 @@ struct is_array :
     public false_type
 { };
 
-template <class _Tp, std::size_t _Sz>
+template <class _Tp, _STLP_VENDOR_CSTD::size_t _Sz>
 struct is_array<_Tp[_Sz]> :
     public true_type
 { };
@@ -450,7 +452,7 @@ struct remove_extent
     typedef _Tp type;
 };
 
-template <class _Tp, std::size_t _Sz>
+template <class _Tp, _STLP_VENDOR_CSTD::size_t _Sz>
 struct remove_extent<_Tp[_Sz]>
 {
     typedef _Tp type;
@@ -468,7 +470,7 @@ struct remove_all_extents
     typedef _Tp type;
 };
 
-template <class _Tp, std::size_t _Size>
+template <class _Tp, _STLP_VENDOR_CSTD::size_t _Size>
 struct remove_all_extents<_Tp[_Size]>
 {
     typedef typename remove_all_extents<_Tp>::type type;
@@ -655,13 +657,13 @@ struct remove_reference<_Tp&>
 };
   
 template <class _Tp>
-struct add_reference
+struct add_lvalue_reference
 {
     typedef _Tp& type;
 };
 
 template <class _Tp>
-struct add_reference<_Tp&>
+struct add_lvalue_reference<_Tp&>
 {
     typedef _Tp& type;
 };
