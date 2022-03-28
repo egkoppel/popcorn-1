@@ -5,7 +5,7 @@ use core::ptr::Unique;
 use spin::Mutex;
 use core::arch::asm;
 
-use self::{tables::{PageTable, Level4}, mapper::Mapper};
+use self::{tables::{PageTable, Level4, EntryFlags}, mapper::Mapper};
 use super::{Page, Frame, VirtualAddress, PhysicalAddress, frame_alloc::Allocator};
 
 pub static PAGE_TABLE: Mutex<ActivePageTable> = Mutex::new(unsafe { ActivePageTable::new() });
@@ -47,7 +47,17 @@ impl ActivePageTable {
 			asm!("mov {}, cr3", out(reg) backup_table_addr);
 		}
 		backup_table_addr &= 0xfffffffffffff000;
-		self.mapper().map_page_to(magicpage, Frame::with_address(PhysicalAddress(backup_table_addr)), allocator);
+		self.mapper().map_page_to(magicpage, Frame::with_address(PhysicalAddress(backup_table_addr)), EntryFlags {
+			writeable: true,
+			user_accessible: false,
+			write_through: false,
+			cache_disabled: false,
+			accessed: false,
+			dirty: false,
+			huge: false,
+			global: false,
+			no_execute: true
+		}, allocator);
 
 		self.p4_as_mut()[510].overwrite_address(inactive.p4);
 		flush_tlb();
@@ -80,11 +90,25 @@ impl InactivePageTable {
 		let p4_addr = 0xFFFFFF80cafeb000u64;
 
 		let p4_frame = allocator.allocate_frame().unwrap();
-		PAGE_TABLE.lock().mapper().map_page_to(Page::with_address(VirtualAddress(p4_addr)), p4_frame.clone(), allocator);
+		serialprintln!("Mapping new p4 table");
+		PAGE_TABLE.lock().mapper().map_page_to(Page::with_address(VirtualAddress(p4_addr)), p4_frame.clone(), EntryFlags {
+			writeable: true,
+			user_accessible: false,
+			write_through: false,
+			cache_disabled: false,
+			accessed: false,
+			dirty: false,
+			huge: false,
+			global: false,
+			no_execute: true
+		}, allocator);
 
 		let p4 = unsafe { PageTable::<Level4>::new_from_addr(p4_addr) };
+
 		p4.clear();
 		p4[510].set_address(p4_frame.clone());
+		p4[510].set_writeable(true);
+		p4[510].set_no_execute(true);
 
 		PAGE_TABLE.lock().mapper().unmap_page_no_free(Page::with_address(VirtualAddress(p4_addr)));
 
@@ -99,15 +123,17 @@ mod c_api {
 	use crate::memory::frame_alloc::CAllocatorVtable;
 	use crate::memory::{Frame, Page, PhysicalAddress, VirtualAddress};
 
-	#[no_mangle] extern "C" fn map_page(addr: VirtualAddress, allocator: Option<&mut CAllocatorVtable>) -> i32 {
+use super::tables::EntryFlags;
+
+	#[no_mangle] extern "C" fn map_page(addr: VirtualAddress, flags: EntryFlags, allocator: Option<&mut CAllocatorVtable>) -> i32 {
 		if allocator.is_none() { return -1; }
-		PAGE_TABLE.lock().mapper().map_page(Page::with_address(addr), allocator.unwrap());
+		PAGE_TABLE.lock().mapper().map_page(Page::with_address(addr), flags, allocator.unwrap());
 		return 0;
 	}
 
-	#[no_mangle] extern "C" fn map_page_to(virt_addr: VirtualAddress, phys_addr: PhysicalAddress, allocator: Option<&mut CAllocatorVtable>) -> i32 {
+	#[no_mangle] extern "C" fn map_page_to(virt_addr: VirtualAddress, phys_addr: PhysicalAddress, flags: EntryFlags, allocator: Option<&mut CAllocatorVtable>) -> i32 {
 		if allocator.is_none() { return -1; }
-		PAGE_TABLE.lock().mapper().map_page_to(Page::with_address(virt_addr), Frame::with_address(phys_addr), allocator.unwrap());
+		PAGE_TABLE.lock().mapper().map_page_to(Page::with_address(virt_addr), Frame::with_address(phys_addr), flags, allocator.unwrap());
 		return 0;
 	}
 

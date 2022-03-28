@@ -302,6 +302,7 @@ _start:
 	wrmsr
 
 	mov eax, cr0 ; enable paging
+	or eax, 1<<16 ; set write protect bit
 	or eax, 1<<31 ; set paging bit
 	mov cr0, eax
 

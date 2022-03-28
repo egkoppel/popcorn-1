@@ -11,8 +11,20 @@
 extern "C" {
 #endif
 
-int32_t map_page(uint64_t page_addr, allocator_vtable *allocator);
-int32_t map_page_to(uint64_t page_addr, uint64_t frame_addr, allocator_vtable *allocator);
+typedef struct {
+	bool writeable;
+	bool user_accessible;
+	bool write_through;
+	bool cache_disabled;
+	bool accessed;
+	bool dirty;
+	bool huge;
+	bool global;
+	bool no_execute;
+} entry_flags_t;
+
+int32_t map_page(uint64_t page_addr, entry_flags_t flags, allocator_vtable *allocator);
+int32_t map_page_to(uint64_t page_addr, uint64_t frame_addr, entry_flags_t flags, allocator_vtable *allocator);
 
 int32_t unmap_page(uint64_t page_addr, allocator_vtable *allocator);
 void unmap_page_no_free(uint64_t page_addr);
@@ -28,18 +40,6 @@ mapper_ctx_t mapper_ctx_begin(uint64_t p4_frame_addr, allocator_vtable *allocato
 void mapper_ctx_end(mapper_ctx_t ctx);
 
 uint64_t create_p4_table(allocator_vtable *allocator);
-
-typedef struct {
-	bool writeable;
-	bool user_accessible;
-	bool write_through;
-	bool cache_disabled;
-	bool accessed;
-	bool dirty;
-	bool huge;
-	bool global;
-	bool no_execute;
-} entry_flags_t;
 
 int32_t set_entry_flags_for_address(uint64_t addr, entry_flags_t flags);
 

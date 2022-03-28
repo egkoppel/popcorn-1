@@ -13,7 +13,18 @@ void *sbrk(intptr_t increment) {
 
 	if (global_sbrk_state.current_break < new_break) {
 		for (uint64_t page_to_map = global_sbrk_state.current_break; page_to_map < new_break; page_to_map+=0x1000) {
-			map_page(page_to_map, global_frame_allocator);
+			entry_flags_t flags = {
+				.writeable = 1,
+				.user_accessible = 0,
+				.write_through = 0,
+				.cache_disabled = 0,
+				.accessed = 0,
+				.dirty = 0,
+				.huge = 0,
+				.global = 0,
+				.no_execute = 1
+			};
+			map_page(page_to_map, flags, global_frame_allocator);
 		}
 	} else if (global_sbrk_state.current_break > new_break) {
 		assert_msg(new_break > global_sbrk_state.kernel_end, "Attempt to unnmap kernel with sbrk");
