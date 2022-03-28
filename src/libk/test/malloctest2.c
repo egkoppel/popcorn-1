@@ -13,7 +13,7 @@
 #include <string.h>
 
 #include "sbrk.h"
-#include "malloctest.h"
+#include "malloctest2.h"
 
 typedef struct dual {
 	size_t size;
@@ -22,7 +22,7 @@ typedef struct dual {
 
 #define ALLOCS1 1000
 #define ALLOCS2 1000
-#define MAX_ALLOC_SIZE 1000
+#define MAX_ALLOC_SIZE 5000
 #define RANDOM_FREES 200
 #define HEXDUMP_BYTES_PER_INTERVAL 4
 #define HEXDUMP_BYTES_PER_LINE 48
@@ -76,7 +76,7 @@ void test_malloc2(unsigned int random_seed) {
 	__hug_malloc_set_first_malloc();
 	
 	srand(random_seed);
-	cprintf("Beginning second malloc test.\n");
+	cprintf("\nBeginning malloctest2.\n");
 	
 	Dual duals[ALLOCS1 + ALLOCS2];
 	
@@ -178,7 +178,7 @@ void test_malloc2(unsigned int random_seed) {
 	
 	assert_msg(offset == 0, "Free did not return all memory");
 	
-	cprintf("No corruption was found.\nFinished second malloc test.\n");
+	cprintf("No corruption was found.\nFinished malloctest2.\n");
 	
 	free(heap);
 	heap = NULL;

@@ -37,7 +37,7 @@ void test_malloc() {
 	__hug_malloc_clear_first_free();
 	__hug_malloc_set_first_malloc();
 	
-	printf("Beginning malloc tests...\n");
+	printf("Beginning malloctest.\n");
 	
 	void *to_free[2];
 	
@@ -79,7 +79,7 @@ void test_malloc() {
 	hug_free(to_free[1]);
 	assert_msg(offset == 0, "Free did not return all memory");
 	
-	printf("Finished malloc tests.\n");
+	printf("Finished malloctest.\n");
 	
 	free(heap);
 	heap = NULL;
