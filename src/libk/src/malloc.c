@@ -24,7 +24,7 @@ static bool first_malloc = true;
 
 void* malloc(size_t size) {
 	if (first_free != NULL) {
-		assert(first_free->pad == HEADER_PADDING);
+		assert_msg(first_free->pad == HEADER_PADDING, "Corrupted header");
 		assert(first_free->prev_free == NULL);
 	}
 	
@@ -52,13 +52,17 @@ void* malloc(size_t size) {
 	
 	Header *free_space = first_free, *prev_free_space = NULL;
 	while (free_space->next_free != NULL && free_space->size < size) {
-		assert(free_space->pad == HEADER_PADDING);
-		assert(free_space->size <= (intptr_t)heap_end - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer));
-		assert(free_space->is_free);
+		assert_msg(free_space->pad == HEADER_PADDING, "Corrupted header in list of free spaces");
+		assert_msg(free_space->size <= (intptr_t)heap_end - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer), "Free space is bigger than the heap (impossible)");
+		assert_msg(free_space->is_free, "Element of list of free spaces is not free");
 		
 		prev_free_space = free_space;
 		free_space = free_space->next_free;
 	}
+	
+	assert_msg(free_space->pad == HEADER_PADDING, "Corrupted header in list of free spaces");
+	assert_msg(free_space->size <= (intptr_t)heap_end - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer), "Free space is bigger than the heap (impossible)");
+	assert_msg(free_space->is_free, "Element of list of free spaces is not free");
 	
 	if (free_space->size < size) { // failed to find any free space big enough
 		assert(free_space->next_free == NULL);
@@ -66,8 +70,8 @@ void* malloc(size_t size) {
 		Footer *end_footer = (Footer*)((char*)heap_end - sizeof(Footer));
 		Header *end = end_footer->header;
 		
-		assert(end_footer->pad == FOOTER_PADDING);
-		assert(end->pad == HEADER_PADDING);
+		assert_msg(end_footer->pad == FOOTER_PADDING, "Corrupted footer");
+		assert_msg(end->pad == HEADER_PADDING, "Corrupted header");
 		
 		size_t extend;
 		if (end->is_free) {
@@ -132,7 +136,7 @@ void* malloc(size_t size) {
 		Header *new_header = (Header*)((char*)new_footer + sizeof(Footer));
 		Footer *existing_footer = (Footer*)((char*)free_space + sizeof(Header) + free_space->size);
 		
-		assert(existing_footer->pad == FOOTER_PADDING);
+		assert_msg(existing_footer->pad == FOOTER_PADDING, "Corrupted footer");
 		existing_footer->header = new_header;
 		
 		*new_header = (Header){
@@ -166,15 +170,15 @@ void free(void *ptr) {
 	if (ptr == NULL) return;
 	
 	if (first_free != NULL) {
-		assert(first_free->pad == HEADER_PADDING);
+		assert_msg(first_free->pad == HEADER_PADDING, "First element of free spaces has corrupted header");
 		assert(first_free->prev_free == NULL);
 	}
 	
 	Header *header = (Header*)((char*)ptr - sizeof(Header));
 	
-	assert(header->pad == HEADER_PADDING);
-	assert(!header->is_free);
-	assert(header->size <= (intptr_t)heap_end - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer));
+	assert_msg(header->pad == HEADER_PADDING, "Space passed to free has corrupted header");
+	assert_msg(!header->is_free, "Space passed to free is not free (Double free?)");
+	assert_msg(header->size <= (intptr_t)heap_end - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer), "Space passed to free is bigger than heap (impossible)");
 	header->is_free = true;
 	
 	Footer *const prev_footer = ((Footer*)((char*)header - sizeof(Footer)));
@@ -187,8 +191,8 @@ void free(void *ptr) {
 	
 	bool in_linked_list = false;
 	if ((void*)prev_header >= heap_start && prev_header->is_free) {
-		assert(prev_footer->pad == FOOTER_PADDING);
-		assert(prev_header->pad == HEADER_PADDING);
+		assert_msg(prev_footer->pad == FOOTER_PADDING, "Preceding block has corrupted footer");
+		assert_msg(prev_header->pad == HEADER_PADDING, "Preceding block has corrupted header");
 		
 		prev_header->size += header->size + sizeof(Header) + sizeof(Footer);
 		Footer *footer = (Footer*)((char*)header + sizeof(Header) + header->size);
@@ -196,11 +200,11 @@ void free(void *ptr) {
 		header = prev_header;
 		in_linked_list = true;
 		
-		assert(prev_header->size <= (intptr_t)heap_end - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer));
+		assert_msg(prev_header->size <= (intptr_t)heap_end - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer), "Preceding block is bigger than heap (impossible)");
 	}
 	
 	if ((void*)next_header < heap_end && next_header->is_free) {
-		assert(next_header->pad == HEADER_PADDING);
+		assert_msg(next_header->pad == HEADER_PADDING, "Next block has corrupted header");
 		
 		// remove from linked list
 		if (next_header->next_free != NULL) next_header->next_free->prev_free = next_header->prev_free;
@@ -209,7 +213,7 @@ void free(void *ptr) {
 		// expand header
 		header->size += next_header->size + sizeof(Header) + sizeof(Footer);
 		Footer *next_footer = (Footer*)((char*)next_header + sizeof(Header) + next_header->size);
-		assert(next_footer->pad == FOOTER_PADDING);
+		assert_msg(next_footer->pad == FOOTER_PADDING, "Next block has corrupted footer");
 		next_footer->header = header;
 		
 		if (next_header == first_free) {
@@ -218,7 +222,7 @@ void free(void *ptr) {
 			if (first_free != NULL) first_free->prev_free = NULL;
 		}
 		
-		assert(next_header->size <= (intptr_t)heap_end - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer));
+		assert_msg(next_header->size <= (intptr_t)heap_end - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer), "Next block is bigger than heap (impossible)");
 	}
 	
 	if (!in_linked_list) {
@@ -233,8 +237,8 @@ void free(void *ptr) {
 		first_free = header;
 	}
 	
-	assert(first_free->pad == HEADER_PADDING);
-	assert(first_free != NULL);
+	assert_msg(first_free->pad == HEADER_PADDING, "Post-free, the first free space has a corrupted header");
+	assert_msg(first_free != NULL, "Freed space was not added to linked list of free spaces");
 	assert(first_free->prev_free == NULL);
 }
 
