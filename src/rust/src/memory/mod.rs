@@ -105,6 +105,7 @@ impl fmt::Debug for Page {
 	}
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub struct Frame {
 	number: u64
 }

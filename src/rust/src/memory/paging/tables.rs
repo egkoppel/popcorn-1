@@ -44,7 +44,8 @@ pub struct Entry {
 	pub dirty: bool,
 	pub huge: bool,
 	pub global: bool,
-	#[skip] __: B3,
+	no_map: bool,
+	#[skip] __: B2,
 	internal_address: B40,
 	#[skip] __: B11,
 	pub no_execute: bool
@@ -53,6 +54,7 @@ pub struct Entry {
 impl Entry {
 	pub fn set_address(&mut self, frame: Frame) {
 		assert!(!self.present(), "Entry is already mapped");
+		assert!(!self.no_map(), "Attempted to map page that was marked for never map");
 		self.set_present(true);
 		self.overwrite_address(frame);
 	}
@@ -86,6 +88,16 @@ impl Entry {
 	pub fn add_flags(&mut self, flags: EntryFlags) {
 		self.set_writeable(self.writeable() || flags.writeable);
 		self.set_user_accessible(self.user_accessible() || flags.user_accessible);
+	}
+
+	pub fn mark_for_never_mapped(&mut self) {
+		assert!(!self.present(), "Cannot mark for never map if already mapped");
+		self.set_no_map(true);
+	}
+
+	pub fn unmark_for_never_mapped(&mut self) {
+		assert!(self.no_map(), "Cannot unmark for never map if not marked for no map");
+		self.set_no_map(false);
 	}
 }
 
@@ -176,6 +188,7 @@ mod c_api {
 	use super::EntryFlags;
 	use crate::memory::{VirtualAddress, Page};
 	use core::ops::IndexMut;
+	use crate::CAllocatorVtable;
 
 	#[no_mangle] extern "C" fn set_entry_flags_for_address(addr: VirtualAddress, flags: EntryFlags) -> i32 {
 		let page = Page::with_address(addr);
@@ -188,5 +201,26 @@ mod c_api {
 			entry.set_flags(flags);
 			return 0;
 		} else { return -1; }
+	}
+
+	#[no_mangle] extern "C" fn mark_for_no_map(addr: VirtualAddress, allocator: Option<&mut CAllocatorVtable>) {
+		let a = allocator.unwrap();
+		let page = Page::with_address(addr);
+		let mut p4 = PAGE_TABLE.lock();
+		p4.p4_as_mut().get_child_table_or_new(page.start_address().p4_index(), a)
+			.get_child_table_or_new(page.start_address().p3_index(), a)
+			.get_child_table_or_new(page.start_address().p2_index(), a)
+			[page.start_address().p1_index()]
+			.mark_for_never_mapped();
+	}
+
+	#[no_mangle] extern "C" fn unmark_for_no_map(addr: VirtualAddress) {
+		let page = Page::with_address(addr);
+		let mut p4 = PAGE_TABLE.lock();
+		let entry = p4.p4_as_mut().get_child_table_mut(page.start_address().p4_index())
+			.and_then(|p3| p3.get_child_table_mut(page.start_address().p3_index()))
+			.and_then(|p2| p2.get_child_table_mut(page.start_address().p2_index()))
+			.and_then(|p1| Some(p1.index_mut(page.start_address().p1_index())));
+		entry.unwrap().unmark_for_never_mapped();
 	}
 }

@@ -15,15 +15,15 @@ Stack::Stack(uint64_t size) {
 	this->bottom = stack_next_alloc - size + 1;
 	
 	entry_flags_t flags = {
-		.accessed = 0,
-		.cache_disabled = 0,
-		.dirty = 0,
-		.global = 0,
-		.huge = 0,
-		.no_execute = 1,
+		.writeable = 1,
 		.user_accessible = 0,
 		.write_through = 0,
-		.writeable = 1
+		.cache_disabled = 0,
+		.accessed = 0,
+		.dirty = 0,
+		.huge = 0,
+		.global = 0,
+		.no_execute = 1,
 	};
 
 	fprintf(stdserial, "Creating new stack: %p -> %p - Guard at %p\n", this->bottom, this->top, this->bottom - 0x1000);
@@ -31,8 +31,8 @@ Stack::Stack(uint64_t size) {
 	for (uint64_t stack_addr = this->bottom; stack_addr < this->top; stack_addr += 0x1000) {
 		map_page(stack_addr, flags, global_frame_allocator);
 	}
-	int guard_page_mapped = translate_page(this->bottom - 0x1000, NULL);
-	assert_msg(guard_page_mapped == -1, "Stack guard page already mapped");
+	
+	mark_for_no_map(this->bottom - 0x1000, global_frame_allocator); // Guard page
 
 	stack_next_alloc = this->bottom - 0x1000 - 1;
 }

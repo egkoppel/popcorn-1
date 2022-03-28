@@ -43,6 +43,9 @@ uint64_t create_p4_table(allocator_vtable *allocator);
 
 int32_t set_entry_flags_for_address(uint64_t addr, entry_flags_t flags);
 
+void mark_for_no_map(uint64_t addr, allocator_vtable *allocator);
+void unmark_for_no_map(uint64_t addr);
+
 #ifdef __cplusplus
 }
 #endif
