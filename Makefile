@@ -8,10 +8,13 @@ AR = llvm-ar
 CARGO ?= cargo
 TAR ?= tar
 
-INCLUDE ?= -Isrc/libk/include -Isrc/stlport
+INCLUDE ?= -Isrc/libk/include -Isrc/stlport -Isrc/memory
+INCLUDE_TEST ?= -Isrc/libk/include -Isrc/memory
 
 OPT ?= 0
-CFLAGS = $(INCLUDE) -O$(OPT) -Wall -Wextra -Wpedantic -Wno-language-extension-token -Werror=incompatible-pointer-types -Wno-address-of-packed-member -mcmodel=large -MMD -MP -c -g -nostdlib -fno-exceptions -fno-rtti -fno-stack-protector -ffreestanding -target x86_64-unknown-none-elf -mno-mmx -mno-sse -mno-sse3 -mno-sse4 -mno-avx -mno-red-zone -msoft-float
+WARNINGS = -Wall -Wextra -Wpedantic -Wno-language-extension-token -Werror=incompatible-pointer-types -Wno-address-of-packed-member -Wno-gnu-zero-variadic-macro-arguments -Wno-gnu-folding-constant
+CFLAGS_TEST = $(INCLUDE_TEST) -O$(OPT) $(WARNINGS) -MMD -MP -c -g -Wno-incompatible-library-redeclaration
+CFLAGS = $(INCLUDE) -O$(OPT) $(WARNINGS) -mcmodel=large -MMD -MP -c -g -nostdlib -fno-exceptions -fno-rtti -fno-stack-protector -ffreestanding -target x86_64-unknown-none-elf -mno-mmx -mno-sse -mno-sse3 -mno-sse4 -mno-avx -mno-red-zone -msoft-float
 CXXFLAGS = -std=c++20
 CARGOFLAGS ?=
 LDFLAGS ?= 
@@ -52,6 +55,9 @@ OBJS = $(patsubst src/%,$(BUILD_DIR)/%, \
 OBJS_LIBK = $(patsubst src/%,$(BUILD_DIR)/%, \
 	$(patsubst %.c,%.c.o,$(wildcard src/libk/src/*.c)) \
 	$(patsubst %.cpp,%.cpp.o,$(wildcard src/libk/src/*.cpp)))
+OBJS_LIBK_TEST = $(patsubst src/%,$(BUILD_DIR)/%, \
+	$(patsubst %.c,%.c.test.o, src/libk/src/malloc.c) \
+	$(patsubst %.c,%.c.o,$(wildcard src/libk/test/*.c)))
 LINKER_SCRIPT ?= src/linker.ld
 GRUBCFG = src/grub.cfg
 
@@ -60,9 +66,12 @@ RAMDISK = initramfs
 
 DEPENDS = $(patsubst %.o, %.d, $(OBJS))
 
-.PHONY: all default clean run run_debug
+.PHONY: all default test tester clean run run_debug
 default: $(BUILD_DIR)/hug.iso
-all: $(BUILD_DIR)/hug.iso
+tester: $(BUILD_DIR)/libk/tester
+test: tester
+	$(BUILD_DIR)/libk/tester
+all: default test
 
 -include $(DEPENDS)
 
@@ -80,8 +89,12 @@ $(BUILD_DIR)/main: | $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)/main
 $(BUILD_DIR)/memory: | $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)/memory
+$(BUILD_DIR)/libk: | $(BUILD_DIR)
+	mkdir -p $(BUILD_DIR)/libk
 $(BUILD_DIR)/libk/src: | $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)/libk/src
+$(BUILD_DIR)/libk/test: | $(BUILD_DIR)
+	mkdir -p $(BUILD_DIR)/libk/test
 $(BUILD_DIR)/interrupts: | $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)/interrupts
 $(BUILD_DIR)/gdt: | $(BUILD_DIR)
@@ -142,6 +155,12 @@ $(BUILD_DIR)/libk/src/%.cpp.o: src/libk/src/%.cpp | $(BUILD_DIR)/libk/src
 $(BUILD_DIR)/libk.a: $(OBJS_LIBK) | $(BUILD_DIR)
 	$(AR) -rcs $@ $^
 
+$(BUILD_DIR)/libk/src/%.c.test.o: src/libk/src/%.c | $(BUILD_DIR)/libk/src
+	$(CC) $(CFLAGS_TEST) -o $@ $< -Dmalloc=hug_malloc -Dcalloc=hug_calloc -Dfree=hug_free
+
+$(BUILD_DIR)/libk/test/%.c.o: src/libk/test/%.c | $(BUILD_DIR)/libk/test
+	$(CC) $(CFLAGS_TEST) -o $@ $<
+
 -include $(RUST_LIB_DIR)/libhugos.d
 $(RUST_LIB_DIR)/libhugos.a:
 ifeq ($(RUST_BUILD_TYPE),release)
@@ -161,6 +180,9 @@ $(BUILD_DIR)/hug.iso: $(BUILD_DIR)/hug.bin $(GRUBCFG) $(RAMDISK_IMG) | $(ISODIR)
 	cp $(RAMDISK_IMG) $(ISODIR)/boot/initramfs.tar.gz
 	cp $(GRUBCFG) $(ISODIR)/boot/grub/grub.cfg
 	grub-mkrescue -o $@ $(ISODIR)
+	
+$(BUILD_DIR)/libk/tester: $(OBJS_LIBK_TEST) | $(BUILD_DIR)/libk
+	$(CC) $(LDFLAGS) -o $@ $^
 
 clean:
 	rm -rf $(BUILD_DIR)
