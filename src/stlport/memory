@@ -40,6 +40,9 @@
 #  include <stl/_auto_ptr.h>
 #endif
 
+#include <stl/_shared_ptr.h>
+#include <stl/_unique_ptr.h>
+
 #if (_STLP_OUTERMOST_HEADER_ID != 0x46) || defined (_STLP_IMPORT_VENDOR_STD)
 #  if defined (__MSL__)
 #    include _STLP_NATIVE_HEADER(limits)
