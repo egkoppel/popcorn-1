@@ -39,8 +39,10 @@ void test_malloc() {
 	
 	printf("Beginning malloc tests...\n");
 	
+	void *to_free[2];
+	
 	print_heap();
-	hug_malloc(0);
+	to_free[0] = hug_malloc(0);
 	void *ptr100 = hug_malloc(100);
 	print_heap();
 	void *ptr200 = hug_malloc(200);
@@ -58,7 +60,7 @@ void test_malloc() {
 	print_heap();
 	void *ptr400 = hug_malloc(400);
 	void *ptr500 = hug_malloc(500);
-	hug_malloc(600);
+	to_free[1] = hug_malloc(600);
 	print_heap();
 	hug_free(ptr400);
 	print_heap();
@@ -72,6 +74,10 @@ void test_malloc() {
 	print_heap();
 	hug_free(ptr250);
 	print_heap();
+	
+	hug_free(to_free[0]);
+	hug_free(to_free[1]);
+	assert_msg(offset == 0, "Free did not return all memory");
 	
 	printf("Finished malloc tests.\n");
 	

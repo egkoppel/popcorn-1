@@ -176,6 +176,8 @@ void test_malloc2(unsigned int random_seed) {
 		hug_free(duals[j].hug);
 	}
 	
+	assert_msg(offset == 0, "Free did not return all memory");
+	
 	cprintf("No corruption was found.\nFinished second malloc test.\n");
 	
 	free(heap);

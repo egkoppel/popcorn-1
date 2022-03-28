@@ -240,6 +240,34 @@ void free(void *ptr) {
 	assert_msg(first_free->pad == HEADER_PADDING, "Post-free, the first free space has a corrupted header");
 	assert_msg(first_free != NULL, "Freed space was not added to linked list of free spaces");
 	assert(first_free->prev_free == NULL);
+	
+	Footer *end_footer = (Footer*)((char*)heap_end - sizeof(Footer));
+	assert_msg(end_footer->pad == FOOTER_PADDING, "End footer has corrupted padding");
+	assert((void*)end_footer > heap_start);
+	Header *end = end_footer->header;
+	
+	if (end->is_free) {
+		if ((size_t)heap_end - (size_t)heap_start == first_free->size + sizeof(Header) + sizeof(Footer)) {
+			// first_free is the whole heap, so just release all of it
+			intptr_t shrink = first_free->size + sizeof(Header) + sizeof(Footer);
+			sbrk(-shrink);
+			heap_end = (void*)((char*)heap_end - shrink);
+			first_free = NULL;
+		} else {
+			intptr_t shrink = ALIGN_DOWN(end->size, PAGE_SIZE);
+			if (shrink != 0) { // there is enough free space to warrant shrinking
+				Footer *new_footer = (Footer*)((char*)end_footer - shrink);
+				assert((void*)new_footer > heap_start);
+				
+				*new_footer = (Footer){end, FOOTER_PADDING};
+				end->size -= shrink;
+				assert((char*)new_footer == (char*)end + sizeof(Header) + end->size);
+				
+				sbrk(-shrink);
+				heap_end = (void*)((char*)heap_end - shrink);
+			}
+		}
+	}
 }
 
 Header* __hug_malloc_get_first_free() {
