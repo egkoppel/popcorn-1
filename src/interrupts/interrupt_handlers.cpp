@@ -174,6 +174,33 @@ RETURN_NO_ERROR_CODE(timer_interrupt_handler, {
 	pics.acknowledge_irq(PIC_IRQ::TIMER);
 })
 
+void syscall_long_mode_handler_inner() {
+	printf("syscall");
+}
+
+extern "C" __attribute__((naked)) void syscall_long_mode_handler() {
+	__asm__ volatile("pushq %rax");
+	__asm__ volatile("pushq %rcx");
+	__asm__ volatile("pushq %rdx");
+	__asm__ volatile("pushq %rsi");
+	__asm__ volatile("pushq %rdi");
+	__asm__ volatile("pushq %r8");
+	__asm__ volatile("pushq %r9");
+	__asm__ volatile("pushq %r10");
+	__asm__ volatile("pushq %r11");
+	__asm__ volatile("call %P0" : : "i"(syscall_long_mode_handler_inner));
+	__asm__ volatile("popq %r11");
+	__asm__ volatile("popq %r10");
+	__asm__ volatile("popq %r9");
+	__asm__ volatile("popq %r8");
+	__asm__ volatile("popq %rdi");
+	__asm__ volatile("popq %rsi");
+	__asm__ volatile("popq %rdx");
+	__asm__ volatile("popq %rcx");
+	__asm__ volatile("popq %rax");
+	__asm__ volatile("sysretq");
+}
+
 void init_idt() {
 	interrupt_descriptor_table.add_entry(0x8, 0, double_fault_handler, 1);
 	interrupt_descriptor_table.add_entry(0xe, 0, page_fault_handler);
