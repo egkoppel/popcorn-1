@@ -26,7 +26,7 @@ struct __attribute__((packed)) exception_stack_frame {
 
 #define N0_RETURN_ERROR_CODE(name, body) \
 	void name ## _inner(exception_stack_frame_error *frame) { body } \
-	__attribute__((naked)) void name() { \
+	extern "C" __attribute__((naked)) void name() { \
 		__asm__ volatile("movq %rsp, %rdi"); \
 		__asm__ volatile("call %P0" : : "i"(name ## _inner)); \
 		__asm__ volatile("cli; hlt"); \
@@ -34,7 +34,7 @@ struct __attribute__((packed)) exception_stack_frame {
 
 #define N0_RETURN_NO_ERROR_CODE(name, body) \
 		void name ## _inner(exception_stack_frame *frame) { body } \
-	__attribute__((naked)) void name() { \
+	extern "C" __attribute__((naked)) void name() { \
 		__asm__ volatile("movq %rsp, %rdi"); \
 		__asm__ volatile("call %P0" : : "i"(name ## _inner)); \
 		__asm__ volatile("cli; hlt"); \
@@ -42,7 +42,7 @@ struct __attribute__((packed)) exception_stack_frame {
 
 #define RETURN_ERROR_CODE(name, body) \
 	void name ## _inner(exception_stack_frame_error *frame) { body } \
-	__attribute__((naked)) void name() { \
+	extern "C" __attribute__((naked)) void name() { \
 		__asm__ volatile("pushq %rax"); \
 		__asm__ volatile("pushq %rcx"); \
 		__asm__ volatile("pushq %rdx"); \
@@ -69,7 +69,7 @@ struct __attribute__((packed)) exception_stack_frame {
 
 #define RETURN_NO_ERROR_CODE(name, body) \
 	void name ## _inner(exception_stack_frame *frame) { body } \
-	__attribute__((naked)) void name() { \
+	extern "C" __attribute__((naked)) void name() { \
 		__asm__ volatile("pushq %rax"); \
 		__asm__ volatile("pushq %rcx"); \
 		__asm__ volatile("pushq %rdx"); \
