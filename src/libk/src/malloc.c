@@ -24,8 +24,8 @@ static bool first_malloc = true;
 
 void* malloc(size_t size) {
 	if (first_free != NULL) {
-		assert(first_free->prev_free == NULL);
 		assert(first_free->pad == HEADER_PADDING);
+		assert(first_free->prev_free == NULL);
 	}
 	
 	size = ALIGN_UP(size, MALLOC_ALIGNMENT);
@@ -52,9 +52,9 @@ void* malloc(size_t size) {
 	
 	Header *free_space = first_free, *prev_free_space = NULL;
 	while (free_space->next_free != NULL && free_space->size < size) {
+		assert(free_space->pad == HEADER_PADDING);
 		assert(free_space->size <= (intptr_t)heap_end - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer));
 		assert(free_space->is_free);
-		assert(free_space->pad == HEADER_PADDING);
 		
 		prev_free_space = free_space;
 		free_space = free_space->next_free;
@@ -166,8 +166,8 @@ void free(void *ptr) {
 	if (ptr == NULL) return;
 	
 	if (first_free != NULL) {
-		assert(first_free->prev_free == NULL);
 		assert(first_free->pad == HEADER_PADDING);
+		assert(first_free->prev_free == NULL);
 	}
 	
 	Header *header = (Header*)((char*)ptr - sizeof(Header));
@@ -233,9 +233,9 @@ void free(void *ptr) {
 		first_free = header;
 	}
 	
+	assert(first_free->pad == HEADER_PADDING);
 	assert(first_free != NULL);
 	assert(first_free->prev_free == NULL);
-	assert(first_free->pad == HEADER_PADDING);
 }
 
 Header* __hug_malloc_get_first_free() {
