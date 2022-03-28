@@ -4,10 +4,6 @@ section .text
 global switch_to_user_mode
 
 switch_to_user_mode:
-	mov ax, 0x20 | 3 ; entry 0x20, ring 3
-	mov ds, ax
-	mov es, ax
-
 	pop rax ; get return address
 	mov r11, rsp ; save current stack pointer
 
