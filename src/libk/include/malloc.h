@@ -21,8 +21,15 @@ typedef struct {
 	uint64_t pad;
 } Footer;
 
+enum free_options {
+	NORMAL = 0,
+	ONLY_MERGE_FORWARDS = 1,
+	NO_RETURN_MEMORY = 2,
+};
+
 void* malloc(size_t size);
 void* calloc(size_t num, size_t size);
+void* realloc(void *ptr, size_t new_size);
 void free(void *ptr);
 
 Header* __hug_malloc_get_first_free();

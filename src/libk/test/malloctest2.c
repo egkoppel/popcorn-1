@@ -1,9 +1,11 @@
 #define malloc hug_malloc
 #define calloc hug_calloc
+#define realloc hug_realloc
 #define free hug_free
 #include <malloc.h>
 #undef malloc
 #undef calloc
+#undef realloc
 #undef free
 
 #include <stdint.h>

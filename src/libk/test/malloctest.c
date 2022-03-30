@@ -1,9 +1,11 @@
 #define malloc hug_malloc
 #define calloc hug_calloc
+#define realloc hug_realloc
 #define free hug_free
 #include <malloc.h>
 #undef malloc
 #undef calloc
+#undef realloc
 #undef free
 
 #include <stdint.h>
@@ -77,6 +79,28 @@ void test_malloc() {
 	
 	hug_free(to_free[0]);
 	hug_free(to_free[1]);
+	assert_msg(offset == 0, "Free did not return all memory");
+	
+	void *ptr150 = hug_malloc(150);
+	print_heap();
+	ptr150 = hug_realloc(ptr150, 200);
+	print_heap();
+	ptr500 = hug_malloc(500);
+	ptr300 = hug_malloc(300);
+	print_heap();
+	ptr500 = hug_realloc(ptr500, 200);
+	print_heap();
+	ptr150 = hug_realloc(ptr150, 100);
+	print_heap();
+	ptr500 = hug_realloc(ptr500, 0);
+	print_heap();
+	ptr250 = hug_malloc(250);
+	print_heap();
+	ptr250 = hug_realloc(ptr250, 1000);
+	print_heap();
+	hug_free(ptr300);
+	hug_free(ptr250);
+	hug_free(ptr150);
 	assert_msg(offset == 0, "Free did not return all memory");
 	
 	printf("Finished malloctest.\n");

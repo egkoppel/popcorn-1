@@ -1,9 +1,11 @@
 #define malloc hug_malloc
 #define calloc hug_calloc
+#define realloc hug_realloc
 #define free hug_free
 #include <malloc.h>
 #undef malloc
 #undef calloc
+#undef realloc
 #undef free
 
 #include <stdint.h>
@@ -22,6 +24,7 @@ typedef struct dual {
 
 enum operation {
 	ALLOC,
+	REALLOC,
 	FREE,
 	READ,
 	WRITE,
@@ -38,6 +41,8 @@ enum operation {
 #else
 #define cprintf(...) do {} while(0)
 #endif
+
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 void test_malloc3(unsigned int random_seed) {
 	const size_t HEAPSIZE = DUALS * (MAX_ALLOC_SIZE + sizeof(Header) + sizeof(Footer));
@@ -73,7 +78,42 @@ void test_malloc3(unsigned int random_seed) {
 				
 				goto write;
 			}
+		} else if (op == REALLOC) {
+			size_t new_size = rand() % MAX_ALLOC_SIZE;
+			
+			void *old = duals[ind].libc;
+			
+			duals[ind].libc = realloc(duals[ind].libc, new_size);
+			if (new_size == 0 && old != NULL) { // need to enforce this ourselves since technically otherwise it's implementation-defined
+				free(duals[ind].libc);
+				duals[ind].libc = NULL;
+			} else if (new_size == 0) { // && old == NULL
+				assert(duals[ind].libc != NULL); // malloc(0) should not be NULL
+			}
+			duals[ind].hug = hug_realloc(duals[ind].hug, new_size);
+			if (new_size == 0 && old != NULL) {
+				assert(duals[ind].hug == NULL);
+			} else {
+				assert(duals[ind].hug != NULL);
+			}
+			
+			assert(memcmp(duals[ind].libc, duals[ind].hug, MIN(new_size, duals[ind].size)) == 0); // kept it the same
+			
+			for (size_t j = duals[ind].size; j < new_size; ++j) {
+				unsigned char c = rand() % 255;
+				duals[ind].libc[j] = c;
+				duals[ind].hug[j] = c;
+			}
+			
+			duals[ind].size = new_size;
+			
+			cprintf("Realloc'd duals[%lu]\n", ind);
 		} else if (op == FREE) {
+			if (duals[ind].libc != NULL) {
+				assert(memcmp(duals[ind].libc, duals[ind].hug, duals[ind].size) == 0);
+				cprintf("Validated duals[%lu]\n", ind);
+			}
+			
 			free(duals[ind].libc);
 			hug_free(duals[ind].hug);
 			duals[ind] = (Dual){0, NULL, NULL};

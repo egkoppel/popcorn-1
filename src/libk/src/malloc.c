@@ -22,6 +22,10 @@ static void *heap_start = NULL;
 static void *heap_end = NULL;
 static bool first_malloc = true;
 
+static void *malloc_in_space(Header *header, size_t size);
+static void free_with_options(void *ptr, enum free_options options);
+static void return_memory();
+
 void* malloc(size_t size) {
 	if (first_free != NULL) {
 		assert_msg(first_free->pad == HEADER_PADDING, "Corrupted header");
@@ -55,11 +59,24 @@ void* malloc(size_t size) {
 		assert_msg(free_space->pad == HEADER_PADDING, "Corrupted header in list of free spaces");
 		assert_msg(free_space->size <= (intptr_t)heap_end - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer), "Free space is bigger than the heap (impossible)");
 		assert_msg(free_space->is_free, "Element of list of free spaces is not free");
+		assert_msg(free_space->prev_free == prev_free_space, "Broken linked list: previous element is not pointed to by prev_free");
 		
 		prev_free_space = free_space;
 		free_space = free_space->next_free;
 	}
 	
+	assert_msg(free_space->pad == HEADER_PADDING, "Corrupted header in list of free spaces");
+	assert_msg(free_space->size <= (intptr_t)heap_end - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer), "Free space is bigger than the heap (impossible)");
+	assert_msg(free_space->is_free, "Element of list of free spaces is not free");
+	assert_msg(free_space->prev_free == prev_free_space, "Broken linked list: previous element is not pointed to by prev_free");
+	
+	return malloc_in_space(free_space, size);
+}
+
+static void* malloc_in_space(Header *free_space, size_t size) {
+	const bool size_is_aligned = (size % MALLOC_ALIGNMENT == 0); // can't do inside assert because we get formatter errors because of the % char
+	assert_msg(size_is_aligned, "malloc_in_space only allocates aligned-sized spaces"); // should only be called by functions which have already calculated aligned size
+		
 	assert_msg(free_space->pad == HEADER_PADDING, "Corrupted header in list of free spaces");
 	assert_msg(free_space->size <= (intptr_t)heap_end - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer), "Free space is bigger than the heap (impossible)");
 	assert_msg(free_space->is_free, "Element of list of free spaces is not free");
@@ -90,10 +107,9 @@ void* malloc(size_t size) {
 			*new_footer = (Footer){free_space, FOOTER_PADDING};
 			free_space->size += extend;
 			
-			prev_free_space = free_space->prev_free;
-			if (prev_free_space) {
-				assert(prev_free_space->is_free);
-				assert(prev_free_space->pad == HEADER_PADDING);
+			if (free_space->prev_free != NULL) {
+				assert(free_space->prev_free->is_free);
+				assert(free_space->prev_free->pad == HEADER_PADDING);
 			}
 		} else {
 			*new_free_space = (Header){
@@ -106,7 +122,6 @@ void* malloc(size_t size) {
 			
 			free_space->next_free = new_free_space;
 			
-			prev_free_space = free_space;
 			free_space = free_space->next_free;
 			
 			assert(free_space->next_free == NULL);
@@ -141,12 +156,12 @@ void* malloc(size_t size) {
 		
 		*new_header = (Header){
 			(intptr_t)existing_footer - (intptr_t)new_header - sizeof(Header),
-			prev_free_space, free_space->next_free,
+			free_space->prev_free, free_space->next_free,
 			true,
 			HEADER_PADDING
 		};
 		if (free_space->next_free != NULL) free_space->next_free->prev_free = new_header;
-		if (prev_free_space != NULL) prev_free_space->next_free = new_header;
+		if (free_space->prev_free != NULL) free_space->prev_free->next_free = new_header;
 		else first_free = new_header; // if prev_free_space == NULL, free_space == first_free and so first free should now be the moved/new header
 		
 		*new_footer = (Footer){free_space, FOOTER_PADDING};
@@ -160,13 +175,70 @@ void* malloc(size_t size) {
 	}
 }
 
-void *calloc(const size_t num, const size_t size) {
+void* calloc(const size_t num, const size_t size) {
 	void *ptr = malloc(size * num);
 	memset(ptr, 0, size * num);
 	return ptr;
 }
 
-void free(void *ptr) {
+void* realloc(void *ptr, size_t new_size) {
+	new_size = ALIGN_UP(new_size, MALLOC_ALIGNMENT);
+	
+	if (ptr == NULL) {
+		return malloc(new_size);
+	} else if (new_size == 0) {
+		free(ptr);
+		return NULL;
+	}
+	
+	Header *header = (Header*)((char*)ptr - sizeof(Header));
+	assert_msg(header->pad == HEADER_PADDING, "Space passed to realloc has corrupted header");
+	Header *next_header = (Header*)((char*)header + sizeof(Header) + header->size + sizeof(Footer));
+	
+	if ((void*)next_header >= heap_end) {
+		if (new_size <= header->size) goto free_then_malloc; // shrinking must be handled by free the malloc within the space, but we need to skip the next_header checks
+		// at end of heap, malloc_in_space can handle extending if necessary
+		header->is_free = true;
+		assert(header->next_free == NULL); // allocated spaces are not in the linked list
+		assert(header->prev_free == NULL);
+		
+		Header *old_first_free = first_free;
+		assert(malloc_in_space(header, new_size) == ptr);
+		Header *new_free_space = (Header*)((char*)header + sizeof(Header) + header->size + sizeof(Footer));
+		if ((void*)new_free_space < heap_end) { // there was space left over
+			assert(new_free_space->pad == HEADER_PADDING);
+			assert(first_free == new_free_space);
+			assert(first_free->next_free == NULL);
+			assert(first_free->prev_free == NULL);
+			
+			first_free->next_free = old_first_free; // prepend newly created space
+			if (old_first_free != NULL) old_first_free->prev_free = first_free;
+		} else { // if there isn't any newly created space (meaning it was a perfect fit)
+			assert(first_free == old_first_free); // then the prepended space is fully used up and popped, leaving the state of things as they were
+		}
+		
+		return ptr;
+	} else {
+		assert_msg(next_header->pad == HEADER_PADDING, "Space following the one passed to realloc has corrupted header");
+		
+		if (new_size <= header->size || (next_header->is_free && (header->size + sizeof(Footer) + sizeof(Header) + next_header->size >= new_size))) {
+			free_then_malloc:
+			// can fit extended space, so free merging forward only then malloc_in_space in the created space
+			free_with_options(ptr, ONLY_MERGE_FORWARDS | NO_RETURN_MEMORY); // also don't return memory, there's no point returning it just to need it again, we can handle that at the end
+			malloc_in_space(header, new_size);
+			return_memory();
+			return ptr;
+		} else {
+			// can't fit, so need to just malloc somewhere else
+			void *new_ptr = malloc(new_size);
+			memcpy(new_ptr, ptr, header->size);
+			free(ptr);
+			return new_ptr;
+		}
+	}
+}
+
+static void free_with_options(void *ptr, enum free_options options) {
 	if (ptr == NULL) return;
 	
 	if (first_free != NULL) {
@@ -177,7 +249,7 @@ void free(void *ptr) {
 	Header *header = (Header*)((char*)ptr - sizeof(Header));
 	
 	assert_msg(header->pad == HEADER_PADDING, "Space passed to free has corrupted header");
-	assert_msg(!header->is_free, "Space passed to free is not free (Double free?)");
+	assert_msg(!header->is_free, "Space passed to free is already free (Double free?)");
 	assert_msg(header->size <= (intptr_t)heap_end - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer), "Space passed to free is bigger than heap (impossible)");
 	header->is_free = true;
 	
@@ -190,7 +262,7 @@ void free(void *ptr) {
 	Header *const next_header = (Header*)((char*)ptr + header->size + sizeof(Footer));
 	
 	bool in_linked_list = false;
-	if ((void*)prev_header >= heap_start && prev_header->is_free) {
+	if (!(options & ONLY_MERGE_FORWARDS) && (void*)prev_header >= heap_start && prev_header->is_free) {
 		assert_msg(prev_footer->pad == FOOTER_PADDING, "Preceding block has corrupted footer");
 		assert_msg(prev_header->pad == HEADER_PADDING, "Preceding block has corrupted header");
 		
@@ -237,10 +309,16 @@ void free(void *ptr) {
 		first_free = header;
 	}
 	
-	assert_msg(first_free->pad == HEADER_PADDING, "Post-free, the first free space has a corrupted header");
 	assert_msg(first_free != NULL, "Freed space was not added to linked list of free spaces");
+	assert_msg(first_free->pad == HEADER_PADDING, "Post-free, the first free space has a corrupted header");
 	assert(first_free->prev_free == NULL);
 	
+	if (options & NO_RETURN_MEMORY) return;
+	
+	return_memory();
+}
+
+static void return_memory() {
 	Footer *end_footer = (Footer*)((char*)heap_end - sizeof(Footer));
 	assert_msg(end_footer->pad == FOOTER_PADDING, "End footer has corrupted padding");
 	assert((void*)end_footer > heap_start);
@@ -268,6 +346,10 @@ void free(void *ptr) {
 			}
 		}
 	}
+}
+
+void free(void *ptr) {
+	free_with_options(ptr, NORMAL);
 }
 
 Header* __hug_malloc_get_first_free() {

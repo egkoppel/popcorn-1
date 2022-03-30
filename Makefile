@@ -160,7 +160,7 @@ $(BUILD_DIR)/libk.a: $(OBJS_LIBK) | $(BUILD_DIR)
 	$(AR) -rcs $@ $^
 
 $(BUILD_DIR)/libk/src/%.c.test.o: src/libk/src/%.c | $(BUILD_DIR)/libk/src
-	$(CC) $(CFLAGS_TEST) -o $@ $< -Dmalloc=hug_malloc -Dcalloc=hug_calloc -Dfree=hug_free
+	$(CC) $(CFLAGS_TEST) -o $@ $< -Dmalloc=hug_malloc -Dcalloc=hug_calloc -Drealloc=hug_realloc -Dfree=hug_free
 
 $(BUILD_DIR)/libk/test/%.c.o: src/libk/test/%.c | $(BUILD_DIR)/libk/test
 	$(CC) $(CFLAGS_TEST) -o $@ $<
