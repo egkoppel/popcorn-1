@@ -3,12 +3,14 @@
 
 #include <stdint.h>
 
-class Stack {
+extern "C" struct Stack {
 	public:
 	uint64_t top;
 	uint64_t bottom;
 
 	Stack(uint64_t size);
+	Stack(uint64_t top, uint64_t bottom): top(top), bottom(bottom) {}
+	~Stack();
 };
 
 #endif

@@ -36,3 +36,12 @@ Stack::Stack(uint64_t size) {
 
 	stack_next_alloc = this->bottom - 0x1000 - 1;
 }
+
+Stack::~Stack() {
+	fprintf(stdserial, "Stack (%p -> %p) dropped\n", this->bottom, this->top);
+	for (uint64_t stack_addr = this->bottom; stack_addr < this->top; stack_addr += 0x1000) {
+		unmap_page(stack_addr, global_frame_allocator);
+	}
+	
+	unmark_for_no_map(this->bottom - 0x1000); // Guard page
+}
