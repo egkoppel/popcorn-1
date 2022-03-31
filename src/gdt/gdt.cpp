@@ -36,7 +36,6 @@ entry::entry(uint64_t addr, uint32_t limit, uint8_t access_byte, uint8_t db, uin
 
 GDT::GDT() {
 	this->next_free_entry = 1;
-	uint64_t zero = 0;
 	for (int i = 0; i < 8; ++i) this->entries[i] = entry();
 }
 

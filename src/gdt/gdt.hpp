@@ -67,7 +67,7 @@ namespace gdt {
 		tss_entry(uint64_t addr, uint32_t size, uint8_t dpl);
 	};
 
-	struct __attribute__((packed, align(8))) GDT {
+	struct __attribute__((packed, aligned(8))) GDT {
 		entry entries[8];
 		int next_free_entry;
 
