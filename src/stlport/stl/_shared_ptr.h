@@ -65,13 +65,7 @@ template<class T> class weak_ptr {
 		}
 
 		~weak_ptr() {
-			if (this->state != nullptr) {
-				if (atomic_fetch_sub(&this->state->weak_count, 1) == 1) {
-					if (atomic_load(&this->state->strong_count) == 0) {
-						delete this->state;
-					}
-				}
-			}
+			this->reset();
 		}
 
 		weak_ptr& operator=(weak_ptr&& r) noexcept {
@@ -84,8 +78,15 @@ template<class T> class weak_ptr {
 		}
 
 		void reset() noexcept {
-			this->~weak_ptr();
-			this->weak_ptr();
+			if (this->state != nullptr) {
+				if (atomic_fetch_sub(&this->state->weak_count, 1) == 1) {
+					if (atomic_load(&this->state->strong_count) == 0) {
+						delete this->state;
+					}
+				}
+			}
+			this->state = nullptr;
+			this->ptr = nullptr;
 		}
 
 		void swap(weak_ptr& r) noexcept {
