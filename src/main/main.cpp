@@ -17,6 +17,7 @@
 #include "../gdt/gdt.hpp"
 #include "../gdt/tss.hpp"
 #include "../initramfs.hpp"
+#include "../threading/threading.hpp"
 
 #include <panic.h>
 
@@ -28,6 +29,13 @@ void stackoveflow();
 void stackoveflow() {
 	stackoveflow();
 	__asm__ volatile("nop");
+}
+
+void test_task(uint64_t a, uint64_t b, uint64_t c) {
+	printf("Test task!\na: %llu, b: %llu\n", a, b);
+	threads::scheduler.lock().schedule();
+	printf("Back in test task\n");
+	while(1);
 }
 
 extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
@@ -305,10 +313,18 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	for (int i = 0; i < size; ++i) fputc(reinterpret_cast<uint8_t*>(data)[i], stdout);
 	fputc('\n', stdout);
 
-	__asm__ volatile("sti");
-	switch_to_user_mode();
-	printf("\nIn user mode....\n");
-	__asm__ volatile("syscall");
-	printf("\nDone syscall\n");
+	printf("[    ] Initialising multitasking\n");
+	auto kmain_task = threads::init_multitasking(old_p4_table_page + 8*0x1000, old_p4_table_page + 0x1000);
+
+	auto test = threads::Task::new_kernel_task("test", (void(*)(uint64_t, uint64_t, uint64_t))test_task, 54, 12, 23);
+	threads::scheduler.lock().add_task(test);
+	threads::scheduler.lock().schedule();
+	printf("back to kmain\n");
+	threads::scheduler.lock().schedule();
+	while(1);
+
+	printf("Running tasks:\n");
+	threads::scheduler.lock().print_tasks();
+
 	while(1);
 }
