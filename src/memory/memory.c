@@ -4,9 +4,13 @@
 #include <assert.h>
 #include <stdio.h>
 
-sbrk_state_t global_sbrk_state;
+sbrk_state_t global_sbrk_state = {
+	.initialised = false
+};
 
 void *sbrk(intptr_t increment) {
+	assert_msg(global_sbrk_state.initialised, "sbrk() used before initialisation");
+	
 	uint64_t ret = global_sbrk_state.current_break;
 	uint64_t new_break = ALIGN_UP(global_sbrk_state.current_break + increment, 0x1000);
 	fprintf(stdserial, "sbrk old: %p, new: %p\n", ret, new_break);

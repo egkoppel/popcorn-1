@@ -2,6 +2,7 @@
 #define _HUGOS_MEMORY_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -10,6 +11,7 @@ extern "C" {
 typedef struct {
 	uint64_t kernel_end;
 	uint64_t current_break;
+	bool initialised;
 } sbrk_state_t;
 
 extern sbrk_state_t global_sbrk_state;

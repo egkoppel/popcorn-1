@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include <termcolor.h>
 
@@ -300,7 +301,8 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	printf("[    ] Initialising sbrk and heap\n");
 	global_sbrk_state = sbrk_state_t {
 		.kernel_end = memory_bitmap_end,
-		.current_break = ALIGN_UP(memory_bitmap_end, 0x1000)
+		.current_break = ALIGN_UP(memory_bitmap_end, 0x1000),
+		.initialised = true
 	};
 	//init_heap();
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised sbrk and heap\n");
