@@ -18,19 +18,6 @@
 
 #define HEAPSIZE 10 * 1024 * 1024 // 10 MiB
 
-void print_heap() {
-	size_t i = 0;
-	printf("Heap: first_free = %p\n", (void*)__hug_malloc_get_first_free());
-	while (i < (unsigned)offset) {
-		Header *header = (Header*)(heap + i);
-		printf("\t%18p %8lu [ Header{free = %i, prev_free = %18p, next_free = %18p} Space{size = %8lu} Footer{header = %18p} ] ",
-			(void*)header, i, header->is_free, (void*)header->prev_free, (void*)header->next_free, header->size, (void*)((Footer*)((char*)header + sizeof(Header) + header->size))->header);
-		i += sizeof(Header) + header->size + sizeof(Footer);
-		printf("%8lu\n", i);
-	}
-	printf("End Heap\n\n");
-}
-
 void test_malloc() {
 	heap = malloc(HEAPSIZE);
 	assert(heap != NULL);
