@@ -77,6 +77,16 @@ template<class T> class weak_ptr {
 			return *this;
 		}
 
+		weak_ptr& operator=(weak_ptr& r) noexcept {
+			this->reset();
+			this->state = r.state;
+			this->ptr = r.ptr;
+			if (this->state != nullptr) {
+				atomic_fetch_add(&this->state->weak_count, 1);
+			}
+			return *this;
+		}
+
 		void reset() noexcept {
 			if (this->state != nullptr) {
 				if (atomic_fetch_sub(&this->state->weak_count, 1) == 1) {
@@ -172,6 +182,16 @@ template<class T> class shared_ptr {
 			this->ptr = r.ptr;
 			r.state = nullptr;
 			r.ptr = nullptr;
+			return *this;
+		}
+
+		shared_ptr& operator=(shared_ptr& r) noexcept {
+			this->reset();
+			this->state = r.state;
+			this->ptr = r.ptr;
+			if (this->state != nullptr) {
+				atomic_fetch_add(&this->state->strong_count, 1);
+			}
 			return *this;
 		}
 
