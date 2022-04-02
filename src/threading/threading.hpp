@@ -74,7 +74,7 @@ namespace threads {
 		void schedule();
 	};
 
-	extern Scheduler scheduler;
+	extern Scheduler& scheduler;
 }
 
 #endif

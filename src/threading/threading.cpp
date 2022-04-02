@@ -4,7 +4,8 @@ using namespace threads;
 
 atomic_uint_fast64_t threads::next_pid = 1;
 
-Scheduler threads::scheduler = Scheduler();
+alignas(alignof(Scheduler)) char scheduler_[sizeof(Scheduler)];
+Scheduler& threads::scheduler = reinterpret_cast<Scheduler&>(scheduler_);
 
 extern "C" void task_init(void);
 extern "C" void task_switch(Task *new_task);
@@ -34,6 +35,8 @@ std::shared_ptr<Task> Task::new_kernel_task(std::string name, void(*entry_func)(
 }
 
 std::shared_ptr<Task> threads::init_multitasking(uint64_t stack_bottom, uint64_t stack_top) {
+	new(&threads::scheduler) Scheduler();
+	
 	uint64_t cr3;
 	__asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
 	auto kernel_task = std::make_shared<threads::Task>("kernel_task", cr3, stack_top, stack_top);
