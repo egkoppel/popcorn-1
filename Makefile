@@ -72,7 +72,7 @@ default: $(BUILD_DIR)/hug.iso
 tester: $(BUILD_DIR)/libk/tester
 test: tester
 	$(BUILD_DIR)/libk/tester
-all: default test
+all: default tester
 
 -include $(DEPENDS)
 
