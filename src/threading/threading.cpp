@@ -41,7 +41,7 @@ std::shared_ptr<Task> threads::init_multitasking(uint64_t stack_bottom, uint64_t
 	__asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
 	auto kernel_task = std::make_shared<threads::Task>("kernel_task", cr3, stack_top, stack_top);
 	current_task_ptr = kernel_task.get();
-	scheduler.lock().add_task(kernel_task);
+	SchedulerLock::get()->add_task(kernel_task);
 	return kernel_task;
 }
 
@@ -57,20 +57,28 @@ void Scheduler::add_task(std::shared_ptr<Task> task) {
 	running_tasks.push_back(task);
 }
 
-SchedulerLock Scheduler::lock() {
-	return SchedulerLock(this);
+Scheduler* SchedulerLock::operator->() {
+	return &scheduler;
 }
 
-SchedulerLock::SchedulerLock(Scheduler *s): s(s) {
+SchedulerLock::SchedulerLock() {
 	__asm__ volatile("cli");
-	s->IRQ_disable_counter++;
+	scheduler.IRQ_disable_counter++;
+}
+
+SchedulerLock SchedulerLock::get() {
+	return SchedulerLock();
+}
+
+void Scheduler::__unlock_scheduler() {
+	this->IRQ_disable_counter--;
+	if (this->IRQ_disable_counter == 0) __asm__ volatile("sti");
+}
+
+extern "C" void threads::unlock_scheduler_from_task_init() {
+	scheduler.__unlock_scheduler();
 }
 
 SchedulerLock::~SchedulerLock() {
-	s->IRQ_disable_counter--;
-	if (s->IRQ_disable_counter == 0) __asm__ volatile("sti");
+	this->operator->()->__unlock_scheduler();
 }
-
-void SchedulerLock::print_tasks() { s->print_tasks(); }
-void SchedulerLock::add_task(std::shared_ptr<Task> task) { s->add_task(task); }
-void SchedulerLock::schedule() { s->schedule(); }

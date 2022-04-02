@@ -4,10 +4,13 @@ section .text
 global task_switch
 global task_init
 extern current_task_ptr
+extern unlock_scheduler_from_task_init
 
 ; void task_init(void)
 ; takes 3 args, 1st arg in r13, 2nd arg in r14, 3rd arg in r15
 task_init:
+	call unlock_scheduler_from_task_init
+
 	mov rdi, r13
 	mov rsi, r14
 	mov rdx, r15

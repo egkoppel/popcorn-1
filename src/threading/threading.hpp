@@ -44,34 +44,35 @@ namespace threads {
 	};
 
 	class SchedulerLock;
+	extern "C" void unlock_scheduler_from_task_init();
 
 	class Scheduler {
 		friend class SchedulerLock;
+		friend void unlock_scheduler_from_task_init();
+		
 		private:
 		std::vector<std::shared_ptr<Task>> tasks;
 		std::vector<std::shared_ptr<Task>> running_tasks;
 		size_t current_task_index = 0;
 		int IRQ_disable_counter = 0;
+		
+		void __unlock_scheduler();
 
+		public:
 		void print_tasks();
 		void add_task(std::shared_ptr<Task>);
 		void schedule();
-
-		public:
-		SchedulerLock lock();
 	};
 
 	class SchedulerLock {
-		friend class Scheduler;
 		private:
-		Scheduler *s;
-		SchedulerLock(Scheduler *s);
+		SchedulerLock();
 
 		public:
+		static SchedulerLock get();
 		~SchedulerLock();
-		void print_tasks();
-		void add_task(std::shared_ptr<Task>);
-		void schedule();
+		
+		Scheduler* operator->();
 	};
 
 	extern Scheduler& scheduler;

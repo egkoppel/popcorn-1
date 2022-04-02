@@ -34,7 +34,7 @@ void stackoveflow() {
 
 void test_task(uint64_t a, uint64_t b, uint64_t c) {
 	printf("Test task!\na: %llu, b: %llu\n", a, b);
-	threads::scheduler.lock().schedule();
+	threads::SchedulerLock::get()->schedule();
 	printf("Back in test task\n");
 	while(1);
 }
@@ -319,14 +319,14 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	auto kmain_task = threads::init_multitasking(old_p4_table_page + 8*0x1000, old_p4_table_page + 0x1000);
 
 	auto test = threads::Task::new_kernel_task("test", (void(*)(uint64_t, uint64_t, uint64_t))test_task, 54, 12, 23);
-	threads::scheduler.lock().add_task(test);
-	threads::scheduler.lock().schedule();
+	threads::SchedulerLock::get()->add_task(test);
+	threads::SchedulerLock::get()->schedule();
 	printf("back to kmain\n");
-	threads::scheduler.lock().schedule();
+	threads::SchedulerLock::get()->schedule();
 	while(1);
 
 	printf("Running tasks:\n");
-	threads::scheduler.lock().print_tasks();
+	threads::SchedulerLock::get()->print_tasks();
 
 	while(1);
 }
