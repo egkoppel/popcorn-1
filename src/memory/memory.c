@@ -38,5 +38,5 @@ void *sbrk(intptr_t increment) {
 	}
 	global_sbrk_state.current_break = new_break;
 
-	return ret;
+	return (void*)ret;
 }

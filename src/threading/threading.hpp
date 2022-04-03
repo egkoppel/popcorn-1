@@ -30,8 +30,20 @@ namespace threads {
 		task_state state;
 
 		public:
-		Task(std::string name, uint64_t p4_page_table = create_p4_table(global_frame_allocator)): pid(atomic_fetch_add(&next_pid, 1)), name(std::move(name)), state(task_state::RUNNING), stack(40*1024), p4_page_table(p4_page_table), stack_ptr(this->stack.top - 8*8 /* 8 uint64_t get popped off on entry - 6 regs + 2 return */) {}
-		Task(std::string name, uint64_t p4_page_table, uint64_t stack_top, uint64_t stack_bottom): pid(atomic_fetch_add(&next_pid, 1)), name(std::move(name)), state(task_state::RUNNING), stack(stack_top, stack_bottom), p4_page_table(p4_page_table), stack_ptr(0) {}
+		Task(std::string name, uint64_t p4_page_table = create_p4_table(global_frame_allocator)):
+			stack(40*1024),
+			stack_ptr(this->stack.top - 8*8 /* 8 uint64_t get popped off on entry - 6 regs + 2 return */),
+			p4_page_table(p4_page_table),
+			pid(atomic_fetch_add(&next_pid, 1)),
+			name(std::move(name)),
+			state(task_state::RUNNING) {}
+		Task(std::string name, uint64_t p4_page_table, uint64_t stack_top, uint64_t stack_bottom):
+			stack(stack_top, stack_bottom),
+			stack_ptr(0),
+			p4_page_table(p4_page_table),
+			pid(atomic_fetch_add(&next_pid, 1)),
+			name(std::move(name)),
+			state(task_state::RUNNING) {}
 
 		public:
 		uint64_t get_pid() { return pid; }

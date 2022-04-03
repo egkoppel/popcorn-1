@@ -18,6 +18,8 @@
 
 #define HEAPSIZE 10 * 1024 * 1024 // 10 MiB
 
+void print_heap();
+
 void test_malloc() {
 	heap = malloc(HEAPSIZE);
 	assert(heap != NULL);

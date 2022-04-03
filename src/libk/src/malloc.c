@@ -30,7 +30,7 @@ static void return_memory();
 void print_heap() {
 	size_t i = 0;
 	printf("Heap: first_free = %p\n", (void*)__hug_malloc_get_first_free());
-	while ((char*)heap_start + i < heap_end) {
+	while ((char*)heap_start + i < (char*)heap_end) {
 		Header *header = (Header*)((char*)heap_start + i);
 		printf("\t%18p %8lu [ Header{free = %i, prev_free = %18p, next_free = %18p} Space{size = %8lu} Footer{header = %18p} ] ",
 			(void*)header, i, header->is_free, (void*)header->prev_free, (void*)header->next_free, header->size, (void*)((Footer*)((char*)header + sizeof(Header) + header->size))->header);

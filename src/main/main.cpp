@@ -26,11 +26,15 @@ extern "C" allocator_vtable *global_frame_allocator = nullptr;
 
 extern "C" void switch_to_user_mode(void);
 
-void stackoveflow();
-void stackoveflow() {
+#pragma GCC diagnostic push // save diagnostic stack state
+
+#pragma GCC diagnostic ignored "-Winfinite-recursion" // disable infinite recursion warning for this function
+
+__attribute__((noreturn)) void stackoveflow() {
 	stackoveflow();
 	__asm__ volatile("nop");
 }
+#pragma GCC diagnostic pop // restore diagnostic stack state
 
 void test_task(uint64_t a, uint64_t b, uint64_t c) {
 	printf("Test task!\na: %llu, b: %llu\n", a, b);
@@ -312,7 +316,7 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	printf("Contents of initramfs/.placeholder:\n");
 	void *data;
 	size_t size = ramfs.locate_file("initramfs/.placeholder", &data);
-	for (int i = 0; i < size; ++i) fputc(reinterpret_cast<uint8_t*>(data)[i], stdout);
+	for (size_t i = 0; i < size; ++i) fputc(reinterpret_cast<uint8_t*>(data)[i], stdout);
 	fputc('\n', stdout);
 
 	printf("[    ] Initialising multitasking\n");
