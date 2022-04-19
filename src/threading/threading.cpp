@@ -28,13 +28,31 @@ void Scheduler::schedule() {
 	auto new_task = ready_to_run_tasks.front();
 	ready_to_run_tasks.pop_front();
 	current_task_ptr = new_task;
-	ready_to_run_tasks.push_back(old_task);
+	if (old_task->get_state() == task_state::RUNNING) {
+		ready_to_run_tasks.push_back(old_task);
+		old_task->set_state(task_state::READY);
+	}
+	new_task->set_state(task_state::RUNNING);
 
 	task_switch(new_task.get(), old_task.get());
 }
 
 void Scheduler::add_task(std::shared_ptr<Task> task) {
 	ready_to_run_tasks.push_back(task);
+}
+
+void Scheduler::block_task(task_state reason) {
+	current_task_ptr->set_state(reason);
+	schedule();
+}
+
+void Scheduler::unblock_task(std::shared_ptr<Task> task) {
+	// Preempt if only one other task
+	task->set_state(task_state::READY);
+	ready_to_run_tasks.push_back(task);
+	if (ready_to_run_tasks.size() == 1) {
+		schedule();
+	}
 }
 
 Scheduler* SchedulerLock::operator->() {

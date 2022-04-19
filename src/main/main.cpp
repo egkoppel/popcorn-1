@@ -41,7 +41,7 @@ __attribute__((noreturn)) void stackoveflow() {
 
 void test_task(uint64_t a) {
 	printf("Test task!\na: %llu, b: %llu\n", a, 0);
-	threads::SchedulerLock::get()->schedule();
+	threads::SchedulerLock::get()->block_task(threads::task_state::PAUSED);
 	printf("Back in test task\n");
 	while(1);
 }
@@ -326,6 +326,8 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	threads::SchedulerLock::get()->schedule();
 	printf("back to kmain\n");
 	threads::SchedulerLock::get()->schedule();
+	threads::SchedulerLock::get()->unblock_task(test);
+	printf("back to kmain2\n");
 	while(1);
 
 	while(1);

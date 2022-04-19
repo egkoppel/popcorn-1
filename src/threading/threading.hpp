@@ -18,7 +18,9 @@ namespace threads {
 	std::shared_ptr<Task> init_multitasking(uint64_t stack_bottom, uint64_t stack_top);
 
 	enum class task_state {
-		RUNNING
+		RUNNING,
+		READY,
+		PAUSED
 	};
 
 	extern "C" struct Task {
@@ -50,12 +52,13 @@ namespace threads {
 			p4_page_table(p4_page_table),
 			pid(atomic_fetch_add(&next_pid, 1)),
 			name(std::move(name)),
-			state(task_state::RUNNING) {}
+			state(task_state::READY) {}
 
 		public:
 		uint64_t get_pid() { return pid; }
 		std::string& get_name() { return name; }
 		task_state get_state() { return state; }
+		void set_state(task_state state) { this->state = state; }
 		uint64_t get_p4_page_table() { return p4_page_table; }
 		Stack& get_code_stack() { return code_stack; }
 		Stack& get_kernel_stack() { return kernel_stack; }
@@ -119,6 +122,8 @@ namespace threads {
 		public:
 		void add_task(std::shared_ptr<Task>);
 		void schedule();
+		void block_task(task_state reason);
+		void unblock_task(std::shared_ptr<Task> task);
 	};
 
 	class SchedulerLock {
