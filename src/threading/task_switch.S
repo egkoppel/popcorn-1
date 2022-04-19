@@ -5,15 +5,19 @@ global task_switch
 global task_init
 extern current_task_ptr
 extern unlock_scheduler_from_task_init
+extern task_state_segment
 
 ; void task_init(void)
-; takes 3 args, 1st arg in r13, 2nd arg in r14, 3rd arg in r15
+; takes 6 args in rbx,rbp,r12,r13,r14,r15
 task_init:
 	call unlock_scheduler_from_task_init
 
-	mov rdi, r13
-	mov rsi, r14
-	mov rdx, r15
+	mov rdi, rbx
+	mov rsi, rbp
+	mov rdx, r12
+	mov rcx, r13
+	mov r8, r14
+	mov r9, r15
 	ret
 
 ; void task_switch(Task *new_task)
@@ -28,12 +32,17 @@ task_switch:
 
 	mov r11, current_task_ptr
 	mov rsi, [r11]
-	mov qword [rsi + 2*8], rsp ; save stack pointer
+	mov qword [rsi + 4*8], rsp ; save stack pointer
 
 	; load new task
 	mov [r11], rdi
-	mov rsp, qword [rdi + 2*8] ; restore stack pointer
-	mov rax, qword [rdi + 3*8] ; load new cr3 ito rax
+	mov rsp, qword [rdi + 4*8] ; restore stack pointer
+
+	mov rax, task_state_segment ; move tss ptr into rax
+	mov r11, qword [rdi + 3*8] ; load kernel stack top into r11
+	mov [rax + 4], r11 ; load kernel stack top into TSS PL change stack table
+
+	mov rax, qword [rdi + 5*8] ; load new cr3 ito rax
 	mov rcx, cr3 ; load old cr3 into rcx
 
 	cmp rcx, rax ; check if tlb flush needed

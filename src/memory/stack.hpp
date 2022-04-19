@@ -8,7 +8,7 @@ extern "C" struct Stack {
 	uint64_t top;
 	uint64_t bottom;
 
-	Stack(uint64_t size);
+	Stack(uint64_t size, bool user_access = false);
 	Stack(uint64_t top, uint64_t bottom): top(top), bottom(bottom) {}
 	~Stack();
 };

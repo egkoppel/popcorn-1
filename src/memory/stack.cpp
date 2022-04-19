@@ -7,7 +7,7 @@
 
 uint64_t stack_next_alloc = 0177777'775'777'777'777'7777;
 
-Stack::Stack(uint64_t size) {
+Stack::Stack(uint64_t size,  bool user_access) {
 	fprintf(stdserial, "Allocating new stack of size %llx\n", size);
 	assert_msg(size > 0, "Cannot have zero sized stack");
 	assert_msg(0 == (size & (0x1000 - 1)), "Stack size must be a multiple of 4k");
@@ -16,7 +16,7 @@ Stack::Stack(uint64_t size) {
 	
 	entry_flags_t flags = {
 		.writeable = 1,
-		.user_accessible = 0,
+		.user_accessible = user_access,
 		.write_through = 0,
 		.cache_disabled = 0,
 		.accessed = 0,

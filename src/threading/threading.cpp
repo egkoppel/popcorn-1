@@ -17,23 +17,6 @@ void Scheduler::print_tasks() {
 	}
 }
 
-std::shared_ptr<Task> Task::new_kernel_task(std::string name, void(*entry_func)(uint64_t, uint64_t, uint64_t), uint64_t arg1, uint64_t arg2, uint64_t arg3) {
-	uint64_t cr3;
-	__asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
-	auto task = std::make_shared<Task>(name, cr3);
-	auto& stack = task->get_stack();
-
-	*((uint64_t*)stack.top - 1) = (uint64_t)entry_func;
-	*((uint64_t*)stack.top - 2) = (uint64_t)task_init;
-	*((uint64_t*)stack.top - 3) = (uint64_t)0; // rbx
-	*((uint64_t*)stack.top - 4) = (uint64_t)0; // rbp
-	*((uint64_t*)stack.top - 5) = (uint64_t)0; // r12
-	*((uint64_t*)stack.top - 6) = (uint64_t)arg1; // r13 - task_init arg 1
-	*((uint64_t*)stack.top - 7) = (uint64_t)arg2; // r14 - task_init arg 2
-	*((uint64_t*)stack.top - 8) = (uint64_t)arg3; // r15 - task_init arg 3
-	return task;
-}
-
 std::shared_ptr<Task> threads::init_multitasking(uint64_t stack_bottom, uint64_t stack_top) {
 	new(&threads::scheduler) Scheduler();
 	

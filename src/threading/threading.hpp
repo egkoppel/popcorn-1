@@ -21,25 +21,31 @@ namespace threads {
 	};
 
 	extern "C" struct Task {
+		friend std::shared_ptr<Task> std::make_shared<Task>(char const (&)[12], uint64_t&, uint64_t&, uint64_t&);
+
 		private:
-		Stack stack;
+		Stack code_stack;
+		Stack kernel_stack;
 		uint64_t stack_ptr;
 		uint64_t p4_page_table;
 		uint64_t pid;
 		std::string name;
 		task_state state;
 
-		public:
-		Task(std::string name, uint64_t p4_page_table = create_p4_table(global_frame_allocator)):
-			stack(40*1024),
-			stack_ptr(this->stack.top - 8*8 /* 8 uint64_t get popped off on entry - 6 regs + 2 return */),
+		Task(std::string name, uint64_t p4_page_table, uint64_t stack_top, uint64_t stack_bottom):
+			code_stack(stack_top, stack_bottom),
+			kernel_stack(stack_top, stack_bottom),
+			stack_ptr(0),
 			p4_page_table(p4_page_table),
 			pid(atomic_fetch_add(&next_pid, 1)),
 			name(std::move(name)),
 			state(task_state::RUNNING) {}
-		Task(std::string name, uint64_t p4_page_table, uint64_t stack_top, uint64_t stack_bottom):
-			stack(stack_top, stack_bottom),
-			stack_ptr(0),
+
+		public:
+		Task(std::string name, bool kernel_task, uint64_t stack_value_count, uint64_t p4_page_table = create_p4_table(global_frame_allocator)):
+			code_stack(40*1024, !kernel_task),
+			kernel_stack(kernel_task ? code_stack : 4096),
+			stack_ptr(this->code_stack.top - stack_value_count*8),
 			p4_page_table(p4_page_table),
 			pid(atomic_fetch_add(&next_pid, 1)),
 			name(std::move(name)),
@@ -50,10 +56,51 @@ namespace threads {
 		std::string& get_name() { return name; }
 		task_state get_state() { return state; }
 		uint64_t get_p4_page_table() { return p4_page_table; }
-		Stack& get_stack() { return stack; }
-
-		static std::shared_ptr<Task> new_kernel_task(std::string name, void(*entry_func)(uint64_t, uint64_t, uint64_t), uint64_t arg1, uint64_t arg2, uint64_t arg3);
+		Stack& get_code_stack() { return code_stack; }
+		Stack& get_kernel_stack() { return kernel_stack; }
 	};
+
+	extern "C" void task_init(void);
+	extern "C" void switch_to_user_mode(void);
+
+	template<class... Args> static std::shared_ptr<Task> new_kernel_task(std::string name, void(*entry_func)(Args...), Args... args) {
+		uint64_t cr3;
+		__asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
+		auto task = std::make_shared<Task>(name, true, 8, cr3);
+		auto& stack = task->get_code_stack();
+
+		uint64_t args_list[sizeof...(Args)] = {static_cast<uint64_t>(args)...};
+
+		*((uint64_t*)stack.top - 1) = reinterpret_cast<uint64_t>(entry_func);
+		*((uint64_t*)stack.top - 2) = reinterpret_cast<uint64_t>(task_init);
+		if constexpr (sizeof...(Args) > 0) { *((uint64_t*)stack.top - 3) = args_list[0]; } else { *((uint64_t*)stack.top - 3) = 0; } // rbx - task_init arg 1
+		if constexpr (sizeof...(Args) > 1) { *((uint64_t*)stack.top - 4) = args_list[1]; } else { *((uint64_t*)stack.top - 4) = 0; } // rbp - task_init arg 2
+		if constexpr (sizeof...(Args) > 2) { *((uint64_t*)stack.top - 5) = args_list[2]; } else { *((uint64_t*)stack.top - 5) = 0; } // r12 - task_init arg 3
+		if constexpr (sizeof...(Args) > 3) { *((uint64_t*)stack.top - 6) = args_list[3]; } else { *((uint64_t*)stack.top - 6) = 0; } // r13 - task_init arg 4
+		if constexpr (sizeof...(Args) > 4) { *((uint64_t*)stack.top - 7) = args_list[4]; } else { *((uint64_t*)stack.top - 7) = 0; } // r14 - task_init arg 5
+		if constexpr (sizeof...(Args) > 5) { *((uint64_t*)stack.top - 8) = args_list[5]; } else { *((uint64_t*)stack.top - 8) = 0; } // r15 - task_init arg 6
+		return task;
+	}
+
+	template<class... Args> static std::shared_ptr<Task> new_user_task(std::string name, void(*entry_func)(Args...), Args... args) {
+		uint64_t cr3;
+		__asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
+		auto task = std::make_shared<Task>(name, false, 9, cr3);
+		auto& stack = task->get_code_stack();
+
+		uint64_t args_list[sizeof...(Args)] = {static_cast<uint64_t>(args)...};
+
+		*((uint64_t*)stack.top - 1) = reinterpret_cast<uint64_t>(entry_func);
+		*((uint64_t*)stack.top - 2) = reinterpret_cast<uint64_t>(switch_to_user_mode);
+		*((uint64_t*)stack.top - 3) = reinterpret_cast<uint64_t>(task_init);
+		if constexpr (sizeof...(Args) > 0) { *((uint64_t*)stack.top - 4) = args_list[0]; } else { *((uint64_t*)stack.top - 3) = 0; } // rbx - task_init arg 1
+		if constexpr (sizeof...(Args) > 1) { *((uint64_t*)stack.top - 5) = args_list[1]; } else { *((uint64_t*)stack.top - 4) = 0; } // rbp - task_init arg 2
+		if constexpr (sizeof...(Args) > 2) { *((uint64_t*)stack.top - 6) = args_list[2]; } else { *((uint64_t*)stack.top - 5) = 0; } // r12 - task_init arg 3
+		if constexpr (sizeof...(Args) > 3) { *((uint64_t*)stack.top - 7) = args_list[3]; } else { *((uint64_t*)stack.top - 6) = 0; } // r13 - task_init arg 4
+		if constexpr (sizeof...(Args) > 4) { *((uint64_t*)stack.top - 8) = args_list[4]; } else { *((uint64_t*)stack.top - 7) = 0; } // r14 - task_init arg 5
+		if constexpr (sizeof...(Args) > 5) { *((uint64_t*)stack.top - 9) = args_list[5]; } else { *((uint64_t*)stack.top - 8) = 0; } // r15 - task_init arg 6
+		return task;
+	}
 
 	class SchedulerLock;
 	extern "C" void unlock_scheduler_from_task_init();

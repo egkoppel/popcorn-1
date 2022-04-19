@@ -22,6 +22,9 @@
 
 #include <panic.h>
 
+extern "C" gdt::GDT global_descriptor_table = gdt::GDT();
+extern "C" tss::TSS task_state_segment = tss::TSS();
+
 extern "C" allocator_vtable *global_frame_allocator = nullptr;
 
 extern "C" void switch_to_user_mode(void);
@@ -36,8 +39,8 @@ __attribute__((noreturn)) void stackoveflow() {
 }
 #pragma GCC diagnostic pop // restore diagnostic stack state
 
-void test_task(uint64_t a, uint64_t b, uint64_t c) {
-	printf("Test task!\na: %llu, b: %llu\n", a, b);
+void test_task(uint64_t a) {
+	printf("Test task!\na: %llu, b: %llu\n", a, 0);
 	threads::SchedulerLock::get()->schedule();
 	printf("Back in test task\n");
 	while(1);
@@ -69,7 +72,6 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	init_idt();
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded IDT\n");
 	
-	gdt::GDT global_descriptor_table = gdt::GDT();
 	global_descriptor_table.add_entry(gdt::entry::new_code_segment(0)); // Kernel code
 	global_descriptor_table.add_entry(gdt::entry::new_data_segment(0)); // Kernel data
 	global_descriptor_table.add_entry(gdt::entry()); // [Unused] - compatibility mode user code
@@ -290,10 +292,7 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	global_frame_allocator = &main_frame_allocator.vtable;
 
 	Stack double_fault_stack(0x1000);
-	Stack kernel_interrupt_stack(0x1000);
-	tss::TSS task_state_segment = tss::TSS();
 	task_state_segment.interrupt_stack_table[0] = double_fault_stack.top;
-	task_state_segment.privilege_stack_table[0] = kernel_interrupt_stack.top;
 	
 	uint8_t index = global_descriptor_table.add_tss_entry(gdt::tss_entry(reinterpret_cast<uint64_t>(&task_state_segment), sizeof(tss::TSS), 0));
 	printf("TSS index at %u\n", index);
@@ -322,7 +321,7 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	printf("[    ] Initialising multitasking\n");
 	auto kmain_task = threads::init_multitasking(old_p4_table_page + 8*0x1000, old_p4_table_page + 0x1000);
 
-	auto test = threads::Task::new_kernel_task("test", (void(*)(uint64_t, uint64_t, uint64_t))test_task, 54, 12, 23);
+	auto test = threads::new_kernel_task("test", test_task, (uint64_t)54);
 	threads::SchedulerLock::get()->add_task(test);
 	threads::SchedulerLock::get()->schedule();
 	printf("back to kmain\n");
