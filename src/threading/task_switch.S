@@ -3,7 +3,6 @@ bits 64
 section .text
 global task_switch
 global task_init
-extern current_task_ptr
 extern unlock_scheduler_from_task_init
 extern task_state_segment
 
@@ -20,8 +19,8 @@ task_init:
 	mov r9, r15
 	ret
 
-; void task_switch(Task *new_task)
-; *new_task in rdi
+; void task_switch(Task *new_task, Task *old_task)
+; *new_task in rdi, *old_task in rsi
 task_switch:
 	push rbx
 	push rbp
@@ -30,12 +29,9 @@ task_switch:
 	push r14
 	push r15
 
-	mov r11, current_task_ptr
-	mov rsi, [r11]
 	mov qword [rsi + 4*8], rsp ; save stack pointer
 
 	; load new task
-	mov [r11], rdi
 	mov rsp, qword [rdi + 4*8] ; restore stack pointer
 
 	mov rax, task_state_segment ; move tss ptr into rax

@@ -2,6 +2,7 @@
 #define _HUGOS_THREADING_H
 
 #include <vector>
+#include <deque>
 #include <memory>
 #include <string>
 #include <stdint.h>
@@ -110,15 +111,12 @@ namespace threads {
 		friend void unlock_scheduler_from_task_init();
 		
 		private:
-		std::vector<std::shared_ptr<Task>> tasks;
-		std::vector<std::shared_ptr<Task>> running_tasks;
-		size_t current_task_index = 0;
+		std::deque<std::shared_ptr<Task>> ready_to_run_tasks;
 		int IRQ_disable_counter = 0;
 		
 		void __unlock_scheduler();
 
 		public:
-		void print_tasks();
 		void add_task(std::shared_ptr<Task>);
 		void schedule();
 	};

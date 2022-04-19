@@ -328,8 +328,5 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	threads::SchedulerLock::get()->schedule();
 	while(1);
 
-	printf("Running tasks:\n");
-	threads::SchedulerLock::get()->print_tasks();
-
 	while(1);
 }
