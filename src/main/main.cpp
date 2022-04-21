@@ -19,6 +19,7 @@
 #include "../gdt/tss.hpp"
 #include "../initramfs.hpp"
 #include "../threading/threading.hpp"
+#include "../interrupts/syscall.hpp"
 
 #include <panic.h>
 
@@ -43,6 +44,13 @@ void test_task(uint64_t a) {
 	printf("Test task!\na: %llu, b: %llu\n", a, 0);
 	threads::SchedulerLock::get()->block_task(threads::task_state::PAUSED);
 	printf("Back in test task\n");
+	while(1);
+}
+
+void user_task() {
+	//*(volatile char*)NULL = 1;
+	syscall(syscall_vectors::serial_write, (uint64_t)"Hello, world!\n", 0);
+	//syscall(syscall_vectors::serial_write, (uint64_t)"Hello, world after syscall!\n", 0);
 	while(1);
 }
 
@@ -321,14 +329,22 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	printf("[    ] Initialising multitasking\n");
 	auto kmain_task = threads::init_multitasking(old_p4_table_page + 8*0x1000, old_p4_table_page + 0x1000);
 
-	auto test = threads::new_kernel_task("test", test_task, (uint64_t)54);
-	threads::SchedulerLock::get()->add_task(test);
-	threads::SchedulerLock::get()->schedule();
+	//auto test = threads::new_kernel_task("test", test_task, (uint64_t)54);
+	//threads::SchedulerLock::get()->add_task(test);
+	/*threads::SchedulerLock::get()->schedule();
 	printf("back to kmain\n");
 	threads::SchedulerLock::get()->schedule();
 	threads::SchedulerLock::get()->unblock_task(test);
 	printf("back to kmain2\n");
-	while(1);
+	while(1);*/
+
+	auto usertask = threads::new_user_task("usertask", user_task);
+	threads::SchedulerLock::get()->add_task(usertask);
+	threads::SchedulerLock::get()->schedule();
+	//syscall(1,2,3);
+	//switch_to_user_mode();
+	//printf("user mode\n");
+	//*(volatile char*)NULL = 1;
 
 	while(1);
 }
