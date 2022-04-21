@@ -73,16 +73,20 @@ namespace threads {
 		auto task = std::make_shared<Task>(name, true, 8, cr3);
 		auto& stack = task->get_code_stack();
 
-		uint64_t args_list[sizeof...(Args)] = {static_cast<uint64_t>(args)...};
-
 		*((uint64_t*)stack.top - 1) = reinterpret_cast<uint64_t>(entry_func);
 		*((uint64_t*)stack.top - 2) = reinterpret_cast<uint64_t>(task_init);
-		if constexpr (sizeof...(Args) > 0) { *((uint64_t*)stack.top - 3) = args_list[0]; } else { *((uint64_t*)stack.top - 3) = 0; } // rbx - task_init arg 1
-		if constexpr (sizeof...(Args) > 1) { *((uint64_t*)stack.top - 4) = args_list[1]; } else { *((uint64_t*)stack.top - 4) = 0; } // rbp - task_init arg 2
-		if constexpr (sizeof...(Args) > 2) { *((uint64_t*)stack.top - 5) = args_list[2]; } else { *((uint64_t*)stack.top - 5) = 0; } // r12 - task_init arg 3
-		if constexpr (sizeof...(Args) > 3) { *((uint64_t*)stack.top - 6) = args_list[3]; } else { *((uint64_t*)stack.top - 6) = 0; } // r13 - task_init arg 4
-		if constexpr (sizeof...(Args) > 4) { *((uint64_t*)stack.top - 7) = args_list[4]; } else { *((uint64_t*)stack.top - 7) = 0; } // r14 - task_init arg 5
-		if constexpr (sizeof...(Args) > 5) { *((uint64_t*)stack.top - 8) = args_list[5]; } else { *((uint64_t*)stack.top - 8) = 0; } // r15 - task_init arg 6
+
+		if constexpr (sizeof...(Args) > 0) {
+			uint64_t args_list[sizeof...(Args)] = {static_cast<uint64_t>(args)...};
+
+			if constexpr (sizeof...(Args) > 0) { *((uint64_t*)stack.top - 3) = args_list[0]; } // rbx - task_init arg 1
+			if constexpr (sizeof...(Args) > 1) { *((uint64_t*)stack.top - 4) = args_list[1]; } // rbp - task_init arg 2
+			if constexpr (sizeof...(Args) > 2) { *((uint64_t*)stack.top - 5) = args_list[2]; } // r12 - task_init arg 3
+			if constexpr (sizeof...(Args) > 3) { *((uint64_t*)stack.top - 6) = args_list[3]; } // r13 - task_init arg 4
+			if constexpr (sizeof...(Args) > 4) { *((uint64_t*)stack.top - 7) = args_list[4]; } // r14 - task_init arg 5
+			if constexpr (sizeof...(Args) > 5) { *((uint64_t*)stack.top - 8) = args_list[5]; } // r15 - task_init arg 6
+		}
+
 		return task;
 	}
 
@@ -92,17 +96,21 @@ namespace threads {
 		auto task = std::make_shared<Task>(name, false, 9, cr3);
 		auto& stack = task->get_code_stack();
 
-		uint64_t args_list[sizeof...(Args)] = {static_cast<uint64_t>(args)...};
-
 		*((uint64_t*)stack.top - 1) = reinterpret_cast<uint64_t>(entry_func);
 		*((uint64_t*)stack.top - 2) = reinterpret_cast<uint64_t>(switch_to_user_mode);
 		*((uint64_t*)stack.top - 3) = reinterpret_cast<uint64_t>(task_init);
-		if constexpr (sizeof...(Args) > 0) { *((uint64_t*)stack.top - 4) = args_list[0]; } else { *((uint64_t*)stack.top - 3) = 0; } // rbx - task_init arg 1
-		if constexpr (sizeof...(Args) > 1) { *((uint64_t*)stack.top - 5) = args_list[1]; } else { *((uint64_t*)stack.top - 4) = 0; } // rbp - task_init arg 2
-		if constexpr (sizeof...(Args) > 2) { *((uint64_t*)stack.top - 6) = args_list[2]; } else { *((uint64_t*)stack.top - 5) = 0; } // r12 - task_init arg 3
-		if constexpr (sizeof...(Args) > 3) { *((uint64_t*)stack.top - 7) = args_list[3]; } else { *((uint64_t*)stack.top - 6) = 0; } // r13 - task_init arg 4
-		if constexpr (sizeof...(Args) > 4) { *((uint64_t*)stack.top - 8) = args_list[4]; } else { *((uint64_t*)stack.top - 7) = 0; } // r14 - task_init arg 5
-		if constexpr (sizeof...(Args) > 5) { *((uint64_t*)stack.top - 9) = args_list[5]; } else { *((uint64_t*)stack.top - 8) = 0; } // r15 - task_init arg 6
+		
+		if constexpr (sizeof...(Args) > 0) {
+			uint64_t args_list[sizeof...(Args)] = {static_cast<uint64_t>(args)...};
+
+			if constexpr (sizeof...(Args) > 0) { *((uint64_t*)stack.top - 4) = args_list[0]; } // rbx - task_init arg 1
+			if constexpr (sizeof...(Args) > 1) { *((uint64_t*)stack.top - 5) = args_list[1]; } // rbp - task_init arg 2
+			if constexpr (sizeof...(Args) > 2) { *((uint64_t*)stack.top - 6) = args_list[2]; } // r12 - task_init arg 3
+			if constexpr (sizeof...(Args) > 3) { *((uint64_t*)stack.top - 7) = args_list[3]; } // r13 - task_init arg 4
+			if constexpr (sizeof...(Args) > 4) { *((uint64_t*)stack.top - 8) = args_list[4]; } // r14 - task_init arg 5
+			if constexpr (sizeof...(Args) > 5) { *((uint64_t*)stack.top - 9) = args_list[5]; } // r15 - task_init arg 6
+		}
+
 		return task;
 	}
 
