@@ -169,7 +169,7 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 		for (uint64_t phys_addr = fb->addr; phys_addr < ALIGN_UP(fb->addr + fb->height*fb->pitch, 0x1000); phys_addr+=0x1000, virt_addr+=0x1000) {
 			entry_flags_t flags = {
 				.writeable = 1,
-				.user_accessible = 1,
+				.user_accessible = 0,
 				.write_through = 0,
 				.cache_disabled = 0,
 				.accessed = 0,
