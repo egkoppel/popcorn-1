@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <panic.h>
 #include "pic.hpp"
+#include "syscall.hpp"
 
 idt::IDT interrupt_descriptor_table = idt::IDT<48>();
 pic::ATChainedPIC pics(0x20, 0x28);
@@ -143,6 +144,9 @@ RETURN_ERROR_CODE(page_fault_handler, {
 	fprintf(stdserial, "CS: 0x%04x\n", frame->cs);
 	fprintf(stdserial, "Flags: 0x%08x\n", frame->flags);
 	fprintf(stdserial, "SP: %lp\n", frame->sp);
+	uint64_t rsp;
+	__asm__ volatile("movq %%rsp, %0" : "=r"(rsp));
+	fprintf(stdserial, "new SP: %lp\n", rsp);
 	fprintf(stdserial, "SS: 0x%04x\n", frame->ss);
 	uint64_t cr2;
 	__asm__ volatile("movq %%cr2, %0" : "=r"(cr2));
@@ -174,30 +178,12 @@ RETURN_NO_ERROR_CODE(timer_interrupt_handler, {
 	pics.acknowledge_irq(PIC_IRQ::TIMER);
 })
 
-void syscall_long_mode_handler_inner() {
-	printf("syscall");
-}
-
 extern "C" __attribute__((naked)) void syscall_long_mode_handler() {
-	__asm__ volatile("pushq %rax");
-	__asm__ volatile("pushq %rcx");
-	__asm__ volatile("pushq %rdx");
-	__asm__ volatile("pushq %rsi");
-	__asm__ volatile("pushq %rdi");
-	__asm__ volatile("pushq %r8");
-	__asm__ volatile("pushq %r9");
-	__asm__ volatile("pushq %r10");
-	__asm__ volatile("pushq %r11");
-	__asm__ volatile("call %P0" : : "i"(syscall_long_mode_handler_inner));
+	__asm__ volatile("pushq %rcx"); // stores rip
+	__asm__ volatile("pushq %r11"); // stores rflags
+	__asm__ volatile("call %P0" : : "i"(syscall_handler));
 	__asm__ volatile("popq %r11");
-	__asm__ volatile("popq %r10");
-	__asm__ volatile("popq %r9");
-	__asm__ volatile("popq %r8");
-	__asm__ volatile("popq %rdi");
-	__asm__ volatile("popq %rsi");
-	__asm__ volatile("popq %rdx");
 	__asm__ volatile("popq %rcx");
-	__asm__ volatile("popq %rax");
 	__asm__ volatile("sysretq");
 }
 
