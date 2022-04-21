@@ -35,7 +35,7 @@ task_switch:
 	mov rsp, qword [rdi + 4*8] ; restore stack pointer
 
 	mov rax, task_state_segment ; move tss ptr into rax
-	mov r11, qword [rdi + 3*8] ; load kernel stack top into r11
+	mov r11, qword [rdi + 2*8] ; load kernel stack top into r11
 	mov [rax + 4], r11 ; load kernel stack top into TSS PL change stack table
 
 	mov rax, qword [rdi + 5*8] ; load new cr3 ito rax
