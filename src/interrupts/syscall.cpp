@@ -1,4 +1,5 @@
 #include "syscall.hpp"
+#include "../threading/threading.hpp"
 #include <stdio.h>
 
 uint64_t syscall_serial_write(uint64_t arg1, uint64_t arg2) {
@@ -9,6 +10,10 @@ int64_t syscall_handler(syscall_vectors syscall_number, uint64_t arg1, uint64_t 
 	fprintf(stdserial, "syscall, syscall_number: %llx, arg1: %llx, arg2: %llx\n", syscall_number, arg1, arg2);
 
 	switch (syscall_number) {
+		case syscall_vectors::yield: {
+			threads::SchedulerLock::get()->schedule();
+			return 0;
+		}
 		case syscall_vectors::serial_write: return syscall_serial_write(arg1, arg2);
 	}
 
