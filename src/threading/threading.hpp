@@ -122,6 +122,7 @@ namespace threads {
 		friend void unlock_scheduler_from_task_init();
 		
 		private:
+		std::shared_ptr<Task> current_task_ptr;
 		std::deque<std::shared_ptr<Task>> ready_to_run_tasks;
 		int IRQ_disable_counter = 0;
 		
