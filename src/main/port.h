@@ -14,10 +14,10 @@ template<typename T> class Port {
 template<> class Port<uint8_t> {
 	public:
 	Port(uint16_t port) : port(port) {}
-	void write(uint8_t val) {
+	inline void write(uint8_t val) {
 		__asm__ volatile ("outb %b0, %1" : : "a"(val), "Nd"(this->port));
 	}
-	uint8_t read() {
+	inline uint8_t read() {
 		uint8_t ret;
 		__asm__ volatile ("inb %1, %b0" : "=a"(ret) : "Nd"(this->port));
 		return ret;
@@ -29,10 +29,10 @@ template<> class Port<uint8_t> {
 template<> class Port<uint16_t> {
 	public:
 	Port(uint16_t port) : port(port) {}
-	void write(uint16_t val) {
+	inline void write(uint16_t val) {
 		__asm__ volatile ("out %w0, %1" : : "a"(val), "Nd"(this->port));
 	}
-	uint16_t read() {
+	inline uint16_t read() {
 		uint16_t ret;
 		__asm__ volatile ("in %1, %w0" : "=a"(ret) : "Nd"(this->port));
 		return ret;
@@ -44,10 +44,10 @@ template<> class Port<uint16_t> {
 template<> class Port<uint32_t> {
 	public:
 	Port(uint16_t port) : port(port) {}
-	void write(uint32_t val) {
+	inline void write(uint32_t val) {
 		__asm__ volatile ("out %d0, %1" : : "a"(val), "Nd"(this->port));
 	}
-	uint32_t read() {
+	inline uint32_t read() {
 		uint32_t ret;
 		__asm__ volatile ("in %1, %d0" : "=a"(ret) : "Nd"(this->port));
 		return ret;
