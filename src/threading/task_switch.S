@@ -1,7 +1,7 @@
 bits 64
 
 section .text
-global task_switch
+global task_switch_asm
 global task_init
 extern unlock_scheduler_from_task_init
 extern task_state_segment
@@ -19,9 +19,9 @@ task_init:
 	mov r9, r15
 	ret
 
-; void task_switch(Task *new_task, Task *old_task)
+; void task_switch_asm(Task *new_task, Task *old_task)
 ; *new_task in rdi, *old_task in rsi
-task_switch:
+task_switch_asm:
 	push rbx
 	push rbp
 	push r12

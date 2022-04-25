@@ -126,6 +126,7 @@ namespace threads {
 		int IRQ_disable_counter = 0;
 		
 		void __unlock_scheduler();
+		void task_switch(std::shared_ptr<Task> task);
 
 		public:
 		void add_task(std::shared_ptr<Task>);

@@ -8,8 +8,7 @@ alignas(alignof(Scheduler)) char scheduler_[sizeof(Scheduler)];
 Scheduler& threads::scheduler = reinterpret_cast<Scheduler&>(scheduler_);
 
 extern "C" void task_init(void);
-extern "C" void task_switch(Task *new_task, Task *old_task);
-std::shared_ptr<Task> current_task_ptr;
+extern "C" void task_switch_asm(Task *new_task, Task *old_task);
 
 std::shared_ptr<Task> threads::init_multitasking(uint64_t stack_bottom, uint64_t stack_top) {
 	new(&threads::scheduler) Scheduler();
@@ -21,20 +20,30 @@ std::shared_ptr<Task> threads::init_multitasking(uint64_t stack_bottom, uint64_t
 	return kernel_task;
 }
 
+void Scheduler::task_switch(std::shared_ptr<Task> task) {
+	if (this->task_switch_disable_counter > 0) {
+		this->task_switch_postponed = true;
+		return;
+	}
+
+	std::swap(this->current_task_ptr, task);
+	task_switch_asm(this->current_task_ptr.get(), task.get());
+}
+
 void Scheduler::schedule() {
 	if (ready_to_run_tasks.size() == 0) return; // Only one task - don't need to switch
 
-	auto old_task = current_task_ptr;
-	auto new_task = ready_to_run_tasks.front();
-	ready_to_run_tasks.pop_front();
-	current_task_ptr = new_task;
+	auto old_task = this->current_task_ptr;
+	auto new_task = this->ready_to_run_tasks.front();
+	this->ready_to_run_tasks.pop_front();
+	this->current_task_ptr = new_task;
 	if (old_task->get_state() == task_state::RUNNING) {
-		ready_to_run_tasks.push_back(old_task);
+		this->ready_to_run_tasks.push_back(old_task);
 		old_task->set_state(task_state::READY);
 	}
 	new_task->set_state(task_state::RUNNING);
 
-	task_switch(new_task.get(), old_task.get());
+	this->task_switch(new_task);
 }
 
 void Scheduler::add_task(std::shared_ptr<Task> task) {
