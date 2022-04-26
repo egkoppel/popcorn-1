@@ -15,8 +15,6 @@ namespace threads {
 	extern "C" struct Task;
 	extern atomic_uint_fast64_t next_pid;
 
-	std::shared_ptr<Task> init_multitasking(uint64_t stack_bottom, uint64_t stack_top);
-
 	enum class task_state {
 		RUNNING,
 		READY,
@@ -134,6 +132,8 @@ namespace threads {
 		void schedule();
 		void block_task(task_state reason);
 		void unblock_task(std::shared_ptr<Task> task);
+
+		static std::shared_ptr<Task> init_multitasking(uint64_t stack_bottom, uint64_t stack_top);
 	};
 
 	class SchedulerLock {

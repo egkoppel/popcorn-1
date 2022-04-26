@@ -327,7 +327,8 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	fputc('\n', stdout);
 
 	printf("[    ] Initialising multitasking\n");
-	auto kmain_task = threads::init_multitasking(old_p4_table_page + 8*0x1000, old_p4_table_page + 0x1000);
+	auto kmain_task = threads::Scheduler::init_multitasking(old_p4_table_page + 8*0x1000, old_p4_table_page + 0x1000);
+	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised multitasking\n");
 
 	//auto test = threads::new_kernel_task("test", test_task, (uint64_t)54);
 	//threads::SchedulerLock::get()->add_task(test);

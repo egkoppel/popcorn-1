@@ -10,21 +10,21 @@ Scheduler& threads::scheduler = reinterpret_cast<Scheduler&>(scheduler_);
 extern "C" void task_init(void);
 extern "C" void task_switch_asm(Task *new_task, Task *old_task);
 
-std::shared_ptr<Task> threads::init_multitasking(uint64_t stack_bottom, uint64_t stack_top) {
+std::shared_ptr<Task> Scheduler::init_multitasking(uint64_t stack_bottom, uint64_t stack_top) {
 	new(&threads::scheduler) Scheduler();
 	
 	uint64_t cr3;
 	__asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
 	auto kernel_task = std::make_shared<threads::Task>("kernel_task", cr3, stack_top, stack_top);
-	current_task_ptr = kernel_task;
+	scheduler.current_task_ptr = kernel_task;
 	return kernel_task;
 }
 
 void Scheduler::task_switch(std::shared_ptr<Task> task) {
-	if (this->task_switch_disable_counter > 0) {
+	/*if (this->task_switch_disable_counter > 0) {
 		this->task_switch_postponed = true;
 		return;
-	}
+	}*/
 
 	std::swap(this->current_task_ptr, task);
 	task_switch_asm(this->current_task_ptr.get(), task.get());
@@ -36,7 +36,7 @@ void Scheduler::schedule() {
 	auto old_task = this->current_task_ptr;
 	auto new_task = this->ready_to_run_tasks.front();
 	this->ready_to_run_tasks.pop_front();
-	this->current_task_ptr = new_task;
+	//this->current_task_ptr = new_task;
 	if (old_task->get_state() == task_state::RUNNING) {
 		this->ready_to_run_tasks.push_back(old_task);
 		old_task->set_state(task_state::READY);
