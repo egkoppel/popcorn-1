@@ -15,6 +15,7 @@
 #include "../memory/frame_bump_alloc.hpp"
 #include "../memory/frame_main_alloc.hpp"
 #include "../interrupts/interrupt_handlers.hpp"
+#include "../interrupts/pit.hpp"
 #include "../gdt/gdt.hpp"
 #include "../gdt/tss.hpp"
 #include "../initramfs.hpp"
@@ -49,8 +50,15 @@ void test_task(uint64_t a) {
 
 void user_task() {
 	//*(volatile char*)NULL = 1;
-	syscall(syscall_vectors::serial_write, (uint64_t)"Hello, world!\n", 0);
+	syscall(syscall_vectors::serial_write, (uint64_t)"Hello, world!\n");
 	//syscall(syscall_vectors::serial_write, (uint64_t)"Hello, world after syscall!\n", 0);
+	syscall(syscall_vectors::serial_write, (uint64_t)"yielding\n");
+	syscall(syscall_vectors::yield);
+	syscall(syscall_vectors::serial_write, (uint64_t)"back to user task\n");
+	syscall(syscall_vectors::serial_write, (uint64_t)"try to cli\n");
+	//__asm__ volatile("cli");
+	syscall(syscall_vectors::yield);
+	syscall(syscall_vectors::serial_write, (uint64_t)"back to user task\n");
 	while(1);
 }
 
@@ -344,8 +352,16 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	threads::SchedulerLock::get()->schedule();
 	//syscall(1,2,3);
 	//switch_to_user_mode();
-	//printf("user mode\n");
+	fprintf(stdserial, "back to kmain\n");
+	//fprintf(stdserial, "try to cli from kmain\n");
+	//__asm__ volatile("cli");
+	//threads::SchedulerLock::get()->schedule();
 	//*(volatile char*)NULL = 1;
+
+	while (1) {
+		threads::SchedulerLock::get()->sleep(1000);
+		printf("tick\n");
+	}
 
 	while(1);
 }

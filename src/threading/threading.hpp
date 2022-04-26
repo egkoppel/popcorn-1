@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <deque>
+#include <map>
 #include <memory>
 #include <string>
 #include <stdint.h>
@@ -10,14 +11,18 @@
 #include "../memory/stack.hpp"
 #include "../memory/paging.h"
 #include "../main/main.h"
+#include "../interrupts/pit.hpp"
 
 namespace threads {
+	uint64_t get_time_ms();
+
 	extern "C" struct Task;
 	extern atomic_uint_fast64_t next_pid;
 
 	enum class task_state {
 		RUNNING,
 		READY,
+		SLEEPING,
 		PAUSED
 	};
 
@@ -122,17 +127,26 @@ namespace threads {
 		private:
 		std::shared_ptr<Task> current_task_ptr;
 		std::deque<std::shared_ptr<Task>> ready_to_run_tasks;
+		std::multimap<uint64_t /* wake time */, std::shared_ptr<Task>> sleep_queue;
+
 		int IRQ_disable_counter = 0;
+		int task_switch_disable_counter = 0;
+		bool task_switch_postponed = false;
 		
 		void __unlock_scheduler();
+		void lock_scheduler();
 		void task_switch(std::shared_ptr<Task> task);
+		void lock_task_switches();
+		void unlock_task_switches();
 
 		public:
 		void add_task(std::shared_ptr<Task>);
 		void schedule();
 		void block_task(task_state reason);
 		void unblock_task(std::shared_ptr<Task> task);
-
+		void sleep(uint64_t ms);
+		void sleep_until(uint64_t time);
+		static void irq();
 		static std::shared_ptr<Task> init_multitasking(uint64_t stack_bottom, uint64_t stack_top);
 	};
 

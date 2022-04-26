@@ -4,6 +4,7 @@
 #include <panic.h>
 #include "pic.hpp"
 #include "syscall.hpp"
+#include "../threading/threading.hpp"
 
 idt::IDT interrupt_descriptor_table = idt::IDT<48>();
 pic::ATChainedPIC pics(0x20, 0x28);
@@ -174,7 +175,7 @@ namespace PIC_IRQ { enum PIC_IRQ {
 };}
 
 RETURN_NO_ERROR_CODE(timer_interrupt_handler, {
-	printf("-");
+	threads::Scheduler::irq();
 	pics.acknowledge_irq(PIC_IRQ::TIMER);
 })
 
