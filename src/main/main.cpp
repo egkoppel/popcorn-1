@@ -59,7 +59,11 @@ void user_task() {
 	//__asm__ volatile("cli");
 	syscall(syscall_vectors::yield);
 	syscall(syscall_vectors::serial_write, (uint64_t)"back to user task\n");
-	while(1);
+	char buf[100];
+	while(1) {
+		//sprintf(buf, "used time: %llu\n", syscall(syscall_vectors::get_time_used));
+		//syscall(syscall_vectors::serial_write, (uint64_t)buf);
+	}
 }
 
 extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {

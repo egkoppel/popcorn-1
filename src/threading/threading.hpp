@@ -26,24 +26,27 @@ namespace threads {
 		PAUSED
 	};
 
+	class Scheduler;
+
 	extern "C" struct Task {
 		friend std::shared_ptr<Task> std::make_shared<Task>(char const (&)[12], uint64_t&, uint64_t&, uint64_t&);
+		friend class Scheduler;
 
 		private:
 		Stack code_stack;
 		Stack kernel_stack;
 		uint64_t stack_ptr;
 		uint64_t p4_page_table;
-		uint64_t pid;
+		uint64_t pid = atomic_fetch_add(&next_pid, 1);
 		std::string name;
-		task_state state;
+		task_state state = task_state::READY;
+		uint64_t time_used = 0;
 
 		Task(std::string name, uint64_t p4_page_table, uint64_t stack_top, uint64_t stack_bottom):
 			code_stack(stack_top, stack_bottom),
 			kernel_stack(stack_top, stack_bottom),
 			stack_ptr(0),
 			p4_page_table(p4_page_table),
-			pid(atomic_fetch_add(&next_pid, 1)),
 			name(std::move(name)),
 			state(task_state::RUNNING) {}
 
@@ -53,9 +56,7 @@ namespace threads {
 			kernel_stack(kernel_task ? code_stack : 4096),
 			stack_ptr(this->code_stack.top - stack_value_count*8),
 			p4_page_table(p4_page_table),
-			pid(atomic_fetch_add(&next_pid, 1)),
-			name(std::move(name)),
-			state(task_state::READY) {}
+			name(std::move(name)) {}
 
 		public:
 		uint64_t get_pid() { return pid; }
@@ -65,6 +66,7 @@ namespace threads {
 		uint64_t get_p4_page_table() { return p4_page_table; }
 		Stack& get_code_stack() { return code_stack; }
 		Stack& get_kernel_stack() { return kernel_stack; }
+		uint64_t get_time_used() { return time_used; }
 	};
 
 	extern "C" void task_init(void);
@@ -132,12 +134,15 @@ namespace threads {
 		int IRQ_disable_counter = 0;
 		int task_switch_disable_counter = 0;
 		bool task_switch_postponed = false;
+
+		uint64_t last_time_used_update_time = 0;
 		
 		void __unlock_scheduler();
 		void lock_scheduler();
 		void task_switch(std::shared_ptr<Task> task);
 		void lock_task_switches();
 		void unlock_task_switches();
+		void update_time_used();
 
 		public:
 		void add_task(std::shared_ptr<Task>);
@@ -148,6 +153,7 @@ namespace threads {
 		void sleep_until(uint64_t time);
 		static void irq();
 		static std::shared_ptr<Task> init_multitasking(uint64_t stack_bottom, uint64_t stack_top);
+		uint64_t get_time_used();
 	};
 
 	class SchedulerLock {

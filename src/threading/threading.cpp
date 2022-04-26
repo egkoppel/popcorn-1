@@ -28,6 +28,8 @@ std::shared_ptr<Task> Scheduler::init_multitasking(uint64_t stack_bottom, uint64
 }
 
 void Scheduler::task_switch(std::shared_ptr<Task> task) {
+	this->update_time_used();
+	
 	if (this->task_switch_disable_counter > 0) {
 		this->task_switch_postponed = true;
 		return;
@@ -156,4 +158,16 @@ void Scheduler::unlock_task_switches() {
 		this->schedule();
 	}
 	this->__unlock_scheduler();
+}
+
+void Scheduler::update_time_used() {
+	auto current_time = get_time_ms();
+	auto elapsed_time = current_time - this->last_time_used_update_time;
+	this->last_time_used_update_time = current_time;
+	this->current_task_ptr->time_used += elapsed_time;
+}
+
+uint64_t Scheduler::get_time_used() {
+	this->update_time_used();
+	return this->current_task_ptr->get_time_used();
 }

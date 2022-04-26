@@ -5,7 +5,8 @@
 
 enum class syscall_vectors: uint64_t {
 	yield,
-	serial_write
+	serial_write,
+	get_time_used
 };
 
 int64_t syscall_handler(syscall_vectors syscall_number, uint64_t arg1, uint64_t arg2);
