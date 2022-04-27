@@ -63,6 +63,7 @@ void user_task() {
 	while(1) {
 		//sprintf(buf, "used time: %llu\n", syscall(syscall_vectors::get_time_used));
 		//syscall(syscall_vectors::serial_write, (uint64_t)buf);
+		syscall(syscall_vectors::sleep, 60000);
 	}
 }
 
