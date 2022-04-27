@@ -40,29 +40,55 @@ void Scheduler::task_switch(std::shared_ptr<Task> task) {
 }
 
 void Scheduler::schedule() {
-	fprintf(stdserial, "schedule()\n");
-	if (this->ready_to_run_tasks.size() == 0) {
-		fprintf(stdserial, "schedule(): no other tasks to run\n");
-		return; // Only one task - don't need to switch
-	}
-
 	if (this->task_switch_disable_counter > 0) {
-		fprintf(stdserial, "schedule(): task switch disabled\n");
 		this->task_switch_postponed = true;
 		return;
 	}
 
-	auto old_task = this->current_task_ptr;
-	auto new_task = this->ready_to_run_tasks.front();
-	this->ready_to_run_tasks.pop_front();
-	//this->current_task_ptr = new_task;
-	if (old_task->get_state() == task_state::RUNNING) {
-		this->ready_to_run_tasks.push_back(old_task);
-		old_task->set_state(task_state::READY);
-	}
-	new_task->set_state(task_state::RUNNING);
+	if (this->ready_to_run_tasks.size() > 0) { // If other tasks to switch to then switch to next one
+		auto old_task = this->current_task_ptr;
+		auto new_task = this->ready_to_run_tasks.front();
+		this->ready_to_run_tasks.pop_front();
 
-	this->task_switch(new_task);
+		if (old_task->get_state() == task_state::RUNNING) {
+			this->ready_to_run_tasks.push_back(old_task);
+			old_task->set_state(task_state::READY);
+		}
+		new_task->set_state(task_state::RUNNING);
+
+		this->task_switch(new_task);
+	} else if (this->current_task_ptr->get_state() == task_state::RUNNING) {
+		// If no other tasks to switch to, and current task can stay return, then return
+		return;
+	} else {
+		// No tasks to run - idle
+		this->task_switch_disable_counter++; // Prevent task switch occuring while idle
+
+		std::shared_ptr<Task> old_task(nullptr);
+		std::swap(this->current_task_ptr, old_task); // Remove the no longer running task
+		this->idle_time = 0;
+
+		fprintf(stdserial, "idling\n");
+
+		while (this->ready_to_run_tasks.size() == 0) {
+			__asm__ volatile("sti");
+			__asm__ volatile("hlt");
+			__asm__ volatile("cli");
+			this->update_time_used();
+		}
+
+		fprintf(stdserial, "idle for %dms\n", this->idle_time);
+
+		// New task now exists, so switch to it
+		auto new_task = this->ready_to_run_tasks.front();
+		this->ready_to_run_tasks.pop_front();
+		new_task->set_state(task_state::RUNNING);
+		this->current_task_ptr = old_task; // Put the old task back for switching away from
+
+		this->task_switch_disable_counter--; // Allow task switching to occur again
+
+		if (new_task != old_task) this->task_switch(new_task); // If tasks are different, then switch to new task
+	}
 }
 
 void Scheduler::add_task(std::shared_ptr<Task> task) {
@@ -81,10 +107,6 @@ void Scheduler::unblock_task(std::shared_ptr<Task> task) {
 	if (this->ready_to_run_tasks.size() == 1) {
 		this->schedule();
 	}
-}
-
-void Scheduler::sleep(uint64_t ms) {
-	this->sleep_until(get_time_ms() + ms);
 }
 
 void Scheduler::sleep_until(uint64_t time) {
@@ -126,12 +148,12 @@ SchedulerLock::~SchedulerLock() {
 void Scheduler::irq() {
 	time_since_start_ms += 1000/TIMER_FREQ;
 	uint64_t current_time = time_since_start_ms;
-	fprintf(stdserial, "time: %llu\n", current_time);
+	//fprintf(stdserial, "time: %llu\n", current_time);
 
 	scheduler.lock_task_switches();
-	fprintf(stdserial, "sleep queue len: %d\n", scheduler.sleep_queue.size());
+	//fprintf(stdserial, "sleep queue len: %d\n", scheduler.sleep_queue.size());
 	for (auto task = scheduler.sleep_queue.begin(); task != scheduler.sleep_queue.end(); task++) {
-		fprintf(stdserial, "wake time: %llu, time: %llu\n", task->first, current_time);
+		//fprintf(stdserial, "wake time: %llu, time: %llu\n", task->first, current_time);
 		if (task->first <= current_time) {
 			fprintf(stdserial, "waking\n");
 			scheduler.unblock_task(task->second);
@@ -164,7 +186,11 @@ void Scheduler::update_time_used() {
 	auto current_time = get_time_ms();
 	auto elapsed_time = current_time - this->last_time_used_update_time;
 	this->last_time_used_update_time = current_time;
-	this->current_task_ptr->time_used += elapsed_time;
+	if (!this->is_idle()) {
+		this->current_task_ptr->time_used += elapsed_time;
+	} else {
+		this->idle_time += elapsed_time;
+	}
 }
 
 uint64_t Scheduler::get_time_used() {

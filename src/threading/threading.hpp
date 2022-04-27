@@ -59,14 +59,14 @@ namespace threads {
 			name(std::move(name)) {}
 
 		public:
-		uint64_t get_pid() { return pid; }
-		std::string& get_name() { return name; }
-		task_state get_state() { return state; }
-		void set_state(task_state state) { this->state = state; }
-		uint64_t get_p4_page_table() { return p4_page_table; }
-		Stack& get_code_stack() { return code_stack; }
-		Stack& get_kernel_stack() { return kernel_stack; }
-		uint64_t get_time_used() { return time_used; }
+		inline uint64_t get_pid() { return pid; }
+		inline std::string& get_name() { return name; }
+		inline task_state get_state() { return state; }
+		inline void set_state(task_state state) { this->state = state; }
+		inline uint64_t get_p4_page_table() { return p4_page_table; }
+		inline Stack& get_code_stack() { return code_stack; }
+		inline Stack& get_kernel_stack() { return kernel_stack; }
+		inline uint64_t get_time_used() { return time_used; }
 	};
 
 	extern "C" void task_init(void);
@@ -136,6 +136,7 @@ namespace threads {
 		bool task_switch_postponed = false;
 
 		uint64_t last_time_used_update_time = 0;
+		uint64_t idle_time = 0;
 		
 		void __unlock_scheduler();
 		void lock_scheduler();
@@ -143,13 +144,14 @@ namespace threads {
 		void lock_task_switches();
 		void unlock_task_switches();
 		void update_time_used();
+		inline bool is_idle() { return current_task_ptr == nullptr; }
 
 		public:
 		void add_task(std::shared_ptr<Task>);
 		void schedule();
 		void block_task(task_state reason);
 		void unblock_task(std::shared_ptr<Task> task);
-		void sleep(uint64_t ms);
+		inline void sleep(uint64_t ms) { this->sleep_until(get_time_ms() + ms); }
 		void sleep_until(uint64_t time);
 		static void irq();
 		static std::shared_ptr<Task> init_multitasking(uint64_t stack_bottom, uint64_t stack_top);
