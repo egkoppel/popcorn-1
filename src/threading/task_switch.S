@@ -17,6 +17,7 @@ task_init:
 	mov rcx, r13
 	mov r8, r14
 	mov r9, r15
+	xor rbp, rbp
 	ret
 
 ; void task_switch_asm(Task *new_task, Task *old_task)

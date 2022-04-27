@@ -51,5 +51,6 @@ long_mode_start:
 	mov edi, [rbp-4] ; pop multiboot magic
 	mov rsp, _stack_top ; reset stack pointer to stack top
 
+	xor rbp, rbp ; null base pointer
 	call __cxa_init
 	hlt

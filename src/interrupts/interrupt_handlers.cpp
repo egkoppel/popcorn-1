@@ -5,6 +5,7 @@
 #include "pic.hpp"
 #include "syscall.hpp"
 #include "../threading/threading.hpp"
+#include "../main/debug.hpp"
 
 idt::IDT interrupt_descriptor_table = idt::IDT<48>();
 pic::ATChainedPIC pics(0x20, 0x28);
@@ -27,23 +28,25 @@ struct __attribute__((packed)) exception_stack_frame {
 };
 
 #define N0_RETURN_ERROR_CODE(name, body) \
-	void name ## _inner(exception_stack_frame_error *frame) { body } \
+	void name ## _inner(exception_stack_frame_error *frame, uint64_t old_base_ptr) { body } \
 	extern "C" __attribute__((naked)) void name() { \
 		__asm__ volatile("movq %rsp, %rdi"); \
+		__asm__ volatile("movq %rbp, %rsi"); \
 		__asm__ volatile("call %P0" : : "i"(name ## _inner)); \
 		__asm__ volatile("cli; hlt"); \
 	} \
 
 #define N0_RETURN_NO_ERROR_CODE(name, body) \
-		void name ## _inner(exception_stack_frame *frame) { body } \
+		void name ## _inner(exception_stack_frame *frame, uint64_t old_base_ptr) { body } \
 	extern "C" __attribute__((naked)) void name() { \
 		__asm__ volatile("movq %rsp, %rdi"); \
+		__asm__ volatile("movq %rbp, %rsi"); \
 		__asm__ volatile("call %P0" : : "i"(name ## _inner)); \
 		__asm__ volatile("cli; hlt"); \
 	}
 
 #define RETURN_ERROR_CODE(name, body) \
-	void name ## _inner(exception_stack_frame_error *frame) { body } \
+	void name ## _inner(exception_stack_frame_error *frame, uint64_t old_base_ptr) { body } \
 	extern "C" __attribute__((naked)) void name() { \
 		__asm__ volatile("pushq %rax"); \
 		__asm__ volatile("pushq %rcx"); \
@@ -56,6 +59,7 @@ struct __attribute__((packed)) exception_stack_frame {
 		__asm__ volatile("pushq %r11"); \
 		__asm__ volatile("movq %rsp, %rdi"); \
 		__asm__ volatile("addq $72, %rdi"); \
+		__asm__ volatile("movq %rbp, %rsi"); \
 		__asm__ volatile("call %P0" : : "i"(name ## _inner)); \
 		__asm__ volatile("popq %r11"); \
 		__asm__ volatile("popq %r10"); \
@@ -70,7 +74,7 @@ struct __attribute__((packed)) exception_stack_frame {
 	}
 
 #define RETURN_NO_ERROR_CODE(name, body) \
-	void name ## _inner(exception_stack_frame *frame) { body } \
+	void name ## _inner(exception_stack_frame *frame, uint64_t old_base_ptr) { body } \
 	extern "C" __attribute__((naked)) void name() { \
 		__asm__ volatile("pushq %rax"); \
 		__asm__ volatile("pushq %rcx"); \
@@ -82,6 +86,7 @@ struct __attribute__((packed)) exception_stack_frame {
 		__asm__ volatile("pushq %r10"); \
 		__asm__ volatile("pushq %r11"); \
 		__asm__ volatile("movq %rsp, %rdi"); \
+		__asm__ volatile("movq %rbp, %rsi"); \
 		__asm__ volatile("addq $72, %rdi"); \
 		__asm__ volatile("call %P0" : : "i"(name ## _inner)); \
 		__asm__ volatile("popq %r11"); \
@@ -135,6 +140,8 @@ N0_RETURN_ERROR_CODE(double_fault_handler, {
 		panic("Potential stack overflow");
 	}
 
+	TraceStackTrace(100, old_base_ptr);
+
 	while (1);
 })
 
@@ -152,6 +159,8 @@ RETURN_ERROR_CODE(page_fault_handler, {
 	uint64_t cr2;
 	__asm__ volatile("movq %%cr2, %0" : "=r"(cr2));
 	fprintf(stdserial, "Attempted access to: %lp\n", cr2);
+
+	TraceStackTrace(100, old_base_ptr);
 	while (1);
 })
 
