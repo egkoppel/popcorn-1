@@ -16,6 +16,10 @@ int64_t syscall_handler(syscall_vectors syscall_number, uint64_t arg1, uint64_t 
 		}
 		case syscall_vectors::serial_write: return syscall_serial_write(arg1, arg2);
 		case syscall_vectors::get_time_used: return threads::SchedulerLock::get()->get_time_used();
+		case syscall_vectors::sleep: {
+			threads::SchedulerLock::get()->sleep(arg1);
+			return 0;
+		}
 	}
 
 	return -1;
