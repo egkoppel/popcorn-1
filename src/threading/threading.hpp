@@ -23,10 +23,42 @@ namespace threads {
 		RUNNING,
 		READY,
 		SLEEPING,
+		WAITING_FOR_LOCK,
 		PAUSED
 	};
 
 	class Scheduler;
+
+	class Semaphore {
+		private:
+		uint64_t count = 0;
+		uint64_t max_count;
+		std::deque<std::shared_ptr<Task>> waiting_tasks;
+
+		inline void add_waiting_task(std::shared_ptr<Task> task) { this->waiting_tasks.push_back(task); }
+		std::shared_ptr<Task> get_next_waiting_task();
+
+		public:
+		Semaphore(uint64_t max_count) : max_count(max_count) {}
+
+		void post();
+		void wait();
+		uint64_t get_count() { return this->count; }
+	};
+
+	class Mutex {
+		private:
+		bool locked = false;
+		std::deque<std::shared_ptr<Task>> waiting_tasks;
+
+		inline void add_waiting_task(std::shared_ptr<Task> task) { this->waiting_tasks.push_back(task); }
+		std::shared_ptr<Task> get_next_waiting_task();
+
+		public:
+		void lock();
+		uint64_t try_lock();
+		void unlock();
+	};
 
 	extern "C" struct Task {
 		friend std::shared_ptr<Task> std::make_shared<Task>(char const (&)[12], uint64_t&, uint64_t&, uint64_t&);
@@ -82,7 +114,7 @@ namespace threads {
 		*((uint64_t*)stack.top - 2) = reinterpret_cast<uint64_t>(task_init);
 
 		if constexpr (sizeof...(Args) > 0) {
-			uint64_t args_list[sizeof...(Args)] = {static_cast<uint64_t>(args)...};
+			uint64_t args_list[sizeof...(Args)] = {reinterpret_cast<uint64_t>(args)...};
 
 			if constexpr (sizeof...(Args) > 0) { *((uint64_t*)stack.top - 3) = args_list[0]; } // rbx - task_init arg 1
 			if constexpr (sizeof...(Args) > 1) { *((uint64_t*)stack.top - 4) = args_list[1]; } // rbp - task_init arg 2
@@ -106,7 +138,7 @@ namespace threads {
 		*((uint64_t*)stack.top - 3) = reinterpret_cast<uint64_t>(task_init);
 		
 		if constexpr (sizeof...(Args) > 0) {
-			uint64_t args_list[sizeof...(Args)] = {static_cast<uint64_t>(args)...};
+			uint64_t args_list[sizeof...(Args)] = {reinterpret_cast<uint64_t>(args)...};
 
 			if constexpr (sizeof...(Args) > 0) { *((uint64_t*)stack.top - 4) = args_list[0]; } // rbx - task_init arg 1
 			if constexpr (sizeof...(Args) > 1) { *((uint64_t*)stack.top - 5) = args_list[1]; } // rbp - task_init arg 2
@@ -125,6 +157,8 @@ namespace threads {
 	class Scheduler {
 		friend class SchedulerLock;
 		friend void unlock_scheduler_from_task_init();
+		friend class Mutex;
+		friend class Semaphore;
 		
 		private:
 		std::shared_ptr<Task> current_task_ptr;

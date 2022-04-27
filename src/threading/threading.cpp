@@ -197,3 +197,75 @@ uint64_t Scheduler::get_time_used() {
 	this->update_time_used();
 	return this->current_task_ptr->get_time_used();
 }
+
+std::shared_ptr<Task> Semaphore::get_next_waiting_task() {
+	if (this->waiting_tasks.size() > 0) {
+		auto task = this->waiting_tasks.front();
+		this->waiting_tasks.pop_front();
+		return task;
+	}
+	return nullptr;
+}
+
+void Semaphore::wait() {
+	scheduler.lock_task_switches();
+
+	if (this->count == 0) {
+		this->add_waiting_task(scheduler.current_task_ptr);
+		scheduler.block_task(task_state::WAITING_FOR_LOCK);
+	} else { this->count--; }
+	
+	scheduler.unlock_task_switches();
+}
+
+void Semaphore::post() {
+	scheduler.lock_task_switches();
+
+	if (this->count + 1 > this->max_count) return;
+
+	if (auto task_to_wake = this->get_next_waiting_task()) {
+		scheduler.unblock_task(task_to_wake);
+	} else { this->count++; }
+	
+	scheduler.unlock_task_switches();
+}
+
+std::shared_ptr<Task> Mutex::get_next_waiting_task() {
+	if (this->waiting_tasks.size() > 0) {
+		auto task = this->waiting_tasks.front();
+		this->waiting_tasks.pop_front();
+		return task;
+	}
+	return nullptr;
+}
+
+void Mutex::lock() {
+	scheduler.lock_task_switches();
+
+	if (this->locked) {
+		this->add_waiting_task(scheduler.current_task_ptr);
+		scheduler.block_task(task_state::WAITING_FOR_LOCK);
+	} else { this->locked = true; }
+	
+	scheduler.unlock_task_switches();
+}
+
+uint64_t Mutex::try_lock() {
+	scheduler.lock_task_switches();
+
+	if (this->locked) { return 1; }
+	else { this->locked = true; }
+	
+	scheduler.unlock_task_switches();
+	return 0;
+}
+
+void Mutex::unlock() {
+	scheduler.lock_task_switches();
+
+	if (auto task_to_wake = this->get_next_waiting_task()) {
+		scheduler.unblock_task(task_to_wake);
+	} else { this->locked = false; }
+	
+	scheduler.unlock_task_switches();
+}

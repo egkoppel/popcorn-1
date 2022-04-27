@@ -48,22 +48,15 @@ void test_task(uint64_t a) {
 	while(1);
 }
 
-void user_task() {
-	//*(volatile char*)NULL = 1;
+void user_task(threads::Mutex *mutex) {
 	syscall(syscall_vectors::serial_write, (uint64_t)"Hello, world!\n");
-	//syscall(syscall_vectors::serial_write, (uint64_t)"Hello, world after syscall!\n", 0);
-	syscall(syscall_vectors::serial_write, (uint64_t)"yielding\n");
-	syscall(syscall_vectors::yield);
-	syscall(syscall_vectors::serial_write, (uint64_t)"back to user task\n");
-	syscall(syscall_vectors::serial_write, (uint64_t)"try to cli\n");
-	//__asm__ volatile("cli");
-	syscall(syscall_vectors::yield);
-	syscall(syscall_vectors::serial_write, (uint64_t)"back to user task\n");
-	char buf[100];
+	syscall(syscall_vectors::serial_write, (uint64_t)"Try to acquire mutex\n");
+	syscall(syscall_vectors::mutex_lock, (uint64_t)mutex);
+	syscall(syscall_vectors::serial_write, (uint64_t)"Acquired\n");
 	while(1) {
 		//sprintf(buf, "used time: %llu\n", syscall(syscall_vectors::get_time_used));
 		//syscall(syscall_vectors::serial_write, (uint64_t)buf);
-		syscall(syscall_vectors::sleep, 60000);
+		//syscall(syscall_vectors::sleep, 60000);
 	}
 }
 
@@ -352,12 +345,17 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	printf("back to kmain2\n");
 	while(1);*/
 
-	auto usertask = threads::new_user_task("usertask", user_task);
+	auto mutex = new threads::Mutex();
+	mutex->lock();
+
+	auto usertask = threads::new_user_task("usertask", user_task, mutex);
 	threads::SchedulerLock::get()->add_task(usertask);
 	threads::SchedulerLock::get()->schedule();
 	//syscall(1,2,3);
 	//switch_to_user_mode();
 	fprintf(stdserial, "back to kmain\n");
+	fprintf(stdserial, "releasing mutex\n");
+	mutex->unlock();
 	//fprintf(stdserial, "try to cli from kmain\n");
 	//__asm__ volatile("cli");
 	//threads::SchedulerLock::get()->schedule();
