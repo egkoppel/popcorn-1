@@ -129,6 +129,11 @@ template<class T> class shared_ptr {
 			this->ptr = nullptr;
 		}
 
+		constexpr shared_ptr(decltype(nullptr)) noexcept {
+			this->state = nullptr;
+			this->ptr = nullptr;
+		}
+
 		shared_ptr(const shared_ptr& r) noexcept {
 			this->state = r.state;
 			this->ptr = r.ptr;
@@ -243,6 +248,14 @@ template<class T, class U> bool operator>=(const shared_ptr<T>& lhs, const share
 template<class T, class U> bool operator>(const shared_ptr<T>& lhs, const shared_ptr<U>& rhs) noexcept { return lhs.get() > rhs.get(); }
 template<class T, class U> bool operator<=(const shared_ptr<T>& lhs, const shared_ptr<U>& rhs) noexcept { return lhs.get() <= rhs.get(); }
 template<class T, class U> bool operator<(const shared_ptr<T>& lhs, const shared_ptr<U>& rhs) noexcept { return lhs.get() < rhs.get(); }
+
+template<class T> bool operator==(const shared_ptr<T>& lhs, decltype(nullptr) rhs) noexcept { return lhs.get() == nullptr; }
+template<class T> bool operator!=(const shared_ptr<T>& lhs, decltype(nullptr) rhs) noexcept { return lhs.get() != nullptr; }
+template<class T> bool operator>=(const shared_ptr<T>& lhs, decltype(nullptr) rhs) noexcept { return lhs.get() >= nullptr; }
+template<class T> bool operator>(const shared_ptr<T>& lhs, decltype(nullptr) rhs) noexcept { return lhs.get() > nullptr; }
+template<class T> bool operator<=(const shared_ptr<T>& lhs, decltype(nullptr) rhs) noexcept { return lhs.get() <= nullptr; }
+template<class T> bool operator<(const shared_ptr<T>& lhs, decltype(nullptr) rhs) noexcept { return lhs.get() < nullptr; }
+
 template<class T> void swap(shared_ptr<T>& lhs, shared_ptr<T>& rhs) noexcept { lhs.swap(rhs); }
 template<class T> void swap(weak_ptr<T>& lhs, weak_ptr<T>& rhs) noexcept { lhs.swap(rhs); }
 
