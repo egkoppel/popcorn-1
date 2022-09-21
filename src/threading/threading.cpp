@@ -16,15 +16,15 @@ static volatile uint64_t time_since_start_ms = 0;
 
 std::shared_ptr<Task> Scheduler::init_multitasking(uint64_t stack_bottom, uint64_t stack_top) {
 	new(&threads::scheduler) Scheduler();
-	
+
 	uint64_t cr3;
 	__asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
-	auto kernel_task = std::make_shared<threads::Task>("kernel_task", cr3, stack_top, stack_top);
-	scheduler.current_task_ptr = kernel_task;
+	auto init_task = std::make_shared<threads::Task>("uinit", cr3, stack_top, stack_top);
+	scheduler.current_task_ptr = init_task;
 
 	timer.set_frequency(TIMER_FREQ);
 
-	return kernel_task;
+	return init_task;
 }
 
 void Scheduler::task_switch(std::shared_ptr<Task> task) {
