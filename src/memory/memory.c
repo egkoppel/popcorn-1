@@ -18,15 +18,15 @@ void *sbrk(intptr_t increment) {
 	if (global_sbrk_state.current_break < new_break) {
 		for (uint64_t page_to_map = global_sbrk_state.current_break; page_to_map < new_break; page_to_map+=0x1000) {
 			entry_flags_t flags = {
-				.writeable = 1,
-				.user_accessible = 0,
-				.write_through = 0,
-				.cache_disabled = 0,
-				.accessed = 0,
-				.dirty = 0,
-				.huge = 0,
-				.global = 0,
-				.no_execute = 1
+				.writeable = true,
+				.user_accessible = false,
+				.write_through = false,
+				.cache_disabled = false,
+				.accessed = false,
+				.dirty = false,
+				.huge = false,
+				.global = false,
+				.no_execute = true
 			};
 			map_page(page_to_map, flags, global_frame_allocator);
 		}
