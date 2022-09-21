@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <assert.h>
 #include <stdio.h>
+#include "dyld.hpp"
 
 #define hugOS_ascii_logo \
 " \n\
@@ -26,6 +27,23 @@
 
 Initramfs ramfs;
 
+void dyld_test() {
+	syscall(syscall_vectors::print, (uint64_t)"Loading ramfs/loadertest.elf...\n");
+
+	void *loaded_elf;
+	size_t loaded_elf_size = ramfs.locate_file("initramfs/loadertest.elf", &loaded_elf);
+	Elf64::Elf64File loaded_elf_file((Elf64::Elf64FileHeader *)loaded_elf);
+	assert_msg(loaded_elf_size > 0, "Failed to load loadertest.elf");
+
+	auto ret = dyld(loaded_elf_file);
+
+	char buf[64];
+	snprintf(buf, 64, "dyld exited with error code %d\n", ret);
+	syscall(syscall_vectors::print, (uint64_t)buf);
+
+	while (1);
+}
+
 int uinit(Initramfs ramfs_) {
 	syscall(syscall_vectors::print, (uint64_t)"\033c");
 	syscall(syscall_vectors::print, (uint64_t)hugOS_ascii_logo);
@@ -39,6 +57,11 @@ int uinit(Initramfs ramfs_) {
 	syscall(syscall_vectors::print, (uint64_t)"ramfs .placeholder contents:\n");
 	syscall(syscall_vectors::print, (uint64_t)ramfs_placeholder_data);
 	syscall(syscall_vectors::print, (uint64_t)"\n");
+
+	syscall(syscall_vectors::serial_write, (uint64_t)"Starting dyld\n");
+	syscall(syscall_vectors::print, (uint64_t)"Starting dyld...\n");
+	syscall(syscall_vectors::new_proc, (uint64_t)"dyld test", (uint64_t)dyld_test);
+	syscall(syscall_vectors::yield);
 
 	while (1);
 }
