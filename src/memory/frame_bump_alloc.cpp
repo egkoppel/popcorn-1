@@ -10,7 +10,7 @@ const allocator_vtable frame_bump_alloc_state_vtable = {
 uint64_t frame_bump_alloc_state::allocate() {
 	uint64_t attempt = ALIGN_UP(this->next_alloc, 0x1000);
 
-	while (1) {
+	while (true) {
 		fprintf(stdserial, "Attempt alloc at %p\n", attempt);
 		if (attempt >= this->kernel_start && attempt < this->kernel_end) {
 			fprintf(stdserial, "bump alloc kernel jump\n");
