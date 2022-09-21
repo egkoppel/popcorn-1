@@ -70,6 +70,10 @@ void putchar(unsigned char c) {
 			case '[':
 				code = 0;
 				break;
+			case 'c':
+				term_clear();
+				esc = false;
+				break;
 			default:
 				code = 10*code + (c - '0');
 				break;
