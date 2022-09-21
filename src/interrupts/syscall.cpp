@@ -134,8 +134,6 @@ int64_t syscall_handler(syscall_vectors syscall_number, uint64_t arg1, uint64_t 
 	return -1;
 }
 
-int64_t syscall(syscall_vectors syscall_number, uint64_t arg1, uint64_t arg2) {
-	int64_t ret;
-	__asm__ volatile("syscall" : "=a"(ret) : "D"(syscall_number), "S"(arg1), "d"(arg2));
-	return ret;
+uint64_t __attribute__((naked)) syscall(syscall_vectors syscall_number, uint64_t arg1, uint64_t arg2) {
+	__asm__ volatile("syscall; ret;" :);
 }
