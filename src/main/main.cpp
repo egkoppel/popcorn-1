@@ -1,10 +1,6 @@
 #include <stdint.h>
-#include <stdarg.h>
-
-#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdbool.h>
 
 #include <termcolor.h>
 
@@ -14,6 +10,7 @@
 #include "../memory/stack.hpp"
 #include "../memory/frame_bump_alloc.hpp"
 #include "../memory/frame_main_alloc.hpp"
+#include "../memory/kernelspace_map.hpp"
 #include "../interrupts/interrupt_handlers.hpp"
 #include "../interrupts/pit.hpp"
 #include "../gdt/gdt.hpp"
@@ -140,118 +137,103 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	};
 	global_frame_allocator = &init_alloc.vtable;
 
-	uint64_t needed_bytes = IDIV_ROUND_UP(total_ram / 0x1000, 8);
-	uint64_t needed_frames = IDIV_ROUND_UP(needed_bytes, 0x1000);
-
+	// ******************************* BEGIN PAGE TABLE REMAPPING *******************************
 	uint64_t new_p4_table = create_p4_table(&init_alloc.vtable);
+	mapper_ctx_t ctx = mapper_ctx_begin(new_p4_table, global_frame_allocator);
 
-	uint64_t multiboot_virt_addr, memory_bitmap, initramfs_virt_addr;
-	{
-		mapper_ctx_t ctx = mapper_ctx_begin(new_p4_table, global_frame_allocator);
-
-		// Map the kernel with section flags
-		for (multiboot::elf_sections_entry i : *sections) {
-			if ((i.type != SHT_NULL) && (i.flags & SHF_ALLOC) != 0) {
-				for (uint64_t phys_addr = i.addr - 0xFFFFFF8000000000; phys_addr < ALIGN_UP(i.addr - 0xFFFFFF8000000000 + i.size, 0x1000); phys_addr+=0x1000) {
-					entry_flags_t flags = {
+	// Map the kernel with section flags
+	for (multiboot::elf_sections_entry i : *sections) {
+		if ((i.type != SHT_NULL) && (i.flags & SHF_ALLOC) != 0) {
+			for (uint64_t phys_addr = i.addr - 0xFFFFFF8000000000;
+			     phys_addr < ALIGN_UP(i.addr - 0xFFFFFF8000000000 + i.size, 0x1000); phys_addr += 0x1000) {
+				entry_flags_t flags = {
 						.writeable = static_cast<bool>(i.flags & SHF_WRITE),
-						.user_accessible = 1,
-						.write_through = 0,
-						.cache_disabled = 0,
-						.accessed = 0,
-						.dirty = 0,
-						.huge = 0,
-						.global = 1,
+						.user_accessible = USER_ACCESS_FROM_KERNEL,
+						.write_through = false,
+						.cache_disabled = false,
+						.accessed = false,
+						.dirty = false,
+						.huge = false,
+						.global = true,
 						.no_execute = !(i.flags & SHF_EXECINSTR)
-					};
+				};
 
-					map_page_to(phys_addr + 0xFFFFFF8000000000, phys_addr, flags, global_frame_allocator);
-				}
+				fprintf(stdserial, "Kexe - Mapping %p -> %p\n", phys_addr + 0xFFFFFF8000000000, phys_addr);
+				map_page_to(phys_addr + 0xFFFFFF8000000000, phys_addr, flags, global_frame_allocator);
 			}
 		}
-
-		// Map the framebuffer
-		uint64_t virt_addr = 0xFFFFFF8040000000;
-		for (uint64_t phys_addr = fb->addr; phys_addr < ALIGN_UP(fb->addr + fb->height*fb->pitch, 0x1000); phys_addr+=0x1000, virt_addr+=0x1000) {
-			entry_flags_t flags = {
-				.writeable = 1,
-				.user_accessible = 0,
-				.write_through = 0,
-				.cache_disabled = 0,
-				.accessed = 0,
-				.dirty = 0,
-				.huge = 0,
-				.global = 1,
-				.no_execute = 1
-			};
-
-			map_page_to(virt_addr, phys_addr, flags, global_frame_allocator);
-		}
-
-		// Map multiboot
-		uint64_t multiboot_phys_addr = ALIGN_DOWN(multiboot_addr, 0x1000);
-		multiboot_virt_addr = ALIGN_UP(0xFFFFFF8040000000 + fb->height*fb->pitch, 0x1000); 
-		uint64_t multiboot_virt_end = ALIGN_UP(multiboot_virt_addr + (uint64_t)mb.mb_data_end - (uint64_t)mb.mb_data_start, 0x1000);
-		for (; multiboot_virt_addr < multiboot_virt_end; multiboot_virt_addr+=0x1000, multiboot_phys_addr+=0x1000) {
-			entry_flags_t flags = {
-				.writeable = 0,
-				.user_accessible = 0,
-				.write_through = 0,
-				.cache_disabled = 0,
-				.accessed = 0,
-				.dirty = 0,
-				.huge = 0,
-				.global = 0,
-				.no_execute = 1
-			};
-			
-			map_page_to(multiboot_virt_addr, multiboot_phys_addr, flags, global_frame_allocator);
-		}
-		multiboot_virt_addr = ALIGN_UP(0xFFFFFF8040000000 + fb->height*fb->pitch, 0x1000) + (multiboot_addr - ALIGN_DOWN(multiboot_addr, 0x1000));
-
-		// Map initramfs
-		uint64_t initramfs_phys_addr = ALIGN_DOWN(boot_module->module_start, 0x1000);
-		initramfs_virt_addr = ALIGN_UP(multiboot_virt_end, 0x1000); 
-		uint64_t initramfs_virt_end = ALIGN_UP(initramfs_virt_addr + (uint64_t)boot_module->module_end - (uint64_t)boot_module->module_start, 0x1000);
-		for (; initramfs_virt_addr < initramfs_virt_end; initramfs_virt_addr+=0x1000, initramfs_phys_addr+=0x1000) {
-			entry_flags_t flags = {
-				.writeable = 0,
-				.user_accessible = 0,
-				.write_through = 0,
-				.cache_disabled = 0,
-				.accessed = 0,
-				.dirty = 0,
-				.huge = 0,
-				.global = 0,
-				.no_execute = 1
-			};
-
-			map_page_to(initramfs_virt_addr, initramfs_phys_addr, flags, global_frame_allocator);
-		}
-		initramfs_virt_addr = ALIGN_UP(multiboot_virt_end, 0x1000) + (boot_module->module_start - ALIGN_DOWN(boot_module->module_start, 0x1000));
-
-		// Map bitmap
-		memory_bitmap = ALIGN_UP(initramfs_virt_end, 0x1000);
-		printf("[    ] Allocating %u bytes for memory bitmap (%u frames) at %p\n", needed_bytes, needed_frames, memory_bitmap);
-		for (uint64_t i = 0; i < needed_frames; ++i) {
-			entry_flags_t flags = {
-				.writeable = 1,
-				.user_accessible = 0,
-				.write_through = 0,
-				.cache_disabled = 0,
-				.accessed = 0,
-				.dirty = 0,
-				.huge = 0,
-				.global = 1,
-				.no_execute = 1
-			};
-
-			map_page(memory_bitmap + i*0x1000, flags, global_frame_allocator);
-		}
-		printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Allocated memory bitmap (ends at %p)\n", memory_bitmap + needed_frames*0x1000);
-		
-		mapper_ctx_end(ctx);
 	}
+
+	auto kernel_space_mapper = KernelspaceMapper(0xFFFFFF8040000000);
+
+	fprintf(stdserial, "Map framebuffer\n");
+	entry_flags_t framebuffer_flags = {
+			.writeable = true,
+			.user_accessible = USER_ACCESS_FROM_KERNEL,
+			.write_through = false,
+			.cache_disabled = false,
+			.accessed = false,
+			.dirty = false,
+			.huge = false,
+			.global = true,
+			.no_execute = true
+	};
+	kernel_space_mapper.map_to(fb->addr, fb->height * fb->pitch, framebuffer_flags, global_frame_allocator);
+
+	fprintf(stdserial, "Map multiboot\n");
+	entry_flags_t multiboot_flags = {
+			.writeable = false,
+			.user_accessible = USER_ACCESS_FROM_KERNEL,
+			.write_through = false,
+			.cache_disabled = false,
+			.accessed = false,
+			.dirty = false,
+			.huge = false,
+			.global = false,
+			.no_execute = true
+	};
+	uint64_t multiboot_address = kernel_space_mapper.map_to(multiboot_addr,
+	                                                        (uint64_t)mb.mb_data_end - (uint64_t)mb.mb_data_start,
+	                                                        multiboot_flags, global_frame_allocator);
+
+	fprintf(stdserial, "Map initramfs\n");
+	entry_flags_t initramfs_flags = {
+			.writeable = false,
+			.user_accessible = true,
+			.write_through = false,
+			.cache_disabled = false,
+			.accessed = false,
+			.dirty = false,
+			.huge = false,
+			.global = false,
+			.no_execute = true
+	};
+	uint64_t initramfs_address = kernel_space_mapper.map_to(boot_module->module_start,
+	                                                        (uint64_t)boot_module->module_end -
+	                                                        (uint64_t)boot_module->module_start, initramfs_flags,
+	                                                        global_frame_allocator);
+
+	fprintf(stdserial, "Map bitmap\n");
+	uint64_t bitmap_needed_bytes = IDIV_ROUND_UP(total_ram / 0x1000, 8);
+
+	printf("[    ] Allocating %u bytes for memory bitmap\n", bitmap_needed_bytes);
+	entry_flags_t bitmap_flags = {
+			.writeable = true,
+			.user_accessible = USER_ACCESS_FROM_KERNEL,
+			.write_through = false,
+			.cache_disabled = false,
+			.accessed = false,
+			.dirty = false,
+			.huge = false,
+			.global = true,
+			.no_execute = true
+	};
+	uint64_t memory_bitmap_address = kernel_space_mapper.map(bitmap_needed_bytes, bitmap_flags,
+	                                                         global_frame_allocator);
+	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Allocated memory bitmap at %p\n", memory_bitmap_address);
+
+	mapper_ctx_end(ctx);
+	// ******************************* END PAGE TABLE REMAPPING *******************************
 
 	uint64_t old_p4_table_page;
 	__asm__ volatile("mov %%cr3, %0" : "=r"(old_p4_table_page));
@@ -259,8 +241,8 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	__asm__ volatile("mov %0, %%cr3" : : "r"(new_p4_table));
 
 	// Reload multiboot info from new address
-	fprintf(stdserial, "Remapped multiboot to %p\n", multiboot_virt_addr);
-	mb = multiboot::Data(multiboot_virt_addr);
+	fprintf(stdserial, "Remapped multiboot to %p\n", multiboot_address);
+	mb = multiboot::Data(multiboot_address);
 	fb = mb.find_tag<multiboot::framebuffer_tag>(multiboot::tag_type::FRAMEBUFFER);
 	bootloader = mb.find_tag<multiboot::bootloader_tag>(multiboot::tag_type::BOOTLOADER_NAME);
 	cli = mb.find_tag<multiboot::cli_tag>(multiboot::tag_type::CLI);
@@ -273,13 +255,13 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 
 	fprintf(stdout, "[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Reloaded page tables\n");
 
-	uint64_t memory_bitmap_start = memory_bitmap;
-	uint64_t memory_bitmap_end = memory_bitmap_start + needed_bytes;
+	uint64_t memory_bitmap_start = memory_bitmap_address;
+	uint64_t memory_bitmap_end = memory_bitmap_start + bitmap_needed_bytes;
 
 	frame_main_alloc_state main_frame_allocator = {
-		.vtable = frame_main_alloc_state_vtable,
-		.bitmap_start = reinterpret_cast<uint64_t*>(memory_bitmap_start),
-		.bitmap_end = reinterpret_cast<uint64_t*>(memory_bitmap_end)
+			.vtable = frame_main_alloc_state_vtable,
+			.bitmap_start = reinterpret_cast<uint64_t *>(memory_bitmap_start),
+			.bitmap_end = reinterpret_cast<uint64_t *>(memory_bitmap_end)
 	};
 	printf("[    ] Initialising memory bitmap\n");
 	for (auto *i = reinterpret_cast<uint64_t *>(memory_bitmap_start);
@@ -324,16 +306,9 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 			.current_break = ALIGN_UP(memory_bitmap_end, 0x1000),
 			.initialised = true
 	};
-	//init_heap();
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised sbrk and heap\n");
 
-	Initramfs ramfs(initramfs_virt_addr, initramfs_virt_addr + (boot_module->module_end - boot_module->module_start));
-	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised initramfs\n");
-	printf("Contents of initramfs/.placeholder:\n");
-	void *data;
-	size_t size = ramfs.locate_file("initramfs/.placeholder", &data);
-	for (size_t i = 0; i < size; ++i) fputc(reinterpret_cast<uint8_t*>(data)[i], stdout);
-	fputc('\n', stdout);
+	Initramfs ramfs(initramfs_address, initramfs_address + (boot_module->module_end - boot_module->module_start));
 
 	printf("[    ] Initialising multitasking\n");
 	auto kmain_task = threads::Scheduler::init_multitasking(old_p4_table_page + 8*0x1000, old_p4_table_page + 0x1000);
