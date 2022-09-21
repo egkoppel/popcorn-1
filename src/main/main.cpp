@@ -17,45 +17,19 @@
 #include "../gdt/tss.hpp"
 #include "../initramfs.hpp"
 #include "../threading/threading.hpp"
-#include "../interrupts/syscall.hpp"
+#include "src/userspace/uinit.hpp"
 
 #include <panic.h>
+
+#define USER_ACCESS_FROM_KERNEL 1
+#if USER_ACCESS_FROM_KERNEL == 1
+#warning USER_ACCESS_FROM_KERNEL is enabled - THIS IS A TERRIBLE TERRIBLE TERRIBLE IDEA FOR SECURITY
+#endif
 
 extern "C" gdt::GDT global_descriptor_table = gdt::GDT();
 extern "C" tss::TSS task_state_segment = tss::TSS();
 
 extern "C" allocator_vtable *global_frame_allocator = nullptr;
-
-extern "C" void switch_to_user_mode(void);
-
-#pragma GCC diagnostic push // save diagnostic stack state
-
-#pragma GCC diagnostic ignored "-Winfinite-recursion" // disable infinite recursion warning for this function
-
-__attribute__((noreturn)) void stackoveflow() {
-	stackoveflow();
-	__asm__ volatile("nop");
-}
-#pragma GCC diagnostic pop // restore diagnostic stack state
-
-void test_task(uint64_t a) {
-	printf("Test task!\na: %llu, b: %llu\n", a, 0);
-	threads::SchedulerLock::get()->block_task(threads::task_state::PAUSED);
-	printf("Back in test task\n");
-	while(1);
-}
-
-void user_task(threads::Mutex *mutex) {
-	syscall(syscall_vectors::serial_write, (uint64_t)"Hello, world!\n");
-	syscall(syscall_vectors::serial_write, (uint64_t)"Try to acquire mutex\n");
-	syscall(syscall_vectors::mutex_lock, (uint64_t)mutex);
-	syscall(syscall_vectors::serial_write, (uint64_t)"Acquired\n");
-	while(1) {
-		//sprintf(buf, "used time: %llu\n", syscall(syscall_vectors::get_time_used));
-		//syscall(syscall_vectors::serial_write, (uint64_t)buf);
-		//syscall(syscall_vectors::sleep, 60000);
-	}
-}
 
 extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	if (multiboot_magic == 0x36d76289) {
@@ -311,38 +285,8 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	Initramfs ramfs(initramfs_address, initramfs_address + (boot_module->module_end - boot_module->module_start));
 
 	printf("[    ] Initialising multitasking\n");
-	auto kmain_task = threads::Scheduler::init_multitasking(old_p4_table_page + 8*0x1000, old_p4_table_page + 0x1000);
+	threads::Scheduler::init_multitasking(old_p4_table_page + 0x1000, old_p4_table_page + 8 * 0x1000);
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised multitasking\n");
 
-	//auto test = threads::new_kernel_task("test", test_task, (uint64_t)54);
-	//threads::SchedulerLock::get()->add_task(test);
-	/*threads::SchedulerLock::get()->schedule();
-	printf("back to kmain\n");
-	threads::SchedulerLock::get()->schedule();
-	threads::SchedulerLock::get()->unblock_task(test);
-	printf("back to kmain2\n");
-	while(1);*/
-
-	auto mutex = new threads::Mutex();
-	mutex->lock();
-
-	auto usertask = threads::new_user_task("usertask", user_task, mutex);
-	threads::SchedulerLock::get()->add_task(usertask);
-	threads::SchedulerLock::get()->schedule();
-	//syscall(1,2,3);
-	//switch_to_user_mode();
-	fprintf(stdserial, "back to kmain\n");
-	fprintf(stdserial, "releasing mutex\n");
-	mutex->unlock();
-	//fprintf(stdserial, "try to cli from kmain\n");
-	//__asm__ volatile("cli");
-	//threads::SchedulerLock::get()->schedule();
-	//*(volatile char*)NULL = 1;
-
-	while (1) {
-		threads::SchedulerLock::get()->sleep(1000);
-		printf("tick\n");
-	}
-
-	while(1);
+	uinit_start(ramfs);
 }
