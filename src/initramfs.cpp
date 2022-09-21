@@ -45,7 +45,7 @@ int oct2bin(char *str, int size) {
 }
 
 size_t Initramfs::locate_file(const char* filename, void **data) {
-	tar_file_header *ptr = reinterpret_cast<tar_file_header*>(this->data_start);
+	auto *ptr = reinterpret_cast<tar_file_header*>(this->data_start);
 
 	while (memcmp(ptr->ustar, "ustar", 5) == 0) {
 		int filesize = oct2bin(ptr->size, 11);
@@ -60,7 +60,7 @@ size_t Initramfs::locate_file(const char* filename, void **data) {
 }
 
 void Initramfs::print_all_files() {
-	tar_file_header *ptr = reinterpret_cast<tar_file_header*>(this->data_start);
+	auto *ptr = reinterpret_cast<tar_file_header*>(this->data_start);
 
 	fprintf(stdserial, "ramfs files:\n");
 

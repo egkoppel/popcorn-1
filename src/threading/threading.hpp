@@ -6,12 +6,17 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <assert.h>
 #include <stdint.h>
 #include <stdatomic.h>
+#include <utils.h>
 #include "../memory/stack.hpp"
 #include "../memory/paging.h"
 #include "../main/main.h"
 #include "../interrupts/pit.hpp"
+#include "../interrupts/syscall.hpp"
+#include "../elf/elf.hpp"
+#include "../interrupts/idt.hpp"
 
 namespace threads {
 	uint64_t get_time_ms();

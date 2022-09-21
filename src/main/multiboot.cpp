@@ -37,7 +37,7 @@ const char* boot_module_tag::get_name() {
 }
 
 Data::Data(uint64_t info_struct) {
-	info_header *header = reinterpret_cast<info_header*>(info_struct);
+	auto *header = reinterpret_cast<info_header*>(info_struct);
 	this->mb_data_start = reinterpret_cast<tag_header*>(info_struct + sizeof(info_header));
 	this->mb_data_end = reinterpret_cast<tag_header*>(info_struct + header->size);
 }

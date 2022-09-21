@@ -68,24 +68,22 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	}
 
 	multiboot::Data mb(multiboot_addr);
-	
-	multiboot::framebuffer_tag *fb = mb.find_tag<multiboot::framebuffer_tag>(multiboot::tag_type::FRAMEBUFFER);
-	multiboot::bootloader_tag *bootloader = mb.find_tag<multiboot::bootloader_tag>(multiboot::tag_type::BOOTLOADER_NAME);
-	multiboot::cli_tag *cli = mb.find_tag<multiboot::cli_tag>(multiboot::tag_type::CLI);
-	multiboot::memory_map_tag *mmap = mb.find_tag<multiboot::memory_map_tag>(multiboot::tag_type::MEMORY_MAP);
-	multiboot::elf_sections_tag *sections = mb.find_tag<multiboot::elf_sections_tag>(multiboot::tag_type::ELF_SECTIONS);
-	multiboot::boot_module_tag *boot_module = mb.find_tag<multiboot::boot_module_tag>(multiboot::tag_type::BOOT_MODULE);
-	
+
+	auto *fb = mb.find_tag<multiboot::framebuffer_tag>(multiboot::tag_type::FRAMEBUFFER);
+	auto *bootloader = mb.find_tag<multiboot::bootloader_tag>(multiboot::tag_type::BOOTLOADER_NAME);
+	auto *cli = mb.find_tag<multiboot::cli_tag>(multiboot::tag_type::CLI);
+	auto *mmap = mb.find_tag<multiboot::memory_map_tag>(multiboot::tag_type::MEMORY_MAP);
+	auto *sections = mb.find_tag<multiboot::elf_sections_tag>(multiboot::tag_type::ELF_SECTIONS);
+	auto *boot_module = mb.find_tag<multiboot::boot_module_tag>(multiboot::tag_type::BOOT_MODULE);
+
 	if (!mmap) panic("No memory map tag found");
-
 	if (bootloader) printf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Booted by %s\n", bootloader->get_name());
-
 	if (!boot_module) panic("No initramfs found");
 	if (strcmp(boot_module->get_name(), "initramfs") != 0) panic("No initramfs found");
 
 	init_idt();
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded IDT\n");
-	
+
 	global_descriptor_table.add_entry(gdt::entry::new_code_segment(0)); // Kernel code
 	global_descriptor_table.add_entry(gdt::entry::new_data_segment(0)); // Kernel data
 	global_descriptor_table.add_entry(gdt::entry()); // [Unused] - compatibility mode user code
@@ -107,7 +105,7 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	for (multiboot::elf_sections_entry i : *sections) {
 		if ((i.type != SHT_NULL) && (i.flags & SHF_ALLOC) != 0) {
 			i.print();
-			
+
 			if (i.addr - 0xFFFFFF8000000000 < kernel_min) kernel_min = i.addr - 0xFFFFFF8000000000;
 			if (i.addr - 0xFFFFFF8000000000 + i.size > kernel_max) kernel_max = i.addr - 0xFFFFFF8000000000 + i.size;
 		}
@@ -123,20 +121,22 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 			if (i.base_addr + i.length > total_ram) total_ram = i.base_addr + i.length;
 		}
 	}
-	printf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Detected %d MiB of available memory (%d MiB total):\n", available_ram / (1024 * 1024), total_ram / (1024 * 1024));
+	printf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Detected %d MiB of available memory (%d MiB total):\n",
+	       available_ram / (1024 * 1024), total_ram / (1024 * 1024));
 
 	for (multiboot::memory_map_entry entry : *mmap) {
-		printf("\t%lp - %lp (%s)\n", entry.base_addr, entry.base_addr + entry.length, entry.type == multiboot::memory_type::AVAILABLE ? "AVAILABLE" : "RESERVED");
+		printf("\t%lp - %lp (%s)\n", entry.base_addr, entry.base_addr + entry.length,
+		       entry.type == multiboot::memory_type::AVAILABLE ? "AVAILABLE" : "RESERVED");
 	}
 
 	frame_bump_alloc_state init_alloc = {
-		.vtable = frame_bump_alloc_state_vtable,
-		.next_alloc = 0,
-		.kernel_start = kernel_min,
-		.kernel_end = kernel_max,
-		.multiboot_start = reinterpret_cast<uint64_t>(mb.mb_data_start),
-		.multiboot_end = reinterpret_cast<uint64_t>(mb.mb_data_end),
-		.mem_map = mmap
+			.vtable = frame_bump_alloc_state_vtable,
+			.next_alloc = 0,
+			.kernel_start = kernel_min,
+			.kernel_end = kernel_max,
+			.multiboot_start = reinterpret_cast<uint64_t>(mb.mb_data_start),
+			.multiboot_end = reinterpret_cast<uint64_t>(mb.mb_data_end),
+			.mem_map = mmap
 	};
 	global_frame_allocator = &init_alloc.vtable;
 
@@ -282,21 +282,24 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 		.bitmap_end = reinterpret_cast<uint64_t*>(memory_bitmap_end)
 	};
 	printf("[    ] Initialising memory bitmap\n");
-	for (uint64_t *i = reinterpret_cast<uint64_t*>(memory_bitmap_start); i < reinterpret_cast<uint64_t*>(memory_bitmap_end); ++i) {
+	for (auto *i = reinterpret_cast<uint64_t *>(memory_bitmap_start);
+	     i < reinterpret_cast<uint64_t *>(memory_bitmap_end); ++i) {
 		*i = 0;
 	}
-	for (uint64_t i = 0; i < init_alloc.next_alloc; i+=0x1000) {
+	printf("init_alloc.next_alloc: %p\n", init_alloc.next_alloc);
+	for (uint64_t i = 0; i < init_alloc.next_alloc; i += 0x1000) {
 		main_frame_allocator.set_bit(i);
 	}
-	for (uint64_t i = init_alloc.kernel_start; i < init_alloc.kernel_end; i+=0x1000) {
+	for (uint64_t i = init_alloc.kernel_start; i < init_alloc.kernel_end; i += 0x1000) {
 		main_frame_allocator.set_bit(i);
 	}
-	for (uint64_t i = init_alloc.multiboot_start; i < init_alloc.multiboot_end; i+=0x1000) {
+	for (uint64_t i = init_alloc.multiboot_start; i < init_alloc.multiboot_end; i += 0x1000) {
 		main_frame_allocator.set_bit(i);
 	}
 	for (multiboot::memory_map_entry& entry : *mmap) {
 		if (entry.type != multiboot::memory_type::AVAILABLE) {
-			for (uint64_t i = ALIGN_DOWN(entry.base_addr, 0x1000); i < ALIGN_UP(entry.base_addr + entry.length, 0x1000); i+=0x1000) {
+			for (uint64_t i = ALIGN_DOWN(entry.base_addr, 0x1000);
+			     i < ALIGN_UP(entry.base_addr + entry.length, 0x1000); i += 0x1000) {
 				main_frame_allocator.set_bit(i);
 			}
 		}
@@ -307,19 +310,19 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 
 	Stack double_fault_stack(0x1000);
 	task_state_segment.interrupt_stack_table[0] = double_fault_stack.top;
-	
-	uint8_t index = global_descriptor_table.add_tss_entry(gdt::tss_entry(reinterpret_cast<uint64_t>(&task_state_segment), sizeof(tss::TSS), 0));
-	printf("TSS index at %u\n", index);
-	task_state_segment.load(index);
 
+	uint8_t index = global_descriptor_table.add_tss_entry(
+			gdt::tss_entry(reinterpret_cast<uint64_t>(&task_state_segment), sizeof(tss::TSS), 0));
+	printf("TSS index at %u\n", index);
+	tss::TSS::load(index);
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded TSS\n");
 
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised memory\n");
 	printf("[    ] Initialising sbrk and heap\n");
-	global_sbrk_state = sbrk_state_t {
-		.kernel_end = memory_bitmap_end,
-		.current_break = ALIGN_UP(memory_bitmap_end, 0x1000),
-		.initialised = true
+	global_sbrk_state = sbrk_state_t{
+			.kernel_end = memory_bitmap_end,
+			.current_break = ALIGN_UP(memory_bitmap_end, 0x1000),
+			.initialised = true
 	};
 	//init_heap();
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised sbrk and heap\n");

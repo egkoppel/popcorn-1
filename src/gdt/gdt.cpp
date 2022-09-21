@@ -72,7 +72,7 @@ entry entry::new_code_segment(uint8_t dpl) {
 		.present = 1
 	};
 
-	return entry(0, 0xFFFFF, access_byte, 0, 1);
+	return {0, 0xFFFFF, access_byte, 0, 1};
 }
 
 entry entry::new_data_segment(uint8_t dpl) {
@@ -86,7 +86,7 @@ entry entry::new_data_segment(uint8_t dpl) {
 		.present = 1
 	};
 
-	return entry(0, 0xFFFFF, access_byte, 0, 1);
+	return {0, 0xFFFFF, access_byte, 0, 1};
 }
 
 tss_entry::tss_entry(uint64_t addr, uint32_t size, uint8_t dpl) {
@@ -97,12 +97,12 @@ tss_entry::tss_entry(uint64_t addr, uint32_t size, uint8_t dpl) {
 		.present = 1
 	};
 
-	entry low = entry(addr, size - 1, access_byte, 0, 1);
+	entry low_bits = entry(addr, size - 1, access_byte, 0, 1);
 
-	uint64_t high = addr >> 32;
+	uint64_t high_bits = addr >> 32;
 
-	this->low = low;
-	this->high = *reinterpret_cast<entry*>(&high);
+	this->low = low_bits;
+	this->high = *reinterpret_cast<entry*>(&high_bits);
 }
 
 uint8_t GDT::add_entry(entry entry) {

@@ -15,15 +15,15 @@ Stack::Stack(uint64_t size,  bool user_access) {
 	this->bottom = stack_next_alloc - size + 1;
 	
 	entry_flags_t flags = {
-		.writeable = 1,
+		.writeable = true,
 		.user_accessible = user_access,
-		.write_through = 0,
-		.cache_disabled = 0,
-		.accessed = 0,
-		.dirty = 0,
-		.huge = 0,
-		.global = 0,
-		.no_execute = 1,
+		.write_through = false,
+		.cache_disabled = false,
+		.accessed = false,
+		.dirty = false,
+		.huge = false,
+		.global = false,
+		.no_execute = true,
 	};
 
 	fprintf(stdserial, "Creating new stack: %p -> %p - Guard at %p\n", this->bottom, this->top, this->bottom - 0x1000);

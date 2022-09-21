@@ -175,17 +175,17 @@ enum multiboot_tag_elf_symbols_entry_type {
 	SHT_NUM
 };
 
-#define SHF_WRITE 0x1
-#define SHF_ALLOC 0x2
-#define SHF_EXECINSTR 0x4
-#define SHF_MERGE 0x10
-#define SHF_STRINGS 0x20
-#define SHF_INFO_LINK 0x40
-#define SHF_LINK_ORDER 0x80
-#define SHF_OS_NONCONFORMING 0x100
-#define SHF_GROUP 0x200
-#define SHF_TLS 0x400
-#define SHF_MASKOS 0x0ff00000
-#define SHF_MASKPROC 0xf0000000
+constexpr uint64_t SHF_WRITE = 0x1;
+constexpr uint64_t SHF_ALLOC = 0x2;
+constexpr uint64_t SHF_EXECINSTR = 0x4;
+constexpr uint64_t SHF_MERGE = 0x10;
+constexpr uint64_t SHF_STRINGS = 0x20;
+constexpr uint64_t SHF_INFO_LINK = 0x40;
+constexpr uint64_t SHF_LINK_ORDER = 0x80;
+constexpr uint64_t SHF_OS_NONCONFORMING = 0x100;
+constexpr uint64_t SHF_GROUP = 0x200;
+constexpr uint64_t SHF_TLS = 0x400;
+constexpr uint64_t SHF_MASKOS = 0x0ff00000;
+constexpr uint64_t SHF_MASKPROC = 0xf0000000;
 
 #endif

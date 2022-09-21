@@ -5,7 +5,7 @@ class SerialPort {
 	private:
 		Port<uint8_t> data, interupt_enable, fifo_control, line_control, modem_contol, line_status, modem_status, scratch;
 	public:
-		SerialPort(uint16_t port) : data(port), interupt_enable(port + 1), fifo_control(port + 2), line_control(port + 3), modem_contol(port + 4), line_status(port + 5), modem_status(port + 6), scratch(port + 7) {
+		explicit SerialPort(uint16_t port) : data(port), interupt_enable(port + 1), fifo_control(port + 2), line_control(port + 3), modem_contol(port + 4), line_status(port + 5), modem_status(port + 6), scratch(port + 7) {
 			this->interupt_enable.write(0); // Disable interrupts
 			this->line_control.write(0x80); // Set DLAB bit (maps first two ports to baud divisor)
 			this->data.write(3); // Set divisor to 3 (38400 baud)

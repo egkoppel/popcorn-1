@@ -45,7 +45,7 @@ void Scheduler::schedule() {
 		return;
 	}
 
-	if (this->ready_to_run_tasks.size() > 0) { // If other tasks to switch to then switch to next one
+	if (!this->ready_to_run_tasks.empty()) { // If other tasks to switch to then switch to next one
 		auto old_task = this->current_task_ptr;
 		auto new_task = this->ready_to_run_tasks.front();
 		this->ready_to_run_tasks.pop_front();
@@ -70,7 +70,7 @@ void Scheduler::schedule() {
 
 		fprintf(stdserial, "idling\n");
 
-		while (this->ready_to_run_tasks.size() == 0) {
+		while (this->ready_to_run_tasks.empty()) {
 			__asm__ volatile("sti");
 			__asm__ volatile("hlt");
 			__asm__ volatile("cli");
@@ -91,7 +91,7 @@ void Scheduler::schedule() {
 	}
 }
 
-void Scheduler::add_task(std::shared_ptr<Task> task) {
+void Scheduler::add_task(const std::shared_ptr<Task>& task) {
 	this->ready_to_run_tasks.push_back(task);
 }
 
@@ -100,7 +100,7 @@ void Scheduler::block_task(task_state reason) {
 	this->schedule();
 }
 
-void Scheduler::unblock_task(std::shared_ptr<Task> task) {
+void Scheduler::unblock_task(const std::shared_ptr<Task>& task) {
 	// Preempt if only one other task
 	task->set_state(task_state::READY);
 	this->ready_to_run_tasks.push_back(task);
@@ -124,7 +124,7 @@ SchedulerLock::SchedulerLock() {
 }
 
 SchedulerLock SchedulerLock::get() {
-	return SchedulerLock();
+	return {};
 }
 
 void Scheduler::__unlock_scheduler() {
@@ -199,7 +199,7 @@ uint64_t Scheduler::get_time_used() {
 }
 
 std::shared_ptr<Task> Semaphore::get_next_waiting_task() {
-	if (this->waiting_tasks.size() > 0) {
+	if (!this->waiting_tasks.empty()) {
 		auto task = this->waiting_tasks.front();
 		this->waiting_tasks.pop_front();
 		return task;
@@ -231,7 +231,7 @@ void Semaphore::post() {
 }
 
 std::shared_ptr<Task> Mutex::get_next_waiting_task() {
-	if (this->waiting_tasks.size() > 0) {
+	if (!this->waiting_tasks.empty()) {
 		auto task = this->waiting_tasks.front();
 		this->waiting_tasks.pop_front();
 		return task;

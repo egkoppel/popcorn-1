@@ -2,6 +2,8 @@
 #define _HUGOS_STACK_H
 
 #include <stdint.h>
+#include <stdio.h>
+#include "allocator.h"
 
 extern "C" struct Stack {
 	public:
