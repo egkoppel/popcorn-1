@@ -188,15 +188,6 @@ RETURN_NO_ERROR_CODE(timer_interrupt_handler, {
 	pics.acknowledge_irq(PIC_IRQ::TIMER);
 })
 
-extern "C" __attribute__((naked)) void syscall_long_mode_handler() {
-	__asm__ volatile("pushq %rcx"); // stores rip
-	__asm__ volatile("pushq %r11"); // stores rflags
-	__asm__ volatile("call %P0" : : "i"(syscall_handler));
-	__asm__ volatile("popq %r11");
-	__asm__ volatile("popq %rcx");
-	__asm__ volatile("sysretq");
-}
-
 void init_idt() {
 	interrupt_descriptor_table.add_entry(0x8, 0, double_fault_handler, 1);
 	interrupt_descriptor_table.add_entry(0xe, 0, page_fault_handler);

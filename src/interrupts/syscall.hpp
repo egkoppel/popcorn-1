@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+extern "C" void syscall_long_mode_handler();
+
 enum class syscall_vectors: uint64_t {
 	yield,
 	serial_write,
