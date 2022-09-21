@@ -25,6 +25,7 @@ typedef struct {
 
 int32_t map_page(uint64_t page_addr, entry_flags_t flags, allocator_vtable *allocator);
 int32_t map_page_to(uint64_t page_addr, uint64_t frame_addr, entry_flags_t flags, allocator_vtable *allocator);
+int32_t map_kernel_from_current_into(uint64_t p4_addr, allocator_vtable *allocator);
 
 int32_t unmap_page(uint64_t page_addr, allocator_vtable *allocator);
 void unmap_page_no_free(uint64_t page_addr);

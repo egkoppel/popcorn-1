@@ -47,6 +47,9 @@ impl ActivePageTable {
 			asm!("mov {}, cr3", out(reg) backup_table_addr);
 		}
 		backup_table_addr &= 0xfffffffffffff000;
+
+		serialprintln!("RSpage - Map inactive table - {:x?} -> {:x?}", magicpage, Frame::with_address(PhysicalAddress(backup_table_addr)));
+
 		self.mapper().map_page_to(magicpage, Frame::with_address(PhysicalAddress(backup_table_addr)), EntryFlags {
 			writeable: true,
 			user_accessible: false,
@@ -59,6 +62,7 @@ impl ActivePageTable {
 			no_execute: true
 		}, allocator);
 
+		serialprintln!("RSpage - p4[510] currently mapped to {:x?}", self.p4_as_ref()[510].get_address());
 		self.p4_as_mut()[510].overwrite_address(inactive.p4);
 		flush_tlb();
 
@@ -87,11 +91,9 @@ pub struct InactivePageTable {
 
 impl InactivePageTable {
 	pub fn new(allocator: &mut dyn Allocator) -> InactivePageTable {
-		let p4_addr = 0xFFFFFF80cafeb000u64;
-
 		let p4_frame = allocator.allocate_frame().unwrap();
 		serialprintln!("Mapping new p4 table");
-		PAGE_TABLE.lock().mapper().map_page_to(Page::with_address(VirtualAddress(p4_addr)), p4_frame.clone(), EntryFlags {
+		PAGE_TABLE.lock().mapper().map_page_to(magicpage, p4_frame.clone(), EntryFlags {
 			writeable: true,
 			user_accessible: false,
 			write_through: false,
@@ -103,14 +105,14 @@ impl InactivePageTable {
 			no_execute: true
 		}, allocator);
 
-		let p4 = unsafe { PageTable::<Level4>::new_from_addr(p4_addr) };
+		let p4 = unsafe { PageTable::<Level4>::new_from_addr(magicpage.start_address().0) };
 
 		p4.clear();
 		p4[510].set_address(p4_frame.clone());
 		p4[510].set_writeable(true);
 		p4[510].set_no_execute(true);
 
-		PAGE_TABLE.lock().mapper().unmap_page_no_free(Page::with_address(VirtualAddress(p4_addr)));
+		PAGE_TABLE.lock().mapper().unmap_page_no_free(magicpage);
 
 		return InactivePageTable {
 			p4: p4_frame
@@ -122,8 +124,10 @@ mod c_api {
 	use crate::{PAGE_TABLE, InactivePageTable};
 	use crate::memory::frame_alloc::CAllocatorVtable;
 	use crate::memory::{Frame, Page, PhysicalAddress, VirtualAddress};
+	use crate::memory::paging::magicpage;
+	use crate::memory::paging::tables::{Level4, PageTable};
 
-use super::tables::EntryFlags;
+	use super::tables::EntryFlags;
 
 	#[no_mangle] extern "C" fn map_page(addr: VirtualAddress, flags: EntryFlags, allocator: Option<&mut CAllocatorVtable>) -> i32 {
 		if allocator.is_none() { return -1; }
@@ -167,6 +171,7 @@ use super::tables::EntryFlags;
 	}
 
 	#[no_mangle] extern "C" fn mapper_ctx_begin(inactive_table_frame: PhysicalAddress, allocator: Option<&mut CAllocatorVtable>) -> MapperCtx {
+		serialprintln!("C/RS bridge - mapper_ctx_begin - new table at {:x?}", Frame::with_address(inactive_table_frame));
 		let backup_addr = PAGE_TABLE.lock().map_inactive_table(InactivePageTable {
 			p4: Frame::with_address(inactive_table_frame)
 		}, allocator.unwrap());
@@ -182,5 +187,30 @@ use super::tables::EntryFlags;
 
 	#[no_mangle] extern "C" fn create_p4_table(allocator: Option<&mut CAllocatorVtable>) -> PhysicalAddress {
 		return InactivePageTable::new(allocator.unwrap()).p4.start_address();
+	}
+
+	#[no_mangle] extern "C" fn map_kernel_from_current_into(p4_table: PhysicalAddress, allocator: Option<&mut CAllocatorVtable>) -> i32 {
+		PAGE_TABLE.lock().mapper().map_page_to(magicpage, Frame::with_address(p4_table), EntryFlags {
+			writeable: true,
+			user_accessible: false,
+			write_through: false,
+			cache_disabled: false,
+			accessed: false,
+			dirty: false,
+			huge: false,
+			global: false,
+			no_execute: true
+		}, allocator.unwrap());
+
+		let p4 = unsafe { PageTable::<Level4>::new_from_addr(magicpage.start_address().0) };
+
+		// Kernel stack allocator allocation area
+		p4[509] = PAGE_TABLE.lock().p4_as_ref()[509].clone();
+		// Kernel .text and data area
+		p4[511] = PAGE_TABLE.lock().p4_as_ref()[511].clone();
+
+		PAGE_TABLE.lock().mapper().unmap_page_no_free(magicpage);
+
+		return 0;
 	}
 }
