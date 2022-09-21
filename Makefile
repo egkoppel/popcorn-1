@@ -50,6 +50,7 @@ OBJS = $(patsubst src/%,$(BUILD_DIR)/%, \
 	$(patsubst %.c,%.c.o,$(wildcard src/gdt/*.c)) \
 	$(patsubst %.cpp,%.cpp.o,$(wildcard src/gdt/*.cpp)) \
 	$(patsubst %.cpp,%.cpp.o,$(wildcard src/threading/*.cpp)) \
+	$(patsubst %.cpp,%.cpp.o,$(wildcard src/elf/*.cpp)) \
 	$(patsubst %.S,%.S.o,$(wildcard src/threading/*.S)) \
 	$(patsubst %.cpp,%.cpp.o,$(wildcard src/*.cpp)) \
 	$(patsubst %.psf,%.psf.o,$(wildcard src/fonts/*.psf)))
@@ -102,6 +103,8 @@ $(BUILD_DIR)/gdt: | $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)/gdt
 $(BUILD_DIR)/threading: | $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)/threading
+$(BUILD_DIR)/elf: | $(BUILD_DIR)
+	mkdir -p $(BUILD_DIR)/elf
 
 $(BUILD_DIR)/bootstrap/%.S.o: src/bootstrap/%.S | $(BUILD_DIR)/bootstrap
 	$(NASM) -felf64 -g -F dwarf -o $@ $<
@@ -142,6 +145,9 @@ $(BUILD_DIR)/gdt/%.cpp.o: src/gdt/%.cpp | $(BUILD_DIR)/gdt
 	$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ $<
 
 $(BUILD_DIR)/threading/%.cpp.o: src/threading/%.cpp | $(BUILD_DIR)/threading
+	$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ $<
+
+$(BUILD_DIR)/elf/%.cpp.o: src/elf/%.cpp | $(BUILD_DIR)/elf
 	$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ $<
 
 $(BUILD_DIR)/threading/%.S.o: src/threading/%.S | $(BUILD_DIR)/threading
