@@ -8,8 +8,8 @@ struct stackframe {
 	uint64_t rip;
 };
 
-void TraceStackTrace(unsigned int MaxFrames, uint64_t rbp) {
-	struct stackframe *stk = reinterpret_cast<struct stackframe*>(rbp);
+void trace_stack_trace(unsigned int MaxFrames, uint64_t rbp) {
+	auto *stk = reinterpret_cast<struct stackframe*>(rbp);
 	fprintf(stdserial, "Stack trace:\n");
 	for(unsigned int frame = 0; stk && stk->rbp && frame < MaxFrames; ++frame)
 	{

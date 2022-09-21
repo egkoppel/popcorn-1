@@ -3,6 +3,6 @@
 
 #include <stdint.h>
 
-void TraceStackTrace(unsigned int MaxFrames, uint64_t rbp);
+void trace_stack_trace(unsigned int MaxFrames, uint64_t rbp);
 
 #endif
