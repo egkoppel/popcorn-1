@@ -77,7 +77,15 @@ uint64_t syscall_serial_write(uint64_t arg1, uint64_t arg2) {
 	return fprintf(stdserial, "%s", (char*)arg1);
 }
 
-int64_t syscall_handler(syscall_vectors syscall_number, uint64_t arg1, uint64_t arg2) {
+uint64_t syscall_print(uint64_t arg1, uint64_t arg2) {
+	return printf("%s", (char*)arg1);
+}
+
+union int_uint64_t { uint64_t u; int64_t i; };
+#define SYSCALL_HANDLER_RET_I(x) { union int_uint64_t a { .i = x}; return a.u; }
+#define SYSCALL_HANDLER_RET_U(x) { return x; }
+
+uint64_t syscall_handler(syscall_vectors syscall_number, uint64_t arg1, uint64_t arg2) {
 	//fprintf(stdserial, "syscall, syscall_number: %llx, arg1: %llx, arg2: %llx\n", syscall_number, arg1, arg2);
 
 	switch (syscall_number) {
@@ -85,53 +93,89 @@ int64_t syscall_handler(syscall_vectors syscall_number, uint64_t arg1, uint64_t 
 			threads::SchedulerLock::get()->schedule();
 			return 0;
 		}
-		case syscall_vectors::serial_write: return syscall_serial_write(arg1, arg2);
-		case syscall_vectors::get_time_used: return threads::SchedulerLock::get()->get_time_used();
+		case syscall_vectors::serial_write: SYSCALL_HANDLER_RET_U(syscall_serial_write(arg1, arg2));
+		case syscall_vectors::print: SYSCALL_HANDLER_RET_U(syscall_print(arg1, arg2));
+		case syscall_vectors::get_time_used: SYSCALL_HANDLER_RET_U(threads::SchedulerLock::get()->get_time_used());
 		case syscall_vectors::sleep: {
 			threads::SchedulerLock::get()->sleep(arg1);
-			return 0;
+			SYSCALL_HANDLER_RET_U(0);
 		}
 
 		case syscall_vectors::mutex_lock: {
 			((threads::Mutex*)arg1)->lock();
-			return 0;
+			SYSCALL_HANDLER_RET_U(0);
 		}
 		case syscall_vectors::mutex_unlock: {
 			((threads::Mutex*)arg1)->unlock();
-			return 0;
+			SYSCALL_HANDLER_RET_U(0);
 		}
 		case syscall_vectors::mutex_try_lock: {
-			return ((threads::Mutex*)arg1)->try_lock();
+			SYSCALL_HANDLER_RET_U(((threads::Mutex*)arg1)->try_lock());
 		}
 		case syscall_vectors::mutex_new: {
-			return (uint64_t)(new threads::Mutex());
+			SYSCALL_HANDLER_RET_U((uint64_t)(new threads::Mutex()));
 		}
 		case syscall_vectors::mutex_destroy: {
 			delete (threads::Mutex*)arg1;
-			return 0;
+			SYSCALL_HANDLER_RET_U(0);
 		}
 
 		case syscall_vectors::sem_post: {
 			((threads::Semaphore*)arg1)->post();
-			return 0;
+			SYSCALL_HANDLER_RET_U(0);
 		}
 		case syscall_vectors::sem_wait: {
 			((threads::Semaphore*)arg1)->wait();
-			return 0;
+			SYSCALL_HANDLER_RET_U(0);
 		}
 		case syscall_vectors::sem_get_count: {
-			return ((threads::Semaphore*)arg1)->get_count();
+			SYSCALL_HANDLER_RET_U(((threads::Semaphore*)arg1)->get_count());
 		}
 		case syscall_vectors::sem_new: {
-			return (uint64_t)(new threads::Semaphore(arg1));
+			SYSCALL_HANDLER_RET_U((uint64_t)(new threads::Semaphore(arg1)));
 		}
 		case syscall_vectors::sem_destroy: {
 			delete (threads::Semaphore*)arg1;
-			return 0;
+			SYSCALL_HANDLER_RET_U(0);
+		}
+		case syscall_vectors::mailbox_create: {
+			mailboxes.push_back(mailbox_t { .write_index = static_cast<atomic_uint_fast64_t>(255), .read_index = static_cast<atomic_uint_fast64_t>(0) });
+			SYSCALL_HANDLER_RET_U(mailboxes.size() - 1);
+		}
+		case syscall_vectors::new_proc: {
+			auto new_proc = threads::new_proc(std::string((char*)arg1), (void(*)())arg2);
+			threads::SchedulerLock::get()->add_task(new_proc);
+			SYSCALL_HANDLER_RET_U(0);
+		}
+		case syscall_vectors::mmap_anon: {
+			auto start_address = ALIGN_DOWN(arg1, 0x1000);
+			auto size = ALIGN_UP(arg2, 0x1000);
+			auto page_count = IDIV_ROUND_UP(size, 0x1000);
+			fprintf(stdserial, "mmap(%llx, %llx) at %p, size %llx (%lld pages)\n", arg1, arg2, start_address, size, page_count);
+
+			auto flags = arg2 & 0b1111;
+
+			entry_flags_t page_flags = {
+					.writeable = (bool)(flags & mmap_prot::PROT_WRITE),
+					.user_accessible = true,
+					.write_through = false,
+					.cache_disabled = false,
+					.accessed = false,
+					.dirty = false,
+					.huge = false,
+					.global = false,
+					.no_execute = !(bool)(flags & mmap_prot::PROT_EXEC),
+			};
+
+			for (uint64_t i = 0; i < page_count; i++) {
+				map_page(start_address + i*0x1000, page_flags, global_frame_allocator);
+			}
+
+			SYSCALL_HANDLER_RET_U(start_address);
 		}
 	}
 
-	return -1;
+	SYSCALL_HANDLER_RET_I(-1);
 }
 
 uint64_t __attribute__((naked)) syscall(syscall_vectors syscall_number, uint64_t arg1, uint64_t arg2) {
