@@ -4,12 +4,15 @@
 
 #include <string.h>
 #include <panic.h>
+#include <assert.h>
 
-#define ATOI_BUFLEN 32
+#define ATOI_BUFLEN 65
 
 static const char itoa_str[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 	
 char* utoa(uint64_t val, char *str, int base) {
+	assert_msg(base >= 2, "base must be between 2 and 36");
+	assert_msg(base <= 36, "base must be between 2 and 36");
 	static char buf[ATOI_BUFLEN] = {0};
 	int i = ATOI_BUFLEN - 2; // leave final char as '\0'
 	
