@@ -99,7 +99,31 @@ namespace threads {
 				stack_ptr(0),
 				p4_page_table(p4_page_table),
 				name(std::move(name)),
-				state(task_state::RUNNING) {}
+				state(task_state::RUNNING) {
+
+			entry_flags_t flags = {
+					.writeable = true,
+					.user_accessible = true,
+					.write_through = false,
+					.cache_disabled = false,
+					.accessed = false,
+					.dirty = false,
+					.huge = false,
+					.global = false,
+					.no_execute = true,
+			};
+
+			for (uint64_t stack_addr = this->code_stack
+			                               .bottom;
+			     stack_addr < this->code_stack
+			                      .top;
+			     stack_addr += 0x1000) {
+				map_page(stack_addr, flags, global_frame_allocator);
+			}
+
+			mark_for_no_map(this->code_stack
+			                    .bottom - 0x1000, global_frame_allocator); // Guard page
+		}
 
 	public:
 		Task(std::string name, uint64_t stack_value_count,

@@ -23,6 +23,7 @@ std::shared_ptr<Task> Scheduler::init_multitasking(uint64_t stack_bottom, uint64
 	__asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
 	auto init_task = std::make_shared<threads::Task>("uinit", cr3, stack_top, stack_top);
 	scheduler.current_task_ptr = init_task;
+	task_state_segment.privilege_stack_table[0] = init_task->get_kernel_stack().top;
 
 	timer.set_frequency(TIMER_FREQ);
 
@@ -144,7 +145,7 @@ extern "C" void threads::unlock_scheduler_from_task_init() {
 }
 
 SchedulerLock::~SchedulerLock() {
-	this->operator->()->__unlock_scheduler();
+	this->operator ->()->__unlock_scheduler();
 }
 
 void Scheduler::irq() {
