@@ -41,6 +41,8 @@ namespace mmap_prot {
 }
 
 uint64_t syscall_handler(syscall_vectors syscall_number, uint64_t arg1, uint64_t arg2);
-uint64_t syscall(syscall_vectors syscall_number, uint64_t arg1 = 0, uint64_t arg2 = 0);
+inline uint64_t __attribute__((naked)) syscall(syscall_vectors syscall_number, uint64_t arg1 = 0, uint64_t arg2 = 0) {
+	__asm__ volatile("syscall; ret;" :);
+}
 
 #endif

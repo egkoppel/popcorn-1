@@ -78,7 +78,7 @@ uint64_t syscall_serial_write(uint64_t arg1, uint64_t arg2) {
 }
 
 uint64_t syscall_print(uint64_t arg1, uint64_t arg2) {
-	return printf("%s", (char*)arg1);
+	return printf("%s", (char *)arg1);
 }
 
 union int_uint64_t { uint64_t u; int64_t i; };
@@ -169,6 +169,8 @@ uint64_t syscall_handler(syscall_vectors syscall_number, uint64_t arg1, uint64_t
 					.no_execute = !(bool)(flags & mmap_prot::PROT_EXEC),
 			};
 
+			fprintf(stdserial, "mmap flags w:%d, nx:%d\n", (bool)(flags & mmap_prot::PROT_WRITE), !(bool)(flags & mmap_prot::PROT_EXEC));
+
 			for (uint64_t i = 0; i < page_count; i++) {
 				map_page(start_address + i * 0x1000, page_flags, global_frame_allocator);
 			}
@@ -178,8 +180,4 @@ uint64_t syscall_handler(syscall_vectors syscall_number, uint64_t arg1, uint64_t
 	}
 
 	SYSCALL_HANDLER_RET_I(-1);
-}
-
-uint64_t __attribute__((naked)) syscall(syscall_vectors syscall_number, uint64_t arg1, uint64_t arg2) {
-	__asm__ volatile("syscall; ret;" :);
 }
