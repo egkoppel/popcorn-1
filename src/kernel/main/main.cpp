@@ -22,7 +22,7 @@
 
 #include <panic.h>
 
-#define USER_ACCESS_FROM_KERNEL 1
+#define USER_ACCESS_FROM_KERNEL 0
 #if USER_ACCESS_FROM_KERNEL == 1
 #warning USER_ACCESS_FROM_KERNEL is enabled - THIS IS A TERRIBLE TERRIBLE TERRIBLE IDEA FOR SECURITY
 #endif
@@ -31,6 +31,7 @@ extern "C" gdt::GDT global_descriptor_table = gdt::GDT();
 extern "C" tss::TSS task_state_segment = tss::TSS();
 
 extern "C" allocator_vtable *global_frame_allocator = nullptr;
+extern "C" void switch_to_user_mode(void);
 
 extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	if (multiboot_magic == 0x36d76289) {
@@ -119,11 +120,15 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	// Map the kernel with section flags
 	for (multiboot::elf_sections_entry i : *sections) {
 		if ((i.type != SHT_NULL) && (i.flags & SHF_ALLOC) != 0) {
+			auto name = reinterpret_cast<char *>(sections->find_strtab()->addr + i.name_index);
+			auto is_userspace = strncmp(name, ".userspace", 10) == 0;
+			printf("%d\n", is_userspace || USER_ACCESS_FROM_KERNEL);
+
 			for (uint64_t phys_addr = i.addr - 0xFFFFFF8000000000;
 			     phys_addr < ALIGN_UP(i.addr - 0xFFFFFF8000000000 + i.size, 0x1000); phys_addr += 0x1000) {
 				entry_flags_t flags = {
 						.writeable = static_cast<bool>(i.flags & SHF_WRITE),
-						.user_accessible = USER_ACCESS_FROM_KERNEL,
+						.user_accessible = is_userspace || USER_ACCESS_FROM_KERNEL,
 						.write_through = false,
 						.cache_disabled = false,
 						.accessed = false,
@@ -286,8 +291,18 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	Initramfs ramfs(initramfs_address, initramfs_address + (boot_module->module_end - boot_module->module_start));
 
 	printf("[    ] Initialising multitasking\n");
-	threads::Scheduler::init_multitasking(old_p4_table_page + 0x1000, old_p4_table_page + 8 * 0x1000);
+	auto ktask = threads::Scheduler::init_multitasking(old_p4_table_page + 0x1000, old_p4_table_page + 8 * 0x1000);
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised multitasking\n");
 
-	uinit_start(ramfs);
+	// Switch to userspace, and stack switch, and call init
+	auto userspace_stack_top = ktask->get_code_stack().top;
+	// place init function at top of stack
+	*(reinterpret_cast<uint64_t *>(userspace_stack_top) - 1) = reinterpret_cast<uint64_t>(uinit);
+	// place userpace switch
+	*(reinterpret_cast<uint64_t *>(userspace_stack_top) - 2) = reinterpret_cast<uint64_t>(switch_to_user_mode);
+	auto new_stack_ptr = userspace_stack_top - 2 * 8;
+
+	__asm__ volatile("xor %%rbp, %%rbp; mov %%rax, %%rsp; ret;" : : "a"(new_stack_ptr));
+
+	panic("");
 }
