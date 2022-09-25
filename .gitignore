@@ -3,3 +3,4 @@ build/
 !/src/kernel/stlport/_*
 .vscode
 src/kernel/rust/target
+newlib-cygwin/
