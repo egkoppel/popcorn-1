@@ -190,7 +190,13 @@ RETURN_NO_ERROR_CODE(timer_interrupt_handler, {
 	pics.acknowledge_irq(PIC_IRQ::TIMER);
 })
 
+RETURN_NO_ERROR_CODE(breakpoint_handler, {
+	fprintf(stdserial, "BREAKPOINT!\n");
+	while (1);
+})
+
 void init_idt() {
+	interrupt_descriptor_table.add_entry(0x3, 3, breakpoint_handler);
 	interrupt_descriptor_table.add_entry(0x8, 0, double_fault_handler, 1);
 	interrupt_descriptor_table.add_entry(0xe, 0, page_fault_handler);
 	interrupt_descriptor_table.add_entry(PIC_IRQ::TIMER, 0, timer_interrupt_handler);
