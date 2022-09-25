@@ -2,15 +2,15 @@
 #define _HUGOS_MAIN_H
 
 #include "../memory/allocator.h"
+#include "../gdt/gdt.hpp"
+#include "../gdt/tss.hpp"
 
-#ifdef __cplusplus
 extern "C" {
-#endif
 
 extern allocator_vtable *global_frame_allocator;
+extern gdt::GDT global_descriptor_table;
+extern tss::TSS task_state_segment;
 
-#ifdef __cplusplus
 }
-#endif
 
 #endif

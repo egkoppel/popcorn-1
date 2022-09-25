@@ -5,7 +5,7 @@
 #ifndef HUG_DYLD_HPP
 #define HUG_DYLD_HPP
 
-#include "../elf/elf.hpp"
+#include "elf.hpp"
 
 int dyld(Elf64::Elf64File file);
 

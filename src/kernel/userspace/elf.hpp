@@ -2,31 +2,30 @@
 #define _HUGOS_ELF_H
 
 #include <stdint.h>
-#include <stdio.h>
 
 namespace Elf64 {
 	enum SectionType {
-		SHT_NULL	= 0,   // Null section
-		SHT_PROGBITS= 1,   // Program information
-		SHT_SYMTAB	= 2,   // Symbol table
-		SHT_STRTAB	= 3,   // String table
-		SHT_RELA	= 4,   // Relocation (w/ addend)
-		SHT_HASH	= 5,   // Symbol hash table
-		SHT_DYNAMIC	= 6,   // Dynamic linking information
-		SHT_NOTE	= 7,   // Notes
-		SHT_NOBITS	= 8,   // Uninitialized space (.bss)
-		SHT_REL		= 9,   // Relocation (no addend)
-		SHT_DYNSYM	= 11,  // Dynamic linker symbol table
-		SHT_INIT_ARRAY= 14,  // Array of constructors
-		SHT_FINI_ARRAY= 15,  // Array of destructors
-		SHT_PREINIT_ARRAY= 16,  // Array of pre-constructors
-		SHT_GROUP	= 17  // Section group
+		SHT_NULL = 0,   // Null section
+		SHT_PROGBITS = 1,   // Program information
+		SHT_SYMTAB = 2,   // Symbol table
+		SHT_STRTAB = 3,   // String table
+		SHT_RELA = 4,   // Relocation (w/ addend)
+		SHT_HASH = 5,   // Symbol hash table
+		SHT_DYNAMIC = 6,   // Dynamic linking information
+		SHT_NOTE = 7,   // Notes
+		SHT_NOBITS = 8,   // Uninitialized space (.bss)
+		SHT_REL = 9,   // Relocation (no addend)
+		SHT_DYNSYM = 11,  // Dynamic linker symbol table
+		SHT_INIT_ARRAY = 14,  // Array of constructors
+		SHT_FINI_ARRAY = 15,  // Array of destructors
+		SHT_PREINIT_ARRAY = 16,  // Array of pre-constructors
+		SHT_GROUP = 17  // Section group
 	};
-	
+
 	enum SectionFlags {
-		SHF_WRITE	= 0x01, // Writable section
-		SHF_ALLOC	= 0x02, // Exists in memory
-		SHF_EXECINSTR= 0x04, // Executable section
+		SHF_WRITE = 0x01, // Writable section
+		SHF_ALLOC = 0x02, // Exists in memory
+		SHF_EXECINSTR = 0x04, // Executable section
 	};
 
 	using Elf64_Addr = uint64_t;
@@ -68,42 +67,42 @@ namespace Elf64 {
 		Elf64_Half e_shnum; /* Number of section header entries */
 		Elf64_Half e_shstrndx; /* Section name string table index */
 
-		Elf64SectionHeader* getSectionHeader(int index) {
-			return (Elf64SectionHeader*)((uint8_t*)this + e_shoff + index * e_shentsize);
+		Elf64SectionHeader *getSectionHeader(int index) {
+			return (Elf64SectionHeader *)((uint8_t *)this + e_shoff + index * e_shentsize);
 		}
 
 		int verify_header();
 	};
 
 	class ElfSectionIterator {
-		Elf64FileHeader* header;
+		Elf64FileHeader *header;
 		int index;
 
-		public:
-		ElfSectionIterator(Elf64FileHeader* header, int index) : header(header), index(index) {}
-		Elf64SectionHeader* operator*() {
+	public:
+		ElfSectionIterator(Elf64FileHeader *header, int index) : header(header), index(index) {}
+		Elf64SectionHeader *operator *() {
 			return header->getSectionHeader(index);
 		}
-		ElfSectionIterator& operator++() {
+		ElfSectionIterator& operator ++() {
 			index++;
 			return *this;
 		}
-		bool operator!=(const ElfSectionIterator& other) {
+		bool operator !=(const ElfSectionIterator& other) {
 			return index != other.index;
 		}
 	};
 
 	class Elf64File {
-		public:
-		Elf64FileHeader* header;
+	public:
+		Elf64FileHeader *header;
 
-		public:
-		Elf64File(Elf64FileHeader* header): header(header) {}
+	public:
+		Elf64File(Elf64FileHeader *header) : header(header) {}
 
-		char* get_str(int index) {
+		char *get_str(int index) {
 			if (header->e_shstrndx == 0) return nullptr;
 			auto str = header->getSectionHeader(header->e_shstrndx);
-			return (char*)((uint64_t)header + str->sh_offset + index);
+			return (char *)((uint64_t)header + str->sh_offset + index);
 		}
 
 		ElfSectionIterator begin() {

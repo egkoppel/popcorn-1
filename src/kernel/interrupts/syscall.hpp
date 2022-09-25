@@ -5,7 +5,7 @@
 
 extern "C" void syscall_long_mode_handler();
 
-enum class syscall_vectors: uint64_t {
+enum class syscall_vectors : uint64_t {
 	yield, /* void yeild() */
 	serial_write, /* int serial_write(char* str) */
 	print,
@@ -33,10 +33,10 @@ enum class syscall_vectors: uint64_t {
 
 namespace mmap_prot {
 	enum mmap_prot {
-		PROT_EXEC = 1<<0,
-		PROT_READ = 1<<1,
-		PROT_WRITE = 1<<2,
-		PROT_NONE = 1<<3
+		PROT_EXEC = 1 << 0,
+		PROT_READ = 1 << 1,
+		PROT_WRITE = 1 << 2,
+		PROT_NONE = 1 << 3
 	};
 }
 

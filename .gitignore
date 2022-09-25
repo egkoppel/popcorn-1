@@ -1,5 +1,5 @@
 build/
 /_*
-!/src/stlport/_*
+!/src/kernel/stlport/_*
 .vscode
-src/rust/target
+src/kernel/rust/target

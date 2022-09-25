@@ -4,6 +4,7 @@
 
 #include <termcolor.h>
 
+#include "main.hpp"
 #include "multiboot.hpp"
 #include "../memory/memory.h"
 #include "../memory/paging.h"
@@ -15,9 +16,9 @@
 #include "../interrupts/pit.hpp"
 #include "../gdt/gdt.hpp"
 #include "../gdt/tss.hpp"
-#include "../initramfs.hpp"
+#include "../userspace/initramfs.hpp"
 #include "../threading/threading.hpp"
-#include "src/userspace/uinit.hpp"
+#include "../userspace/uinit.hpp"
 
 #include <panic.h>
 

@@ -9,9 +9,9 @@ constexpr unsigned char ELF_VERSION_CURRENT = 0x01;
 constexpr unsigned char ELF_OSABI_UNIX_SYSTEM_V = 0x00;
 
 enum Elf_Type {
-	ET_NONE		= 0, // Unkown Type
-	ET_REL		= 1, // Relocatable File
-	ET_EXEC		= 2  // Executable File
+	ET_NONE = 0, // Unkown Type
+	ET_REL = 1, // Relocatable File
+	ET_EXEC = 2  // Executable File
 };
 
 constexpr unsigned char ELF_MACHINE_AMD64 = 0x3E;

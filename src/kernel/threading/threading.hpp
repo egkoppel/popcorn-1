@@ -12,10 +12,10 @@
 #include <utils.h>
 #include "../memory/stack.hpp"
 #include "../memory/paging.h"
-#include "../main/main.h"
+#include "../main/main.hpp"
 #include "../interrupts/pit.hpp"
 #include "../interrupts/syscall.hpp"
-#include "../elf/elf.hpp"
+#include "../userspace/elf.hpp"
 #include "../interrupts/idt.hpp"
 
 namespace threads {
@@ -90,11 +90,11 @@ namespace threads {
 		task_state state = task_state::READY;
 		uint64_t time_used = 0;
 
-		static const uint64_t stack_top = 0x7fff'ffff'ffff;
-		static const uint64_t stack_size = 8 * 0x1000;
+		static const uint64_t userspace_stack_top = 0x7fff'ffff'ffff;
+		static const uint64_t userspace_stack_size = 8 * 0x1000;
 
 		Task(std::string name, uint64_t p4_page_table, uint64_t stack_top, uint64_t stack_bottom) :
-				code_stack(stack_top, stack_bottom),
+				code_stack(userspace_stack_top, userspace_stack_top - userspace_stack_size + 1),
 				kernel_stack(stack_top, stack_bottom),
 				stack_ptr(0),
 				p4_page_table(p4_page_table),
@@ -105,7 +105,7 @@ namespace threads {
 		Task(std::string name, uint64_t stack_value_count,
 		     uint64_t p4_page_table = create_p4_table(global_frame_allocator)) :
 				kernel_stack(4 * 0x1000),
-				code_stack(stack_top, stack_top - stack_size + 1),
+				code_stack(userspace_stack_top, userspace_stack_top - userspace_stack_size + 1),
 				stack_ptr(this->code_stack
 				              .top - stack_value_count * 8),
 				p4_page_table(p4_page_table),
@@ -128,13 +128,15 @@ namespace threads {
 					.no_execute = true,
 			};
 
-			fprintf(stdserial, "code stack top: %p, bottom %p %p\n", this->code_stack
-			                                                             .top, this->code_stack
-			                                                                       .bottom, stack_top);
+			fprintf(stdserial, "code stack top: %p, bottom %p\n", this->code_stack
+			                                                          .top, this->code_stack
+			                                                                    .bottom);
 
 			for (uint64_t stack_addr = this->code_stack
-			                               .bottom; stack_addr < this->code_stack
-			                                                         .top; stack_addr += 0x1000) {
+			                               .bottom;
+			     stack_addr < this->code_stack
+			                      .top;
+			     stack_addr += 0x1000) {
 				map_page(stack_addr, flags, global_frame_allocator);
 			}
 

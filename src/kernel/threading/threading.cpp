@@ -1,5 +1,8 @@
 #include "threading.hpp"
+#include "../main/main.hpp"
 #include <map>
+#include <memory>
+#include <stdio.h>
 
 using namespace threads;
 
@@ -8,7 +11,6 @@ atomic_uint_fast64_t threads::next_pid = 1;
 alignas(alignof(Scheduler)) char scheduler_[sizeof(Scheduler)];
 Scheduler& threads::scheduler = reinterpret_cast<Scheduler&>(scheduler_);
 
-extern "C" void task_init(void);
 extern "C" void task_switch_asm(Task *new_task, Task *old_task);
 
 #define TIMER_FREQ (100)
@@ -29,7 +31,7 @@ std::shared_ptr<Task> Scheduler::init_multitasking(uint64_t stack_bottom, uint64
 
 void Scheduler::task_switch(std::shared_ptr<Task> task) {
 	this->update_time_used();
-	
+
 	if (this->task_switch_disable_counter > 0) {
 		this->task_switch_postponed = true;
 		return;
@@ -115,7 +117,7 @@ void Scheduler::sleep_until(uint64_t time) {
 	block_task(task_state::SLEEPING);
 }
 
-Scheduler* SchedulerLock::operator->() {
+Scheduler *SchedulerLock::operator ->() {
 	return &scheduler;
 }
 
@@ -146,7 +148,7 @@ SchedulerLock::~SchedulerLock() {
 }
 
 void Scheduler::irq() {
-	time_since_start_ms += 1000/TIMER_FREQ;
+	time_since_start_ms += 1000 / TIMER_FREQ;
 	uint64_t current_time = time_since_start_ms;
 	//fprintf(stdserial, "time: %llu\n", current_time);
 
@@ -214,7 +216,7 @@ void Semaphore::wait() {
 		this->add_waiting_task(scheduler.current_task_ptr);
 		scheduler.block_task(task_state::WAITING_FOR_LOCK);
 	} else { this->count--; }
-	
+
 	scheduler.unlock_task_switches();
 }
 
@@ -226,7 +228,7 @@ void Semaphore::post() {
 	if (auto task_to_wake = this->get_next_waiting_task()) {
 		scheduler.unblock_task(task_to_wake);
 	} else { this->count++; }
-	
+
 	scheduler.unlock_task_switches();
 }
 
@@ -246,7 +248,7 @@ void Mutex::lock() {
 		this->add_waiting_task(scheduler.current_task_ptr);
 		scheduler.block_task(task_state::WAITING_FOR_LOCK);
 	} else { this->locked = true; }
-	
+
 	scheduler.unlock_task_switches();
 }
 
@@ -255,7 +257,7 @@ uint64_t Mutex::try_lock() {
 
 	if (this->locked) { return 1; }
 	else { this->locked = true; }
-	
+
 	scheduler.unlock_task_switches();
 	return 0;
 }
@@ -266,6 +268,6 @@ void Mutex::unlock() {
 	if (auto task_to_wake = this->get_next_waiting_task()) {
 		scheduler.unblock_task(task_to_wake);
 	} else { this->locked = false; }
-	
+
 	scheduler.unlock_task_switches();
 }

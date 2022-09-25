@@ -8,7 +8,7 @@
 #include <utils.h>
 
 namespace multiboot {
-	enum class tag_type: uint32_t {
+	enum class tag_type : uint32_t {
 		CLI = 1,
 		BOOTLOADER_NAME = 2,
 		BOOT_MODULE = 3,
@@ -31,17 +31,17 @@ namespace multiboot {
 		tag_header header;
 		char str;
 
-		const char* get_str();
+		const char *get_str();
 	};
 
 	struct __attribute__((packed)) bootloader_tag {
 		tag_header header;
 		char str;
 
-		const char* get_name();
+		const char *get_name();
 	};
 
-	enum class memory_type: uint32_t {
+	enum class memory_type : uint32_t {
 		RESERVED = 0,
 		AVAILABLE = 1,
 		ACPI = 3,
@@ -55,8 +55,8 @@ namespace multiboot {
 		memory_type type;
 		uint32_t reserved;
 
-		bool operator<=>(const memory_map_entry&) const = default;
-		bool operator!=(const memory_map_entry&) const = default;
+		bool operator <=>(const memory_map_entry&) const = default;
+		bool operator !=(const memory_map_entry&) const = default;
 	};
 
 	struct __attribute__((packed)) memory_map_tag {
@@ -65,8 +65,8 @@ namespace multiboot {
 		uint32_t entry_version;
 		memory_map_entry first_entry;
 
-		memory_map_entry* begin();
-		memory_map_entry* end();
+		memory_map_entry *begin();
+		memory_map_entry *end();
 	};
 
 	struct __attribute__((packed)) boot_module_tag {
@@ -75,7 +75,7 @@ namespace multiboot {
 		uint32_t module_end;
 		char str;
 
-		const char* get_name();
+		const char *get_name();
 	};
 
 	struct __attribute__((packed)) framebuffer_tag {
@@ -118,8 +118,8 @@ namespace multiboot {
 		uint64_t entry_size;
 
 		void print();
-		bool operator<=>(const elf_sections_entry&) const = default;
-		bool operator!=(const elf_sections_entry&) const = default;
+		bool operator <=>(const elf_sections_entry&) const = default;
+		bool operator !=(const elf_sections_entry&) const = default;
 	};
 
 	struct __attribute__((packed)) elf_sections_tag {
@@ -129,22 +129,23 @@ namespace multiboot {
 		uint32_t string_table;
 		elf_sections_entry first_entry;
 
-		elf_sections_entry* begin();
-		elf_sections_entry* end();
+		elf_sections_entry *begin();
+		elf_sections_entry *end();
+		elf_sections_entry *find_strtab();
 	};
 
 	class Data {
-		public:
+	public:
 		tag_header *mb_data_start;
 		tag_header *mb_data_end;
 
-		public:
+	public:
 		Data(uint64_t info_struct);
-		template<class T> T* find_tag(tag_type type) {
+		template<class T> T *find_tag(tag_type type) {
 			tag_header *current_tag = this->mb_data_start;
 			while (current_tag < this->mb_data_end) {
 				if (current_tag->type == type) {
-					return reinterpret_cast<T*>(current_tag);
+					return reinterpret_cast<T *>(current_tag);
 				}
 				current_tag = ADD_BYTES(current_tag, current_tag->size);
 				current_tag = ALIGN_UP(current_tag, 8);

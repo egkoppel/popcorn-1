@@ -1,10 +1,9 @@
 #include "initramfs.hpp"
 #include <stdint.h>
 #include <string.h>
-#include <stdio.h>
 #include <utils.h>
 
-enum class file_type: uint8_t {
+enum class file_type : uint8_t {
 	regular = '0',
 	hardlink = '1',
 	symlink = '2',
@@ -44,29 +43,17 @@ int oct2bin(char *str, int size) {
 	return n;
 }
 
-size_t Initramfs::locate_file(const char* filename, void **data) {
-	auto *ptr = reinterpret_cast<tar_file_header*>(this->data_start);
+size_t Initramfs::locate_file(const char *filename, void **data) {
+	auto *ptr = reinterpret_cast<tar_file_header *>(this->data_start);
 
 	while (memcmp(ptr->ustar, "ustar", 5) == 0) {
 		int filesize = oct2bin(ptr->size, 11);
 		if (strcmp(ptr->filename, filename) == 0) {
-			*data = static_cast<void*>(ADD_BYTES(ptr, 512));
+			*data = static_cast<void *>(ADD_BYTES(ptr, 512));
 			return filesize;
 		}
 		ptr = ADD_BYTES(ptr, (((filesize + 511) / 512) + 1) * 512);
 	}
 
 	return 0;
-}
-
-void Initramfs::print_all_files() {
-	auto *ptr = reinterpret_cast<tar_file_header*>(this->data_start);
-
-	fprintf(stdserial, "ramfs files:\n");
-
-	while (memcmp(&ptr->ustar[0], "ustar", 5) == 0) {
-		int filesize = oct2bin(&ptr->size[0], 11);
-		fprintf(stdserial, "Found initramfs file %s, size %d, type %s\n", &ptr->filename[0], filesize, ptr->type == file_type::regular ? "regular" : ptr->type == file_type::directory ? "directory" : "other");
-		ptr = ADD_BYTES(ptr, (((filesize + 511) / 512) + 1) * 512);
-	}
 }

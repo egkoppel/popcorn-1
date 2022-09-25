@@ -74,7 +74,7 @@ extern "C" __attribute__((naked)) void syscall_long_mode_handler() {
 }*/
 
 uint64_t syscall_serial_write(uint64_t arg1, uint64_t arg2) {
-	return fprintf(stdserial, "%s", (char*)arg1);
+	return fprintf(stdserial, "%s", (char *)arg1);
 }
 
 uint64_t syscall_print(uint64_t arg1, uint64_t arg2) {
@@ -102,48 +102,49 @@ uint64_t syscall_handler(syscall_vectors syscall_number, uint64_t arg1, uint64_t
 		}
 
 		case syscall_vectors::mutex_lock: {
-			((threads::Mutex*)arg1)->lock();
+			((threads::Mutex *)arg1)->lock();
 			SYSCALL_HANDLER_RET_U(0);
 		}
 		case syscall_vectors::mutex_unlock: {
-			((threads::Mutex*)arg1)->unlock();
+			((threads::Mutex *)arg1)->unlock();
 			SYSCALL_HANDLER_RET_U(0);
 		}
 		case syscall_vectors::mutex_try_lock: {
-			SYSCALL_HANDLER_RET_U(((threads::Mutex*)arg1)->try_lock());
+			SYSCALL_HANDLER_RET_U(((threads::Mutex *)arg1)->try_lock());
 		}
 		case syscall_vectors::mutex_new: {
 			SYSCALL_HANDLER_RET_U((uint64_t)(new threads::Mutex()));
 		}
 		case syscall_vectors::mutex_destroy: {
-			delete (threads::Mutex*)arg1;
+			delete (threads::Mutex *)arg1;
 			SYSCALL_HANDLER_RET_U(0);
 		}
 
 		case syscall_vectors::sem_post: {
-			((threads::Semaphore*)arg1)->post();
+			((threads::Semaphore *)arg1)->post();
 			SYSCALL_HANDLER_RET_U(0);
 		}
 		case syscall_vectors::sem_wait: {
-			((threads::Semaphore*)arg1)->wait();
+			((threads::Semaphore *)arg1)->wait();
 			SYSCALL_HANDLER_RET_U(0);
 		}
 		case syscall_vectors::sem_get_count: {
-			SYSCALL_HANDLER_RET_U(((threads::Semaphore*)arg1)->get_count());
+			SYSCALL_HANDLER_RET_U(((threads::Semaphore *)arg1)->get_count());
 		}
 		case syscall_vectors::sem_new: {
 			SYSCALL_HANDLER_RET_U((uint64_t)(new threads::Semaphore(arg1)));
 		}
 		case syscall_vectors::sem_destroy: {
-			delete (threads::Semaphore*)arg1;
+			delete (threads::Semaphore *)arg1;
 			SYSCALL_HANDLER_RET_U(0);
 		}
 		case syscall_vectors::mailbox_create: {
-			mailboxes.push_back(mailbox_t { .write_index = static_cast<atomic_uint_fast64_t>(255), .read_index = static_cast<atomic_uint_fast64_t>(0) });
+			mailboxes.push_back(
+					mailbox_t{.write_index = static_cast<atomic_uint_fast64_t>(255), .read_index = static_cast<atomic_uint_fast64_t>(0)});
 			SYSCALL_HANDLER_RET_U(mailboxes.size() - 1);
 		}
 		case syscall_vectors::new_proc: {
-			auto new_proc = threads::new_proc(std::string((char*)arg1), (void(*)())arg2);
+			auto new_proc = threads::new_proc(std::string((char *)arg1), (void (*)())arg2);
 			threads::SchedulerLock::get()->add_task(new_proc);
 			SYSCALL_HANDLER_RET_U(0);
 		}
@@ -151,7 +152,8 @@ uint64_t syscall_handler(syscall_vectors syscall_number, uint64_t arg1, uint64_t
 			auto start_address = ALIGN_DOWN(arg1, 0x1000);
 			auto size = ALIGN_UP(arg2, 0x1000);
 			auto page_count = IDIV_ROUND_UP(size, 0x1000);
-			fprintf(stdserial, "mmap(%llx, %llx) at %p, size %llx (%lld pages)\n", arg1, arg2, start_address, size, page_count);
+			fprintf(stdserial, "mmap(%llx, %llx) at %p, size %llx (%lld pages)\n", arg1, arg2, start_address, size,
+			        page_count);
 
 			auto flags = arg2 & 0b1111;
 
@@ -168,7 +170,7 @@ uint64_t syscall_handler(syscall_vectors syscall_number, uint64_t arg1, uint64_t
 			};
 
 			for (uint64_t i = 0; i < page_count; i++) {
-				map_page(start_address + i*0x1000, page_flags, global_frame_allocator);
+				map_page(start_address + i * 0x1000, page_flags, global_frame_allocator);
 			}
 
 			SYSCALL_HANDLER_RET_U(start_address);
