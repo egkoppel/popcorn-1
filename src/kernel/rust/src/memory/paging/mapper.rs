@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2022 Eliyahu Gluschove-Koppel.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 use crate::memory::{Page, Frame, PhysicalAddress, VirtualAddress};
 use crate::memory::frame_alloc::Allocator;
 
@@ -6,7 +16,7 @@ use core::arch::asm;
 use super::tables::EntryFlags;
 
 pub struct Mapper<'a> {
-	p4: &'a mut PageTable<Level4>
+	p4: &'a mut PageTable<Level4>,
 }
 
 impl Mapper<'_> {
@@ -34,10 +44,10 @@ impl Mapper<'_> {
 
 	pub fn unmap_page(&mut self, page: Page, allocator: &mut dyn Allocator) {
 		let p1 = self.p4
-			.get_child_table_mut(page.start_address().p4_index())
-			.and_then(|p3| p3.get_child_table_mut(page.start_address().p3_index()))
-			.and_then(|p2| p2.get_child_table_mut(page.start_address().p2_index()))
-			.expect("Attempted to unmap unmapped address");
+		             .get_child_table_mut(page.start_address().p4_index())
+		             .and_then(|p3| p3.get_child_table_mut(page.start_address().p3_index()))
+		             .and_then(|p2| p2.get_child_table_mut(page.start_address().p2_index()))
+		             .expect("Attempted to unmap unmapped address");
 		let entry = &mut p1[page.start_address().p1_index()];
 		allocator.deallocate_frame(entry.get_address().unwrap());
 		entry.clear();
@@ -46,10 +56,10 @@ impl Mapper<'_> {
 
 	pub fn unmap_page_no_free(&mut self, page: Page) {
 		let p1 = self.p4
-			.get_child_table_mut(page.start_address().p4_index())
-			.and_then(|p3| p3.get_child_table_mut(page.start_address().p3_index()))
-			.and_then(|p2| p2.get_child_table_mut(page.start_address().p2_index()))
-			.expect("Attempted to unmap unmapped address");
+		             .get_child_table_mut(page.start_address().p4_index())
+		             .and_then(|p3| p3.get_child_table_mut(page.start_address().p3_index()))
+		             .and_then(|p2| p2.get_child_table_mut(page.start_address().p2_index()))
+		             .expect("Attempted to unmap unmapped address");
 		let entry = &mut p1[page.start_address().p1_index()];
 		entry.clear();
 		unsafe { asm!("invlpg [{}]", in(reg) page.start_address().0); }
@@ -57,13 +67,13 @@ impl Mapper<'_> {
 
 	pub fn translate_page(&self, page: Page) -> Option<Frame> {
 		return self.p4.get_child_table(page.start_address().p4_index())
-			.and_then(|p3| p3.get_child_table(page.start_address().p3_index()))
-			.and_then(|p2| p2.get_child_table(page.start_address().p2_index()))
-			.and_then(|p1| p1[page.start_address().p1_index()].get_address());
+		           .and_then(|p3| p3.get_child_table(page.start_address().p3_index()))
+		           .and_then(|p2| p2.get_child_table(page.start_address().p2_index()))
+		           .and_then(|p1| p1[page.start_address().p1_index()].get_address());
 	}
 
 	pub fn translate_address(&self, addr: VirtualAddress) -> Option<PhysicalAddress> {
 		return self.translate_page(Page::containing_address(addr))
-			.and_then(|frame| Some(frame.start_address() + addr.p1_offset()));
+		           .and_then(|frame| Some(frame.start_address() + addr.p1_offset()));
 	}
 }

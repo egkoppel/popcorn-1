@@ -1,15 +1,27 @@
+/*
+ * Copyright (c) 2022 Eliyahu Gluschove-Koppel.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include "pic.hpp"
 #include "../main/port.h"
 
 using namespace pic;
 
-namespace commands { enum commands {
-	INIT = 0x11,
-	EOI = 0x20,
-	READ_IRR = 0x0B,
-	READ_ISR = 0x0A,
-	MODE_8086 = 0x01
-};}
+namespace commands {
+	enum commands {
+		INIT = 0x11,
+		EOI = 0x20,
+		READ_IRR = 0x0B,
+		READ_ISR = 0x0A,
+		MODE_8086 = 0x01
+	};
+}
 
 void Pic::EOI() {
 	this->send_command(commands::EOI);

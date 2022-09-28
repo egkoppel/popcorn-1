@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2022 Eliyahu Gluschove-Koppel.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 
@@ -5,26 +15,35 @@ use crate::memory::frame_alloc::Allocator;
 use crate::memory::{PhysicalAddress, Frame};
 
 pub trait TableLevel {}
+
 pub trait HierarchicalTableLevel: TableLevel {
 	type ChildLevel: TableLevel;
 }
 
 pub enum Level1 {}
+
 pub enum Level2 {}
+
 pub enum Level3 {}
+
 pub enum Level4 {}
 
 impl TableLevel for Level1 {}
+
 impl TableLevel for Level2 {}
+
 impl TableLevel for Level3 {}
+
 impl TableLevel for Level4 {}
 
 impl HierarchicalTableLevel for Level2 {
 	type ChildLevel = Level1;
 }
+
 impl HierarchicalTableLevel for Level3 {
 	type ChildLevel = Level2;
 }
+
 impl HierarchicalTableLevel for Level4 {
 	type ChildLevel = Level3;
 }
@@ -48,8 +67,8 @@ pub struct Entry {
 	#[skip] __: B2,
 	internal_address: B40,
 	#[skip] __: B11,
-	pub no_execute: bool
-} 
+	pub no_execute: bool,
+}
 
 impl Entry {
 	pub fn set_address(&mut self, frame: Frame) {
@@ -102,12 +121,12 @@ impl Entry {
 }
 
 #[repr(C, packed)]
-pub struct PageTable<L> where L:TableLevel {
+pub struct PageTable<L> where L: TableLevel {
 	entries: [Entry; 512],
-	level: PhantomData<L>
+	level: PhantomData<L>,
 }
 
-impl<L> PageTable<L> where L:TableLevel {
+impl<L> PageTable<L> where L: TableLevel {
 	pub fn clear(&mut self) -> &mut Self {
 		for entry in &mut self.entries {
 			entry.clear();
@@ -123,14 +142,14 @@ impl PageTable<Level4> {
 	}
 }
 
-impl<L> Index<u64> for PageTable<L> where L:TableLevel {
+impl<L> Index<u64> for PageTable<L> where L: TableLevel {
 	type Output = Entry;
 	fn index(&self, index: u64) -> &Self::Output {
 		return &self.entries[index as usize];
 	}
 }
 
-impl<L> IndexMut<u64> for PageTable<L> where L:TableLevel {
+impl<L> IndexMut<u64> for PageTable<L> where L: TableLevel {
 	fn index_mut(&mut self, index: u64) -> &mut Self::Output {
 		return &mut self.entries[index as usize];
 	}
@@ -139,8 +158,7 @@ impl<L> IndexMut<u64> for PageTable<L> where L:TableLevel {
 impl<L> PageTable<L> where L: HierarchicalTableLevel {
 	pub fn get_child_table(&self, index: u64) -> Option<&PageTable<L::ChildLevel>> {
 		assert!(index < 512, "Attempt to access page table entry {}", index);
-		if !self[index].present() || self[index].huge() { return None; }
-		else {
+		if !self[index].present() || self[index].huge() { return None; } else {
 			return Some(unsafe {
 				&*(((self as *const _ as u64) << 9 | (index as u64) << 12 | 0o1777770000000000000000) as *const PageTable<L::ChildLevel>)
 			});
@@ -149,8 +167,7 @@ impl<L> PageTable<L> where L: HierarchicalTableLevel {
 
 	pub fn get_child_table_mut(&mut self, index: u64) -> Option<&mut PageTable<L::ChildLevel>> {
 		assert!(index < 512, "Attempt to access page table entry {}", index);
-		if !self[index].present() || self[index].huge() { return None; }
-		else {
+		if !self[index].present() || self[index].huge() { return None; } else {
 			return Some(unsafe {
 				&mut *(((self as *mut _ as u64) << 9 | (index as u64) << 12 | 0o1777770000000000000000) as *mut PageTable<L::ChildLevel>)
 			});
@@ -164,7 +181,7 @@ impl<L> PageTable<L> where L: HierarchicalTableLevel {
 			self[index].set_address(new_table);
 			self[index].set_writeable(true);
 			return self.get_child_table_mut(index).unwrap().clear();
-		} 
+		}
 		return self.get_child_table_mut(index).unwrap();
 	}
 }
@@ -180,7 +197,7 @@ pub struct EntryFlags {
 	pub dirty: bool,
 	pub huge: bool,
 	pub global: bool,
-	pub no_execute: bool
+	pub no_execute: bool,
 }
 
 mod c_api {
@@ -190,37 +207,40 @@ mod c_api {
 	use core::ops::IndexMut;
 	use crate::CAllocatorVtable;
 
-	#[no_mangle] extern "C" fn set_entry_flags_for_address(addr: VirtualAddress, flags: EntryFlags) -> i32 {
+	#[no_mangle]
+	extern "C" fn set_entry_flags_for_address(addr: VirtualAddress, flags: EntryFlags) -> i32 {
 		let page = Page::with_address(addr);
 		let mut p4 = PAGE_TABLE.lock();
 		let entry = p4.p4_as_mut().get_child_table_mut(page.start_address().p4_index())
-			.and_then(|p3| p3.get_child_table_mut(page.start_address().p3_index()))
-			.and_then(|p2| p2.get_child_table_mut(page.start_address().p2_index()))
-			.and_then(|p1| Some(p1.index_mut(page.start_address().p1_index())));
+		              .and_then(|p3| p3.get_child_table_mut(page.start_address().p3_index()))
+		              .and_then(|p2| p2.get_child_table_mut(page.start_address().p2_index()))
+		              .and_then(|p1| Some(p1.index_mut(page.start_address().p1_index())));
 		if let Some(entry) = entry {
 			entry.set_flags(flags);
 			return 0;
 		} else { return -1; }
 	}
 
-	#[no_mangle] extern "C" fn mark_for_no_map(addr: VirtualAddress, allocator: Option<&mut CAllocatorVtable>) {
+	#[no_mangle]
+	extern "C" fn mark_for_no_map(addr: VirtualAddress, allocator: Option<&mut CAllocatorVtable>) {
 		let a = allocator.unwrap();
 		let page = Page::with_address(addr);
 		let mut p4 = PAGE_TABLE.lock();
 		p4.p4_as_mut().get_child_table_or_new(page.start_address().p4_index(), a)
-			.get_child_table_or_new(page.start_address().p3_index(), a)
-			.get_child_table_or_new(page.start_address().p2_index(), a)
+		  .get_child_table_or_new(page.start_address().p3_index(), a)
+		  .get_child_table_or_new(page.start_address().p2_index(), a)
 			[page.start_address().p1_index()]
 			.mark_for_never_mapped();
 	}
 
-	#[no_mangle] extern "C" fn unmark_for_no_map(addr: VirtualAddress) {
+	#[no_mangle]
+	extern "C" fn unmark_for_no_map(addr: VirtualAddress) {
 		let page = Page::with_address(addr);
 		let mut p4 = PAGE_TABLE.lock();
 		let entry = p4.p4_as_mut().get_child_table_mut(page.start_address().p4_index())
-			.and_then(|p3| p3.get_child_table_mut(page.start_address().p3_index()))
-			.and_then(|p2| p2.get_child_table_mut(page.start_address().p2_index()))
-			.and_then(|p1| Some(p1.index_mut(page.start_address().p1_index())));
+		              .and_then(|p3| p3.get_child_table_mut(page.start_address().p3_index()))
+		              .and_then(|p2| p2.get_child_table_mut(page.start_address().p2_index()))
+		              .and_then(|p1| Some(p1.index_mut(page.start_address().p1_index())));
 		entry.unwrap().unmark_for_never_mapped();
 	}
 }

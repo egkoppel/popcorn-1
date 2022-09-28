@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2022 Eliyahu Gluschove-Koppel.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 use core::{fmt, ops};
 
 pub mod frame_alloc;
@@ -67,7 +77,7 @@ impl ops::Sub<u64> for PhysicalAddress {
 
 #[derive(Clone, Copy)]
 pub struct Page {
-	number: u64
+	number: u64,
 }
 
 impl Page {
@@ -95,11 +105,11 @@ impl fmt::Debug for Page {
 		f.debug_struct("Page")
 		 .field("start", &(self.number * 4096))
 		 .field("end", {
-			if let Some(end) = _end.as_ref() {
-				end
-			} else {
-				&0
-			}
+			 if let Some(end) = _end.as_ref() {
+				 end
+			 } else {
+				 &0
+			 }
 		 })
 		 .finish()
 	}
@@ -107,11 +117,11 @@ impl fmt::Debug for Page {
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub struct Frame {
-	number: u64
+	number: u64,
 }
 
 impl Frame {
-	pub fn containing_address(addr: PhysicalAddress) -> Frame{
+	pub fn containing_address(addr: PhysicalAddress) -> Frame {
 		return Frame {
 			number: addr.0 / 4096
 		};
@@ -130,7 +140,7 @@ impl Frame {
 
 	pub(self) fn clone(&self) -> Frame {
 		return Frame { number: self.number };
-	} 
+	}
 }
 
 impl fmt::Debug for Frame {

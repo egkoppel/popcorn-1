@@ -8,6 +8,12 @@
       <file path="$PROJECT_DIR$/src/kernel/stlport" />
       <file path="$PROJECT_DIR$/src/libk/include" />
     </libraryRoots>
+    <excludeRoots>
+      <file path="$PROJECT_DIR$/src/binutils-2.39" />
+      <file path="$PROJECT_DIR$/src/gcc-12.2.0" />
+      <file path="$PROJECT_DIR$/src/mlibc" />
+      <file path="$PROJECT_DIR$/src/newlib-cygwin" />
+    </excludeRoots>
   </component>
   <component name="ExternalStorageConfigurationManager" enabled="true" />
   <component name="MakefileSettings">
