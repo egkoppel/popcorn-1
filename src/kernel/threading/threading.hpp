@@ -202,10 +202,10 @@ namespace threads {
 			if constexpr (sizeof...(Args) > 4) {
 				*((uint64_t *)0xcafebfff - 8) = args_list[4];
 			} // r14 - task_init arg 5
+			if constexpr (sizeof...(Args) > 5) {
+				*((uint64_t *)0xcafebfff - 9) = args_list[5];
+			} // r15 - task_init arg 6
 		}
-
-		const uint64_t scheduler_idx = 0;
-		*((uint64_t *)0xcafebfff - 9) = scheduler_idx; // r15 - index of scheduler
 
 		unmap_page_no_free(0xcafeb000);
 
