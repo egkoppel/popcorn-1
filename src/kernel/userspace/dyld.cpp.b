@@ -2,7 +2,7 @@
 // Created by Eliyahu Gluschove-Koppel on 21/09/2022.
 //
 
-#include "dyld.hpp"
+#include "dyld.hpp.b"
 #include "../interrupts/syscall.hpp"
 #include <utils.h>
 #include <stddef.h>
