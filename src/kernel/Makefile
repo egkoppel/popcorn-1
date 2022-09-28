@@ -43,6 +43,7 @@ OBJS = $(patsubst %,$(BUILD_DIR)/%, \
 	$(patsubst %.cpp,%.cpp.o,$(wildcard gdt/*.cpp)) \
 	$(patsubst %.cpp,%.cpp.o,$(wildcard threading/*.cpp)) \
 	$(patsubst %.cpp,%.cpp.o,$(wildcard userspace/*.cpp)) \
+	$(patsubst %.cpp,%.cpp.o,$(wildcard smp/*.cpp)) \
 	$(patsubst %.S,%.S.o,$(wildcard threading/*.S)) \
 	$(patsubst %.psf,%.psf.o,$(wildcard fonts/*.psf)))
 
@@ -76,6 +77,8 @@ $(BUILD_DIR)/threading: | $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)/threading
 $(BUILD_DIR)/userspace: | $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)/userspace
+$(BUILD_DIR)/smp: | $(BUILD_DIR)
+	mkdir -p $(BUILD_DIR)/smp
 
 $(BUILD_DIR)/bootstrap/%.S.o: bootstrap/%.S | $(BUILD_DIR)/bootstrap
 	$(NASM) -felf64 -g -F dwarf -o $@ $<
@@ -113,6 +116,9 @@ $(BUILD_DIR)/threading/%.cpp.o: threading/%.cpp | $(BUILD_DIR)/threading
 	$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ $<
 
 $(BUILD_DIR)/userspace/%.cpp.o: userspace/%.cpp | $(BUILD_DIR)/userspace
+	$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ $<
+
+$(BUILD_DIR)/smp/%.cpp.o: smp/%.cpp | $(BUILD_DIR)/smp
 	$(CXX) $(CFLAGS) $(CXXFLAGS) -o $@ $<
 
 $(BUILD_DIR)/threading/%.S.o: threading/%.S | $(BUILD_DIR)/threading

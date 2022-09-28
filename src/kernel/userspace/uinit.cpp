@@ -15,7 +15,7 @@
 #include "../interrupts/syscall.hpp"
 #include <stdint.h>
 #include <stdarg.h>
-#include "dyld.hpp"
+#include "userspace_macros.hpp"
 
 #define hugOS_ascii_logo \
 " \n\
@@ -30,10 +30,10 @@
 "
 
 extern "C" int uinit() {
-	syscall(syscall_vectors::print, (uint64_t)"\033c");
-	syscall(syscall_vectors::print, (uint64_t)hugOS_ascii_logo);
-	syscall(syscall_vectors::print, (uint64_t)"Welcome to userspace\n\n");
-	*reinterpret_cast<volatile int *>(NULL) = 5;
+	//syscall(syscall_vectors::print, (uint64_t)"\033c");
+	//syscall(syscall_vectors::print, (uint64_t)hugOS_ascii_logo);
+	//syscall(syscall_vectors::print, (uint64_t)"Welcome to userspace\n\n");
+	//*reinterpret_cast<volatile int *>(NULL) = 5;
 
 	while (1);
 }

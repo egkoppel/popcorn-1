@@ -4,6 +4,7 @@ section .text
 global switch_to_user_mode
 
 switch_to_user_mode:
+    swapgs ; switch to user gs data
 	pop rax ; get return address
 	mov r11, rsp ; save current stack pointer
 

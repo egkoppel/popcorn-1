@@ -29,6 +29,8 @@
 #include "../userspace/initramfs.hpp"
 #include "../threading/threading.hpp"
 #include "../userspace/uinit.hpp"
+#include "../userspace/fsd.hpp"
+#include "../smp/core_local.hpp"
 
 #include <panic.h>
 
@@ -301,7 +303,7 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	Initramfs ramfs(initramfs_address, initramfs_address + (boot_module->module_end - boot_module->module_start));
 
 	printf("[    ] Initialising multitasking\n");
-	auto ktask = threads::Scheduler::init_multitasking(old_p4_table_page + 0x1000, old_p4_table_page + 8 * 0x1000);
+	auto ktask = threads::init_multitasking(old_p4_table_page + 0x1000, old_p4_table_page + 8 * 0x1000);
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised multitasking\n");
 
 	// Switch to userspace, and stack switch, and call init

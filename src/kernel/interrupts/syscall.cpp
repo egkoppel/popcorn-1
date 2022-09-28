@@ -13,6 +13,9 @@
 #include <stdio.h>
 #include <vector>
 #include <stdatomic.h>
+#include "../threading/mutex.hpp"
+#include "../threading/semaphore.hpp"
+#include "../smp/core_local.hpp"
 
 extern "C" void fast_message_send();
 
@@ -36,11 +39,14 @@ std::vector<mailbox_t> mailboxes;
 
 extern "C" __attribute__((naked)) void syscall_long_mode_handler() {
 	// ****** should really switch to kernel stack here ******
+	__asm__ volatile("swapgs"); // Switch to kernel gs
 	__asm__ volatile("pushq %rcx"); // stores rip
 	__asm__ volatile("pushq %r11"); // stores rflags
+	__asm__ volatile("mov %r8, %rcx; mov %r9, %r8; mov %rax, %r9;");
 	__asm__ volatile("call %P0" : : "i"(syscall_handler));
 	__asm__ volatile("popq %r11");
 	__asm__ volatile("popq %rcx");
+	__asm__ volatile("swapgs"); // Switch back to user gs
 	__asm__ volatile("sysretq");
 }
 
@@ -95,19 +101,22 @@ union int_uint64_t { uint64_t u; int64_t i; };
 #define SYSCALL_HANDLER_RET_I(x) { union int_uint64_t a { .i = x}; return a.u; }
 #define SYSCALL_HANDLER_RET_U(x) { return x; }
 
-uint64_t syscall_handler(syscall_vectors syscall_number, uint64_t arg1, uint64_t arg2) {
+uint64_t syscall_handler(uint64_t syscall_number, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5) {
 	//fprintf(stdserial, "syscall, syscall_number: %llx, arg1: %llx, arg2: %llx\n", syscall_number, arg1, arg2);
+	auto local_data = get_local_data();
 
 	switch (syscall_number) {
 		case syscall_vectors::yield: {
-			threads::SchedulerLock::get()->schedule();
+			local_data->scheduler.lock_scheduler();
+			local_data->scheduler.schedule();
+			local_data->scheduler.unlock_scheduler();
 			return 0;
 		}
-		case syscall_vectors::serial_write: SYSCALL_HANDLER_RET_U(syscall_serial_write(arg1, arg2));
-		case syscall_vectors::print: SYSCALL_HANDLER_RET_U(syscall_print(arg1, arg2));
-		case syscall_vectors::get_time_used: SYSCALL_HANDLER_RET_U(threads::SchedulerLock::get()->get_time_used());
+			//case syscall_vectors::serial_write: SYSCALL_HANDLER_RET_U(syscall_serial_write(arg1, arg2));
+		case syscall_vectors::journal_log: SYSCALL_HANDLER_RET_U(syscall_serial_write(arg1, arg2));
+		case syscall_vectors::get_time_used: SYSCALL_HANDLER_RET_U(get_local_data()->scheduler.get_time_used());
 		case syscall_vectors::sleep: {
-			threads::SchedulerLock::get()->sleep(arg1);
+			get_local_data()->scheduler.sleep(arg1);
 			SYSCALL_HANDLER_RET_U(0);
 		}
 
@@ -153,9 +162,9 @@ uint64_t syscall_handler(syscall_vectors syscall_number, uint64_t arg1, uint64_t
 					mailbox_t{.write_index = static_cast<atomic_uint_fast64_t>(255), .read_index = static_cast<atomic_uint_fast64_t>(0)});
 			SYSCALL_HANDLER_RET_U(mailboxes.size() - 1);
 		}
-		case syscall_vectors::new_proc: {
-			auto new_proc = threads::new_proc(std::string((char *)arg1), (void (*)())arg2);
-			threads::SchedulerLock::get()->add_task(new_proc);
+		case syscall_vectors::spawn: {
+			auto new_proc = threads::new_proc(std::string((char *)arg1), (void (*)(uint64_t))arg2, (uint64_t)arg3);
+			get_local_data()->scheduler.add_task(new_proc);
 			SYSCALL_HANDLER_RET_U(0);
 		}
 		case syscall_vectors::mmap_anon: {
@@ -165,10 +174,8 @@ uint64_t syscall_handler(syscall_vectors syscall_number, uint64_t arg1, uint64_t
 			fprintf(stdserial, "mmap(%llx, %llx) at %p, size %llx (%lld pages)\n", arg1, arg2, start_address, size,
 			        page_count);
 
-			auto flags = arg2 & 0b1111;
-
 			entry_flags_t page_flags = {
-					.writeable = (bool)(flags & mmap_prot::PROT_WRITE),
+					.writeable = (bool)(arg3 & mmap_flags::PROT_WRITE),
 					.user_accessible = true,
 					.write_through = false,
 					.cache_disabled = false,
@@ -176,10 +183,10 @@ uint64_t syscall_handler(syscall_vectors syscall_number, uint64_t arg1, uint64_t
 					.dirty = false,
 					.huge = false,
 					.global = false,
-					.no_execute = !(bool)(flags & mmap_prot::PROT_EXEC),
+					.no_execute = !(bool)(arg3 & mmap_flags::PROT_EXEC),
 			};
 
-			fprintf(stdserial, "mmap flags w:%d, nx:%d\n", (bool)(flags & mmap_prot::PROT_WRITE), !(bool)(flags & mmap_prot::PROT_EXEC));
+			fprintf(stdserial, "mmap flags w:%d, nx:%d\n", (bool)(arg3 & mmap_flags::PROT_WRITE), !(bool)(arg3 & mmap_flags::PROT_EXEC));
 
 			for (uint64_t i = 0; i < page_count; i++) {
 				map_page(start_address + i * 0x1000, page_flags, global_frame_allocator);

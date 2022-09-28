@@ -44,45 +44,6 @@ namespace threads {
 
 	class Scheduler;
 
-	class Semaphore {
-	private:
-		uint64_t count = 0;
-		uint64_t max_count;
-		std::deque<std::shared_ptr<Task>> waiting_tasks;
-
-		inline void add_waiting_task(std::shared_ptr<Task> task) {
-			this->waiting_tasks
-			    .push_back(task);
-		}
-
-		std::shared_ptr<Task> get_next_waiting_task();
-
-	public:
-		Semaphore(uint64_t max_count) : max_count(max_count) {}
-
-		void post();
-		void wait();
-		uint64_t get_count() { return this->count; }
-	};
-
-	class Mutex {
-	private:
-		bool locked = false;
-		std::deque<std::shared_ptr<Task>> waiting_tasks;
-
-		inline void add_waiting_task(std::shared_ptr<Task> task) {
-			this->waiting_tasks
-			    .push_back(task);
-		}
-
-		std::shared_ptr<Task> get_next_waiting_task();
-
-	public:
-		void lock();
-		uint64_t try_lock();
-		void unlock();
-	};
-
 	extern "C" struct Task {
 		friend std::shared_ptr<Task> std::make_shared<Task>(char const (&)[6], uint64_t&, uint64_t&, uint64_t&);
 
@@ -189,6 +150,7 @@ namespace threads {
 		inline Stack& get_code_stack() { return code_stack; }
 		inline Stack& get_kernel_stack() { return kernel_stack; }
 		inline uint64_t get_time_used() { return time_used; }
+		inline uint64_t get_time_slice_length_ms() { return 50; }
 	};
 
 	extern "C" void task_init(void);
@@ -240,30 +202,29 @@ namespace threads {
 			if constexpr (sizeof...(Args) > 4) {
 				*((uint64_t *)0xcafebfff - 8) = args_list[4];
 			} // r14 - task_init arg 5
-			if constexpr (sizeof...(Args) > 5) {
-				*((uint64_t *)0xcafebfff - 9) = args_list[5];
-			} // r15 - task_init arg 6
 		}
+
+		const uint64_t scheduler_idx = 0;
+		*((uint64_t *)0xcafebfff - 9) = scheduler_idx; // r15 - index of scheduler
 
 		unmap_page_no_free(0xcafeb000);
 
 		return task;
 	}
 
-	class SchedulerLock;
-
 	extern "C" void unlock_scheduler_from_task_init();
+	std::shared_ptr<Task> init_multitasking(uint64_t stack_bottom, uint64_t stack_top);
 
 	class Scheduler {
-		friend class SchedulerLock;
-
-		friend void unlock_scheduler_from_task_init();
+		friend void threads::unlock_scheduler_from_task_init();
 
 		friend class Mutex;
 
 		friend class Semaphore;
 
 		friend void::syscall_long_mode_handler();
+
+		friend std::shared_ptr<Task> threads::init_multitasking(uint64_t stack_bottom, uint64_t stack_top);
 
 	private:
 		std::shared_ptr<Task> current_task_ptr;
@@ -276,9 +237,9 @@ namespace threads {
 
 		uint64_t last_time_used_update_time = 0;
 		uint64_t idle_time = 0;
+		volatile uint64_t time_since_start_ns = 0;
+		uint64_t time_left_for_current_task_ms = 0;
 
-		void __unlock_scheduler();
-		void lock_scheduler();
 		void task_switch(std::shared_ptr<Task> task);
 		void lock_task_switches();
 		void unlock_task_switches();
@@ -290,24 +251,14 @@ namespace threads {
 		void schedule();
 		void block_task(task_state reason);
 		void unblock_task(const std::shared_ptr<Task>& task);
-		inline void sleep(uint64_t ms) { this->sleep_until(get_time_ms() + ms); }
+		inline void sleep(uint64_t ms) { this->sleep_until(get_time_ns() + ms * 1000); }
 		void sleep_until(uint64_t time);
-		static void irq();
-		static std::shared_ptr<Task> init_multitasking(uint64_t stack_bottom, uint64_t stack_top);
+		void irq();
 		uint64_t get_time_used();
+		uint64_t get_time_ns() const { return this->time_since_start_ns; }
+		void unlock_scheduler();
+		void lock_scheduler();
 	};
-
-	class SchedulerLock {
-	private:
-		SchedulerLock();
-
-	public:
-		static SchedulerLock get();
-		~SchedulerLock();
-		Scheduler *operator ->();
-	};
-
-	extern Scheduler& scheduler;
 }
 
 #endif

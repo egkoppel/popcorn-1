@@ -15,7 +15,9 @@
 #include "pic.hpp"
 #include "syscall.hpp"
 #include "../threading/threading.hpp"
+#include "../smp/core_local.hpp"
 #include "../main/debug.hpp"
+#include "../amd64_macros.hpp"
 
 idt::IDT interrupt_descriptor_table = idt::IDT<48>();
 pic::ATChainedPIC pics(0x20, 0x28);
@@ -38,13 +40,43 @@ struct __attribute__((packed)) exception_stack_frame {
 };
 
 #define N0_RETURN_ERROR_CODE(name, body) \
-    void name ## _inner(exception_stack_frame_error *frame, uint64_t old_base_ptr) { body } \
+    void name ## _inner(exception_stack_frame_error *frame, uint64_t old_base_ptr) { body; cli(); hlt(); } \
     extern "C" __attribute__((naked)) void name() { \
         __asm__ volatile("movq %rsp, %rdi"); \
         __asm__ volatile("movq %rbp, %rsi"); \
         __asm__ volatile("call %P0" : : "i"(name ## _inner)); \
-        __asm__ volatile("cli; hlt"); \
-    } \
+    }
+
+#define GS_SWAP \
+    __asm__ volatile("cmpb $0x08, 0x8(%rsp); je 1f; swapgs; 1:");
+
+#define SYSCALL_ENTRY_ASM \
+    GS_SWAP               \
+    __asm__ volatile("pushq %rax"); \
+    __asm__ volatile("pushq %rcx"); \
+    __asm__ volatile("pushq %rdx"); \
+    __asm__ volatile("pushq %rsi"); \
+    __asm__ volatile("pushq %rdi"); \
+    __asm__ volatile("pushq %r8"); \
+    __asm__ volatile("pushq %r9"); \
+    __asm__ volatile("pushq %r10"); \
+    __asm__ volatile("pushq %r11"); \
+    __asm__ volatile("movq %rsp, %rdi"); \
+    __asm__ volatile("addq $72, %rdi"); \
+    __asm__ volatile("movq %rbp, %rsi");
+
+#define SYSCALL_EXIT_ASM \
+    __asm__ volatile("popq %r11"); \
+    __asm__ volatile("popq %r10"); \
+    __asm__ volatile("popq %r9"); \
+    __asm__ volatile("popq %r8"); \
+    __asm__ volatile("popq %rdi"); \
+    __asm__ volatile("popq %rsi"); \
+    __asm__ volatile("popq %rdx"); \
+    __asm__ volatile("popq %rcx"); \
+    __asm__ volatile("popq %rax"); \
+    GS_SWAP              \
+    __asm__ volatile("iretq");
 
 #define N0_RETURN_NO_ERROR_CODE(name, body) \
         void name ## _inner(exception_stack_frame *frame, uint64_t old_base_ptr) { body } \
@@ -52,63 +84,24 @@ struct __attribute__((packed)) exception_stack_frame {
         __asm__ volatile("movq %rsp, %rdi"); \
         __asm__ volatile("movq %rbp, %rsi"); \
         __asm__ volatile("call %P0" : : "i"(name ## _inner)); \
-        __asm__ volatile("cli; hlt"); \
+        cli();                              \
+        hlt();                                    \
     }
 
 #define RETURN_ERROR_CODE(name, body) \
     void name ## _inner(exception_stack_frame_error *frame, uint64_t old_base_ptr) { body } \
     extern "C" __attribute__((naked)) void name() { \
-        __asm__ volatile("pushq %rax"); \
-        __asm__ volatile("pushq %rcx"); \
-        __asm__ volatile("pushq %rdx"); \
-        __asm__ volatile("pushq %rsi"); \
-        __asm__ volatile("pushq %rdi"); \
-        __asm__ volatile("pushq %r8"); \
-        __asm__ volatile("pushq %r9"); \
-        __asm__ volatile("pushq %r10"); \
-        __asm__ volatile("pushq %r11"); \
-        __asm__ volatile("movq %rsp, %rdi"); \
-        __asm__ volatile("addq $72, %rdi"); \
-        __asm__ volatile("movq %rbp, %rsi"); \
+        SYSCALL_ENTRY_ASM \
         __asm__ volatile("call %P0" : : "i"(name ## _inner)); \
-        __asm__ volatile("popq %r11"); \
-        __asm__ volatile("popq %r10"); \
-        __asm__ volatile("popq %r9"); \
-        __asm__ volatile("popq %r8"); \
-        __asm__ volatile("popq %rdi"); \
-        __asm__ volatile("popq %rsi"); \
-        __asm__ volatile("popq %rdx"); \
-        __asm__ volatile("popq %rcx"); \
-        __asm__ volatile("popq %rax"); \
-        __asm__ volatile("iretq"); \
+        SYSCALL_EXIT_ASM \
     }
 
 #define RETURN_NO_ERROR_CODE(name, body) \
     void name ## _inner(exception_stack_frame *frame, uint64_t old_base_ptr) { body } \
     extern "C" __attribute__((naked)) void name() { \
-        __asm__ volatile("pushq %rax"); \
-        __asm__ volatile("pushq %rcx"); \
-        __asm__ volatile("pushq %rdx"); \
-        __asm__ volatile("pushq %rsi"); \
-        __asm__ volatile("pushq %rdi"); \
-        __asm__ volatile("pushq %r8"); \
-        __asm__ volatile("pushq %r9"); \
-        __asm__ volatile("pushq %r10"); \
-        __asm__ volatile("pushq %r11"); \
-        __asm__ volatile("movq %rsp, %rdi"); \
-        __asm__ volatile("movq %rbp, %rsi"); \
-        __asm__ volatile("addq $72, %rdi"); \
+        SYSCALL_ENTRY_ASM \
         __asm__ volatile("call %P0" : : "i"(name ## _inner)); \
-        __asm__ volatile("popq %r11"); \
-        __asm__ volatile("popq %r10"); \
-        __asm__ volatile("popq %r9"); \
-        __asm__ volatile("popq %r8"); \
-        __asm__ volatile("popq %rdi"); \
-        __asm__ volatile("popq %rsi"); \
-        __asm__ volatile("popq %rdx"); \
-        __asm__ volatile("popq %rcx"); \
-        __asm__ volatile("popq %rax"); \
-        __asm__ volatile("iretq"); \
+        SYSCALL_EXIT_ASM \
     }
 
 /**
@@ -196,8 +189,8 @@ namespace PIC_IRQ {
 }
 
 RETURN_NO_ERROR_CODE(timer_interrupt_handler, {
-	threads::Scheduler::irq();
 	pics.acknowledge_irq(PIC_IRQ::TIMER);
+	get_local_data()->scheduler.irq();
 })
 
 RETURN_NO_ERROR_CODE(breakpoint_handler, {

@@ -13,29 +13,29 @@
 #include <map>
 #include <memory>
 #include <stdio.h>
+#include "../smp/core_local.hpp"
+#include "../amd64_macros.hpp"
 
 using namespace threads;
 
 atomic_uint_fast64_t threads::next_pid = 1;
 
-alignas(alignof(Scheduler)) char scheduler_[sizeof(Scheduler)];
-Scheduler& threads::scheduler = reinterpret_cast<Scheduler&>(scheduler_);
-
 extern "C" void task_switch_asm(Task *new_task, Task *old_task);
 
-#define TIMER_FREQ (100)
-static volatile uint64_t time_since_start_ms = 0;
+#define TIMER_FREQ (1000)
 
-std::shared_ptr<Task> Scheduler::init_multitasking(uint64_t stack_bottom, uint64_t stack_top) {
-	new(&threads::scheduler) Scheduler();
+std::shared_ptr<Task> threads::init_multitasking(uint64_t stack_bottom, uint64_t stack_top) {
+	new core_local();
 
 	uint64_t cr3;
 	__asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
 	auto init_task = std::make_shared<threads::Task>("uinit", cr3, stack_top, stack_top);
-	scheduler.current_task_ptr = init_task;
+	get_local_data()->scheduler.current_task_ptr = init_task;
+	get_local_data()->scheduler.time_left_for_current_task_ms = init_task->get_time_slice_length_ms();
 	task_state_segment.privilege_stack_table[0] = init_task->get_kernel_stack().top;
 
 	timer.set_frequency(TIMER_FREQ);
+	sti();
 
 	return init_task;
 }
@@ -48,20 +48,28 @@ void Scheduler::task_switch(std::shared_ptr<Task> task) {
 		return;
 	}
 
+	this->time_left_for_current_task_ms = task->get_time_slice_length_ms();
+
 	std::swap(this->current_task_ptr, task);
 	task_switch_asm(this->current_task_ptr.get(), task.get());
 }
 
 void Scheduler::schedule() {
+	fprintf(stdserial, "trying to schedule\n");
+
 	if (this->task_switch_disable_counter > 0) {
 		this->task_switch_postponed = true;
 		return;
 	}
 
+	fprintf(stdserial, "SCHEDULING\n");
+
 	if (!this->ready_to_run_tasks.empty()) { // If other tasks to switch to then switch to next one
 		auto old_task = this->current_task_ptr;
 		auto new_task = this->ready_to_run_tasks.front();
 		this->ready_to_run_tasks.pop_front();
+
+		fprintf(stdserial, "switching to %s\n", new_task->name.c_str());
 
 		if (old_task->get_state() == task_state::RUNNING) {
 			this->ready_to_run_tasks.push_back(old_task);
@@ -84,9 +92,9 @@ void Scheduler::schedule() {
 		fprintf(stdserial, "idling\n");
 
 		while (this->ready_to_run_tasks.empty()) {
-			__asm__ volatile("sti");
-			__asm__ volatile("hlt");
-			__asm__ volatile("cli");
+			sti();
+			hlt();
+			cli();
 			this->update_time_used();
 		}
 
@@ -105,81 +113,86 @@ void Scheduler::schedule() {
 }
 
 void Scheduler::add_task(const std::shared_ptr<Task>& task) {
+	this->lock_scheduler();
 	this->ready_to_run_tasks.push_back(task);
+	if (this->ready_to_run_tasks.size() == 1) {
+		// If only one task before adding new task, schedule to make sure new task gets time
+		this->schedule();
+	}
+	this->unlock_scheduler();
 }
 
 void Scheduler::block_task(task_state reason) {
+	this->lock_scheduler();
 	this->current_task_ptr->set_state(reason);
 	this->schedule();
+	this->unlock_scheduler();
 }
 
 void Scheduler::unblock_task(const std::shared_ptr<Task>& task) {
+	this->lock_scheduler();
 	// Preempt if only one other task
 	task->set_state(task_state::READY);
 	this->ready_to_run_tasks.push_back(task);
 	if (this->ready_to_run_tasks.size() == 1) {
 		this->schedule();
 	}
+	this->unlock_scheduler();
 }
 
 void Scheduler::sleep_until(uint64_t time) {
+	this->lock_scheduler();
 	this->sleep_queue.insert(decltype(this->sleep_queue)::value_type(time, this->current_task_ptr));
 	fprintf(stdserial, "Sleeping until %lu - sleep queue size: %d\n", time, this->sleep_queue.size());
+	this->unlock_scheduler();
 	block_task(task_state::SLEEPING);
 }
 
-Scheduler *SchedulerLock::operator ->() {
-	return &scheduler;
-}
-
-SchedulerLock::SchedulerLock() {
-	scheduler.lock_scheduler();
-}
-
-SchedulerLock SchedulerLock::get() {
-	return {};
-}
-
-void Scheduler::__unlock_scheduler() {
+void Scheduler::unlock_scheduler() {
 	this->IRQ_disable_counter--;
-	if (this->IRQ_disable_counter == 0) __asm__ volatile("sti");
+	if (this->IRQ_disable_counter == 0) sti();
 }
 
 void Scheduler::lock_scheduler() {
-	__asm__ volatile("cli");
+	cli();
 	this->IRQ_disable_counter++;
 }
 
 extern "C" void threads::unlock_scheduler_from_task_init() {
-	scheduler.__unlock_scheduler();
-}
-
-SchedulerLock::~SchedulerLock() {
-	this->operator ->()->__unlock_scheduler();
+	get_local_data()->scheduler.unlock_scheduler();
 }
 
 void Scheduler::irq() {
-	time_since_start_ms += 1000 / TIMER_FREQ;
-	uint64_t current_time = time_since_start_ms;
-	//fprintf(stdserial, "time: %llu\n", current_time);
+	this->lock_task_switches();
 
-	scheduler.lock_task_switches();
-	//fprintf(stdserial, "sleep queue len: %d\n", scheduler.sleep_queue.size());
-	for (auto task = scheduler.sleep_queue.begin(); task != scheduler.sleep_queue.end(); task++) {
+	constexpr uint64_t ms_between_ticks = 1000 / TIMER_FREQ;
+	this->time_since_start_ns += 1000 * ms_between_ticks;
+	uint64_t current_time = this->time_since_start_ns;
+
+	// Wake up sleeping tasks
+	for (auto task = this->sleep_queue.begin(); task != this->sleep_queue.end(); task++) {
 		//fprintf(stdserial, "wake time: %llu, time: %llu\n", task->first, current_time);
 		if (task->first <= current_time) {
 			fprintf(stdserial, "waking\n");
-			scheduler.unblock_task(task->second);
-			scheduler.sleep_queue.erase(task);
+			this->unblock_task(task->second);
+			this->sleep_queue.erase(task);
 		}
 	}
-	scheduler.unlock_task_switches();
+
+	// Reschedule if time slice gone
+	fprintf(stdserial, "time slice left: %lld\n", this->time_left_for_current_task_ms);
+	if (this->time_left_for_current_task_ms < ms_between_ticks) {
+		schedule(); // Schedule new task if time slice gone
+	} else {
+		this->time_left_for_current_task_ms -= ms_between_ticks;
+	}
+
+	this->unlock_task_switches();
 }
 
 uint64_t threads::get_time_ms() {
-	return time_since_start_ms;
+	return get_local_data()->scheduler.get_time_ns() * 1000;
 }
-
 
 void Scheduler::lock_task_switches() {
 	this->lock_scheduler();
@@ -192,10 +205,11 @@ void Scheduler::unlock_task_switches() {
 		this->task_switch_postponed = false;
 		this->schedule();
 	}
-	this->__unlock_scheduler();
+	this->unlock_scheduler();
 }
 
 void Scheduler::update_time_used() {
+	this->lock_scheduler();
 	auto current_time = get_time_ms();
 	auto elapsed_time = current_time - this->last_time_used_update_time;
 	this->last_time_used_update_time = current_time;
@@ -204,81 +218,10 @@ void Scheduler::update_time_used() {
 	} else {
 		this->idle_time += elapsed_time;
 	}
+	this->unlock_scheduler();
 }
 
 uint64_t Scheduler::get_time_used() {
 	this->update_time_used();
 	return this->current_task_ptr->get_time_used();
-}
-
-std::shared_ptr<Task> Semaphore::get_next_waiting_task() {
-	if (!this->waiting_tasks.empty()) {
-		auto task = this->waiting_tasks.front();
-		this->waiting_tasks.pop_front();
-		return task;
-	}
-	return nullptr;
-}
-
-void Semaphore::wait() {
-	scheduler.lock_task_switches();
-
-	if (this->count == 0) {
-		this->add_waiting_task(scheduler.current_task_ptr);
-		scheduler.block_task(task_state::WAITING_FOR_LOCK);
-	} else { this->count--; }
-
-	scheduler.unlock_task_switches();
-}
-
-void Semaphore::post() {
-	scheduler.lock_task_switches();
-
-	if (this->count + 1 > this->max_count) return;
-
-	if (auto task_to_wake = this->get_next_waiting_task()) {
-		scheduler.unblock_task(task_to_wake);
-	} else { this->count++; }
-
-	scheduler.unlock_task_switches();
-}
-
-std::shared_ptr<Task> Mutex::get_next_waiting_task() {
-	if (!this->waiting_tasks.empty()) {
-		auto task = this->waiting_tasks.front();
-		this->waiting_tasks.pop_front();
-		return task;
-	}
-	return nullptr;
-}
-
-void Mutex::lock() {
-	scheduler.lock_task_switches();
-
-	if (this->locked) {
-		this->add_waiting_task(scheduler.current_task_ptr);
-		scheduler.block_task(task_state::WAITING_FOR_LOCK);
-	} else { this->locked = true; }
-
-	scheduler.unlock_task_switches();
-}
-
-uint64_t Mutex::try_lock() {
-	scheduler.lock_task_switches();
-
-	if (this->locked) { return 1; }
-	else { this->locked = true; }
-
-	scheduler.unlock_task_switches();
-	return 0;
-}
-
-void Mutex::unlock() {
-	scheduler.lock_task_switches();
-
-	if (auto task_to_wake = this->get_next_waiting_task()) {
-		scheduler.unblock_task(task_to_wake);
-	} else { this->locked = false; }
-
-	scheduler.unlock_task_switches();
 }
