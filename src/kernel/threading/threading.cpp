@@ -55,21 +55,15 @@ void Scheduler::task_switch(std::shared_ptr<Task> task) {
 }
 
 void Scheduler::schedule() {
-	fprintf(stdserial, "trying to schedule\n");
-
 	if (this->task_switch_disable_counter > 0) {
 		this->task_switch_postponed = true;
 		return;
 	}
 
-	fprintf(stdserial, "SCHEDULING\n");
-
 	if (!this->ready_to_run_tasks.empty()) { // If other tasks to switch to then switch to next one
 		auto old_task = this->current_task_ptr;
 		auto new_task = this->ready_to_run_tasks.front();
 		this->ready_to_run_tasks.pop_front();
-
-		fprintf(stdserial, "switching to %s\n", new_task->name.c_str());
 
 		if (old_task->get_state() == task_state::RUNNING) {
 			this->ready_to_run_tasks.push_back(old_task);
@@ -180,7 +174,6 @@ void Scheduler::irq() {
 	}
 
 	// Reschedule if time slice gone
-	fprintf(stdserial, "time slice left: %lld\n", this->time_left_for_current_task_ms);
 	if (this->time_left_for_current_task_ms < ms_between_ticks) {
 		schedule(); // Schedule new task if time slice gone
 	} else {

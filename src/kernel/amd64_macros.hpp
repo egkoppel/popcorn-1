@@ -14,12 +14,10 @@
 #include <stdio.h>
 
 extern inline void sti() {
-	fprintf(stdserial, "sti()");
 	__asm__ volatile("sti");
 }
 
 extern inline void cli() {
-	fprintf(stdserial, "cli()");
 	__asm__ volatile("cli");
 }
 
