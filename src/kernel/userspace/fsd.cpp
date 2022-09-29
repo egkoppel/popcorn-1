@@ -11,13 +11,20 @@
 #include "fsd.hpp"
 #include "userspace_macros.hpp"
 
-void test(int a) {
+void test(void *sem) {
 	journal_log("test started!\n");
+	for (uint32_t i = 0; i < 1 << 28; i++);
+	journal_log("posting to sem!\n");
+	sem_post(sem);
 	while (1);
 }
 
 int fsd_main() {
 	journal_log("fsd started!\n");
-	sys_spawn("test", test, 3);
+	void *test_sem = sem_init(1);
+	sys_spawn("test", test, test_sem);
+	journal_log("fsd waiting for sem\n");
+	sem_wait(test_sem);
+	journal_log("fsd back\n");
 	while (1);
 }
