@@ -294,10 +294,11 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised memory\n");
 	printf("[    ] Initialising sbrk and heap\n");
 	global_sbrk_state = sbrk_state_t{
-			.kernel_end = memory_bitmap_end,
-			.current_break = ALIGN_UP(memory_bitmap_end, 0x1000),
+			.kernel_end = kernel_space_mapper.get_next_addr() + 1024 * 1024, // Leave 1MiB buffer for any mmio mapping
+			.current_break = ALIGN_UP(kernel_space_mapper.get_next_addr() + 1024 * 1024, 0x1000),
 			.initialised = true
 	};
+	kernel_space_mapper.set_max_addr(global_sbrk_state.kernel_end); // Don't let mapper map into the heap
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised sbrk and heap\n");
 
 	Initramfs ramfs(initramfs_address, initramfs_address + (boot_module->module_end - boot_module->module_start));
