@@ -1,13 +1,23 @@
 ENTRY(_start)
 
 SECTIONS {
+    . = 0x8000;
+    .ap_bootstrap.text ALIGN(4K) :
+    {
+        */ap_bootstrap*.o(.text*)
+    }
+    .ap_bootstrap.data ALIGN(4K) :
+    {
+        */ap_bootstrap*.o(.data*)
+    }
+
 	KERNEL_OFFSET = 0xFFFFFF8000000000;
 	. = 1M + KERNEL_OFFSET;
 
 	.kernelspace.text ALIGN(4K) : AT(ADDR(.kernelspace.text) - KERNEL_OFFSET)
 	{
 		*(.multiboot2)
-		*(EXCLUDE_FILE(*userspace/*.o).text*)
+		*(EXCLUDE_FILE(*userspace/*.o */ap_bootstrap*.o) .text*)
 	}
  
 	/* Read-only data. */
@@ -15,55 +25,55 @@ SECTIONS {
 	{
 		ALIGN(64)
 		preinit_array_start = .;
-		*(SORT(EXCLUDE_FILE(*userspace/*.o).preinit_array*))
+		*(SORT(EXCLUDE_FILE(*userspace/*.o */ap_bootstrap*.o) .preinit_array*))
 		preinit_array_end = .;
 
 		ALIGN(64)
 		init_array_start = .;
-		*(SORT(EXCLUDE_FILE(*userspace/*.o).init_array*))
+		*(SORT(EXCLUDE_FILE(*userspace/*.o */ap_bootstrap*.o) .init_array*))
 		init_array_end = .;
 
 		ALIGN(64)
 		start_ctors = .;
-        *(SORT(EXCLUDE_FILE(*userspace/*.o).ctors*))
+        *(SORT(EXCLUDE_FILE(*userspace/*.o */ap_bootstrap*.o) .ctors*))
         end_ctors = .;
 
 		ALIGN(64)
         start_dtors = .;
-        *(SORT(EXCLUDE_FILE(*userspace/*.o).dtors*))
+        *(SORT(EXCLUDE_FILE(*userspace/*.o */ap_bootstrap*.o) .dtors*))
         end_dtors = .;
 
-		*(EXCLUDE_FILE(*userspace/*.o).rodata*)
+		*(EXCLUDE_FILE(*userspace/*.o */ap_bootstrap*.o) .rodata*)
 		*(.eh_frame*)
 	}
  
 	/* Read-write data (initialized) */
 	.kernelspace.data ALIGN(4K) : AT(ADDR(.kernelspace.data) - KERNEL_OFFSET)
 	{
-		*(EXCLUDE_FILE(*userspace/*.o).data*)
-		*(EXCLUDE_FILE(*userspace/*.o).got*)
+		*(EXCLUDE_FILE(*userspace/*.o */ap_bootstrap*.o) .data*)
+		*(EXCLUDE_FILE(*userspace/*.o */ap_bootstrap*.o) .got*)
 	}
  
 	/* Read-write data (uninitialized) and stack */
 	.kernelspace.bss ALIGN(4K) : AT(ADDR(.kernelspace.bss) - KERNEL_OFFSET)
 	{
 		*(COMMON)
-		*(EXCLUDE_FILE(*userspace/*.o).bss*)
+		*(EXCLUDE_FILE(*userspace/*.o */ap_bootstrap*.o) .bss*)
 	}
 
 	.userspace.text ALIGN(4K) : AT(ADDR(.userspace.text) - KERNEL_OFFSET)
 	{
-	    *(.text*)
+	    *userspace/*.o(.text*)
 	}
 
 	.userspace.rodata ALIGN(4K) : AT(ADDR(.userspace.rodata) - KERNEL_OFFSET)
     {
-        *(.rodata*)
+        *userspace/*.o(.rodata*)
     }
 
 	.userspace.data ALIGN(4K) : AT(ADDR(.userspace.data) - KERNEL_OFFSET)
     {
-        *(.data*)
+        *userspace/*.o(.data*)
     }
 
 	/DISCARD/ : {
