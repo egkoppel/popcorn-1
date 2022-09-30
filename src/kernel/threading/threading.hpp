@@ -252,6 +252,7 @@ namespace threads {
 		void block_task(task_state reason);
 		void unblock_task(const std::shared_ptr<Task>& task);
 		inline void sleep(uint64_t ms) { this->sleep_until(get_time_ns() + ms * 1000); }
+		inline void sleep_ns(uint64_t ns) { this->sleep_until(get_time_ns() + ns); }
 		void sleep_until(uint64_t time);
 		void irq();
 		uint64_t get_time_used();
