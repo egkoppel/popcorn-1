@@ -31,6 +31,9 @@
 #include "../userspace/uinit.hpp"
 #include "../userspace/fsd.hpp"
 #include "../smp/core_local.hpp"
+#include "../acpi/acpi.hpp"
+#include "../acpi/apic.hpp"
+#include "../acpi/lapic.hpp"
 
 #include <panic.h>
 
@@ -44,6 +47,10 @@ extern "C" tss::TSS task_state_segment = tss::TSS();
 
 extern "C" allocator_vtable *global_frame_allocator = nullptr;
 extern "C" void switch_to_user_mode(void);
+extern "C" volatile uint8_t ap_running_count;
+volatile uint8_t *real_ap_running_count = &ap_running_count + 0xFFFFFF8000000000;
+extern "C" volatile uint8_t ap_wait_flag;
+volatile uint8_t *real_ap_wait_flag = &ap_wait_flag + 0xFFFFFF8000000000;
 
 extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	if (multiboot_magic == 0x36d76289) {
@@ -91,8 +98,13 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 		if ((i.type != SHT_NULL) && (i.flags & SHF_ALLOC) != 0) {
 			i.print();
 
-			if (i.addr - 0xFFFFFF8000000000 < kernel_min) kernel_min = i.addr - 0xFFFFFF8000000000;
-			if (i.addr - 0xFFFFFF8000000000 + i.size > kernel_max) kernel_max = i.addr - 0xFFFFFF8000000000 + i.size;
+			auto name = reinterpret_cast<char *>(sections->find_strtab()->addr + i.name_index);
+			auto is_ap_bootstrap = strncmp(name, ".ap_bootstrap", 13) == 0;
+			uint64_t offset = 0;
+			if (!is_ap_bootstrap) offset = 0xFFFFFF8000000000;
+
+			if (i.addr - offset < kernel_min) kernel_min = i.addr - offset;
+			if (i.addr - offset + i.size > kernel_max) kernel_max = i.addr - offset + i.size;
 		}
 	}
 	printf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Kernel executable: %lp -> %lp\n", kernel_min, kernel_max);
@@ -134,10 +146,13 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 		if ((i.type != SHT_NULL) && (i.flags & SHF_ALLOC) != 0) {
 			auto name = reinterpret_cast<char *>(sections->find_strtab()->addr + i.name_index);
 			auto is_userspace = strncmp(name, ".userspace", 10) == 0;
-			printf("%d\n", is_userspace || USER_ACCESS_FROM_KERNEL);
 
-			for (uint64_t phys_addr = i.addr - 0xFFFFFF8000000000;
-			     phys_addr < ALIGN_UP(i.addr - 0xFFFFFF8000000000 + i.size, 0x1000); phys_addr += 0x1000) {
+			auto is_ap_bootstrap = strncmp(name, ".ap_bootstrap", 13) == 0;
+			uint64_t offset = 0;
+			if (!is_ap_bootstrap) offset = 0xFFFFFF8000000000;
+
+			for (uint64_t phys_addr = i.addr - offset;
+			     phys_addr < ALIGN_UP(i.addr - offset + i.size, 0x1000); phys_addr += 0x1000) {
 				entry_flags_t flags = {
 						.writeable = static_cast<bool>(i.flags & SHF_WRITE),
 						.user_accessible = is_userspace || USER_ACCESS_FROM_KERNEL,
@@ -241,6 +256,21 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	mmap = mb.find_tag<multiboot::memory_map_tag>(multiboot::tag_type::MEMORY_MAP);
 	sections = mb.find_tag<multiboot::elf_sections_tag>(multiboot::tag_type::ELF_SECTIONS);
 	boot_module = mb.find_tag<multiboot::boot_module_tag>(multiboot::tag_type::BOOT_MODULE);
+	auto rdsp_version = 0;
+	auto rsdp_tag = mb.find_tag<multiboot::rsdp_tag>(multiboot::tag_type::RSDT_V1);
+	if (!rsdp_tag) {
+		rsdp_tag = mb.find_tag<multiboot::rsdp_tag>(multiboot::tag_type::RSDT_V2);
+		rdsp_version = 2;
+	} else rdsp_version = 1;
+
+	fprintf(stdserial, "Found rdsp version %d\n", rdsp_version);
+	if (strncmp(reinterpret_cast<const char *>(&rsdp_tag->signature), "RSD PTR ", 8) != 0) {
+		panic("RSDP signature wrong");
+	}
+
+	char oem_str_buf[7] = {0};
+	memcpy(oem_str_buf, &rsdp_tag->oem_id, 6);
+	fprintf(stdserial, "OEM is %s\n", oem_str_buf);
 
 	fprintf(stdserial, "Creating stack guard page at %lp\n", old_p4_table_page);
 	unmap_page_no_free(old_p4_table_page);
@@ -306,6 +336,110 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	printf("[    ] Initialising multitasking\n");
 	auto ktask = threads::init_multitasking(old_p4_table_page + 0x1000, old_p4_table_page + 8 * 0x1000);
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised multitasking\n");
+
+	printf("[    ] Finding cores\n");
+	entry_flags_t rsdt_flags = {};
+	auto rsdt = (RSDT *)kernel_space_mapper.map_to(rdsp_version == 2 ? (uint32_t)rsdp_tag->xsdt_addr : rsdp_tag->rsdt_addr, 0x1000, rsdt_flags, global_frame_allocator);
+
+	char bufbuf[5] = {0};
+	memcpy(bufbuf, rsdt->header.signature, 4);
+	fprintf(stdserial, "RSDT signature is %s\n", bufbuf);
+	assert_msg(strcmp(bufbuf, "RSDT") == 0, "RSDT sig wrong");
+	auto madt = (MADT *)rsdt->find_sdt("APIC", kernel_space_mapper, global_frame_allocator);
+	fprintf(stdserial, "Found APIC at %p, with entries:\n", madt);
+
+	uint64_t lapic_addr = madt->lapic_address;
+	uint8_t processor_ids[256] = {0};
+	uint64_t ioapic_addr = 0;
+	uint64_t core_count = 0;
+
+	for (auto& madt_entry : *madt) {
+		switch (madt_entry.type) {
+			case madt_entry_types::CPU_LAPIC: {
+				auto lapic = (madt_entry_lapic *)&madt_entry;
+				if (lapic->flags & 1) {
+					processor_ids[core_count++] = lapic->processor_id;
+				}
+				break;
+			}
+			case madt_entry_types::IO_APIC: {
+				auto ioapic = (madt_entry_ioapic *)&madt_entry;
+				ioapic_addr = ioapic->io_apic_addr;
+				break;
+			}
+			case madt_entry_types::LAPIC_ADDR: {
+				auto lapic_addr_entry = (madt_entry_lapic_addr *)&madt_entry;
+				lapic_addr = lapic_addr_entry->lapic_addr;
+				break;
+			}
+			default: break;
+		}
+	}
+
+	fprintf(stdserial, "Found %d cores, IOAPIC addr %p, LAPIC addr %p, processor ids:\n", core_count, ioapic_addr, lapic_addr);
+	for (int i = 0; i < core_count; i++)
+		fprintf(stdserial, " %d\n", processor_ids[i]);
+	entry_flags_t lapic_flags = {
+			.writeable = true,
+			.user_accessible = false,
+			.write_through = true,
+			.cache_disabled = true,
+			.accessed = false,
+			.dirty = false,
+			.huge = false,
+			.global = false,
+			.no_execute = true,
+	};
+	uint32_t msr_low;
+	__asm__ volatile("mov $0x1b, %%rcx; rdmsr;" : "=a"(msr_low)::"rcx", "rdx");
+	fprintf(stdserial, "apic base msr is %b\n", msr_low);
+
+	auto lapic_base = (volatile uint32_t *)kernel_space_mapper.map_to(lapic_addr, 0x3f4, lapic_flags, global_frame_allocator);
+	fprintf(stdserial, "lapic spiv at %p\n", &lapic_base[lapic_registers::SPURIOUS_INTERRUPT_VECTOR]);
+	lapic_base[lapic_registers::SPURIOUS_INTERRUPT_VECTOR] = 0x1ff;
+
+	uint8_t bsp_core_id;
+	__asm__ volatile("mov $1, %%eax; cpuid; shrl $24, %%ebx;": "=b"(bsp_core_id) : : "eax", "ecx", "edx");
+	fprintf(stdserial, "BSP id is %d\n", bsp_core_id);
+	fprintf(stdserial, "ap running count is %d\n", *real_ap_running_count);
+
+	for (auto core_id : processor_ids) {
+		if (core_id == bsp_core_id) continue;
+
+		fprintf(stdserial, "Booting core %d\n", core_id);
+
+		// Send INIT IPI
+		lapic_base[lapic_registers::ERROR_STATUS] = 0;
+		lapic_base[lapic_registers::ICR_HIGH] = (lapic_base[lapic_registers::ICR_HIGH] & 0x00ffffff) | (core_id << 24);
+		lapic_base[lapic_registers::ICR_LOW] = (lapic_base[lapic_registers::ICR_HIGH] & 0xfff00000) | 0x00C500;
+		do {
+			__asm__ volatile("pause":: : "memory");
+		} while (lapic_base[lapic_registers::ICR_LOW] & (1 << 12)); // Wait for delivered bit to clear
+
+		// Deassert INIT IPI
+		lapic_base[lapic_registers::ICR_HIGH] = (lapic_base[lapic_registers::ICR_HIGH] & 0x00ffffff) | (core_id << 24);
+		lapic_base[lapic_registers::ICR_LOW] = (lapic_base[lapic_registers::ICR_HIGH] & 0xfff00000) | 0x008500;
+		do {
+			__asm__ volatile("pause":: : "memory");
+		} while (lapic_base[lapic_registers::ICR_LOW] & (1 << 12)); // Wait for delivered bit to clear
+
+		get_local_data()->scheduler.sleep(10);
+
+		for (int i = 0; i < 2; i++) {
+			// Send SIPI
+			lapic_base[lapic_registers::ERROR_STATUS] = 0;
+			lapic_base[lapic_registers::ICR_HIGH] = (lapic_base[lapic_registers::ICR_HIGH] & 0x00ffffff) | (core_id << 24);
+			lapic_base[lapic_registers::ICR_LOW] = (lapic_base[lapic_registers::ICR_HIGH] & 0xfff00000) | 0x608;
+			get_local_data()->scheduler.sleep_ns(200'000);
+			do {
+				__asm__ volatile("pause":: : "memory");
+			} while (lapic_base[lapic_registers::ICR_LOW] & (1 << 12)); // Wait for delivered bit to clear
+		}
+	}
+
+	*real_ap_wait_flag = 1;
+	get_local_data()->scheduler.sleep(5);
+	fprintf(stdserial, "ap running count is %d\n", *real_ap_running_count);
 
 	// Switch to userspace, and stack switch, and call init
 	auto userspace_stack_top = ktask->get_code_stack().top;

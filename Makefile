@@ -1,7 +1,7 @@
 QEMU ?= qemu-system-x86_64
 TAR ?= tar
 
-QEMU_ARGS ?=
+QEMU_ARGS ?= -smp 2
 QEMU_SERIAL ?= -serial stdio
 
 BUILD_DIR ?= build
