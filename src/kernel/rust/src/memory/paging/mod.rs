@@ -113,7 +113,7 @@ impl InactivePageTable {
 			huge: false,
 			global: false,
 			no_execute: true,
-		}, allocator);
+		}, allocator).unwrap();
 
 		let p4 = unsafe { PageTable::<Level4>::new_from_addr(magicpage.start_address().0) };
 
@@ -141,21 +141,20 @@ mod c_api {
 
 	#[no_mangle]
 	extern "C" fn map_page(addr: VirtualAddress, flags: EntryFlags, allocator: Option<&mut CAllocatorVtable>) -> i32 {
-		if allocator.is_none() { return -1; }
-		PAGE_TABLE.lock().mapper().map_page(Page::with_address(addr), flags, allocator.unwrap());
-		return 0;
+		if allocator.is_none() { return -5; }
+		return PAGE_TABLE.lock().mapper().map_page(Page::with_address(addr), flags, allocator.unwrap()).map_or_else(|e| e, |o| 0).into();
+		;
 	}
 
 	#[no_mangle]
 	extern "C" fn map_page_to(virt_addr: VirtualAddress, phys_addr: PhysicalAddress, flags: EntryFlags, allocator: Option<&mut CAllocatorVtable>) -> i32 {
-		if allocator.is_none() { return -1; }
-		PAGE_TABLE.lock().mapper().map_page_to(Page::with_address(virt_addr), Frame::with_address(phys_addr), flags, allocator.unwrap());
-		return 0;
+		if allocator.is_none() { return -5; }
+		return PAGE_TABLE.lock().mapper().map_page_to(Page::with_address(virt_addr), Frame::with_address(phys_addr), flags, allocator.unwrap()).map_or_else(|e| e, |o| 0).into();
 	}
 
 	#[no_mangle]
 	extern "C" fn unmap_page(addr: VirtualAddress, allocator: Option<&mut CAllocatorVtable>) -> i32 {
-		if allocator.is_none() { return -1; }
+		if allocator.is_none() { return -5; }
 		PAGE_TABLE.lock().mapper().unmap_page(Page::with_address(addr), allocator.unwrap());
 		return 0;
 	}
@@ -220,7 +219,7 @@ mod c_api {
 			huge: false,
 			global: false,
 			no_execute: true,
-		}, allocator.unwrap());
+		}, allocator.unwrap()).unwrap();
 
 		let p4 = unsafe { PageTable::<Level4>::new_from_addr(magicpage.start_address().0) };
 

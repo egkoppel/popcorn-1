@@ -24,22 +24,24 @@ impl Mapper<'_> {
 		return Mapper { p4: p4 };
 	}
 
-	pub fn map_page_to(&mut self, page: Page, frame: Frame, flags: EntryFlags, allocator: &mut dyn Allocator) {
+	pub fn map_page_to(&mut self, page: Page, frame: Frame, flags: EntryFlags, allocator: &mut dyn Allocator) -> Result<(), i8> {
 		let p3 = self.p4.get_child_table_or_new(page.start_address().p4_index(), allocator);
 		let p2 = p3.get_child_table_or_new(page.start_address().p3_index(), allocator);
 		let p1 = p2.get_child_table_or_new(page.start_address().p2_index(), allocator);
-		p1[page.start_address().p1_index()].set_address(frame);
+		p1[page.start_address().p1_index()].set_address(frame)?;
 		p1[page.start_address().p1_index()].set_flags(flags);
 		p2[page.start_address().p2_index()].add_flags(flags);
 		p3[page.start_address().p3_index()].add_flags(flags);
 		self.p4[page.start_address().p4_index()].add_flags(flags);
+		return Ok(());
 	}
 
-	pub fn map_page(&mut self, page: Page, flags: EntryFlags, allocator: &mut dyn Allocator) {
+	pub fn map_page(&mut self, page: Page, flags: EntryFlags, allocator: &mut dyn Allocator) -> Result<(), i8> {
 		let frame_ = allocator.allocate_frame();
 		assert!(frame_.is_some(), "Couldn't allocate frame to map to {:?}", page);
 		let frame = frame_.unwrap();
-		self.map_page_to(page, frame, flags, allocator);
+		self.map_page_to(page, frame, flags, allocator)?;
+		return Ok(());
 	}
 
 	pub fn unmap_page(&mut self, page: Page, allocator: &mut dyn Allocator) {

@@ -71,14 +71,22 @@ pub struct Entry {
 }
 
 impl Entry {
-	pub fn set_address(&mut self, frame: Frame) {
-		assert!(!self.present(), "Entry is already mapped");
-		assert!(!self.no_map(), "Attempted to map page that was marked for never map");
+	pub fn set_address(&mut self, frame: Frame) -> Result<(), i8> {
+		if self.present() {
+			println!("Page already mapped");
+			return Err(-1);
+		}
+		if self.no_map() {
+			println!("Attempted to map page that was marked for never map");
+			return Err(-2);
+		}
 		self.set_present(true);
 		self.overwrite_address(frame);
+		return Ok(());
 	}
 
 	pub fn overwrite_address(&mut self, frame: Frame) {
+		serialprintln!("setting addr to 0x{:x}", frame.start_address().0 >> 12);
 		self.set_internal_address(frame.start_address().0 >> 12);
 	}
 
