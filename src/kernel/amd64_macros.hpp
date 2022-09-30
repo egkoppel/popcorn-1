@@ -22,7 +22,6 @@ extern inline void cli() {
 }
 
 extern inline void hlt() {
-	fprintf(stdserial, "hlt()");
 	__asm__ volatile("hlt");
 }
 
