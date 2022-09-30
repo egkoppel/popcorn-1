@@ -24,7 +24,9 @@ namespace multiboot {
 		BOOT_MODULE = 3,
 		MEMORY_MAP = 6,
 		FRAMEBUFFER = 8,
-		ELF_SECTIONS = 9
+		ELF_SECTIONS = 9,
+		RSDT_V1 = 14,
+		RSDT_V2 = 15
 	};
 
 	struct __attribute__((packed)) info_header {
@@ -142,6 +144,20 @@ namespace multiboot {
 		elf_sections_entry *begin();
 		elf_sections_entry *end();
 		elf_sections_entry *find_strtab();
+	};
+
+	struct __attribute__((packed)) rsdp_tag {
+		tag_header header;
+		char signature[8];
+		uint8_t checksum;
+		char oem_id[6];
+		uint8_t revision;
+		uint32_t rsdt_addr;
+		uint32_t length;
+		uint64_t xsdt_addr;
+		uint8_t extended_checksum;
+	private:
+		uint8_t _reserved[3];
 	};
 
 	class Data {
