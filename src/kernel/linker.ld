@@ -4,6 +4,9 @@ SECTIONS {
     . = 0x8000;
     .ap_bootstrap.text ALIGN(4K) :
     {
+        */ap_bootstrap*.o(.text.trampoline)
+        . = ALIGN(8);
+        *(.multiboot2)
         */ap_bootstrap*.o(.text*)
     }
     .ap_bootstrap.data ALIGN(4K) :
@@ -16,7 +19,6 @@ SECTIONS {
 
 	.kernelspace.text ALIGN(4K) : AT(ADDR(.kernelspace.text) - KERNEL_OFFSET)
 	{
-		*(.multiboot2)
 		*(EXCLUDE_FILE(*userspace/*.o */ap_bootstrap*.o) .text*)
 	}
  
