@@ -143,7 +143,7 @@ N0_RETURN_ERROR_CODE(double_fault_handler, {
 		panic("Potential stack overflow");
 	}
 
-	trace_stack_trace(100, old_base_ptr);
+	trace_stack_trace(10, old_base_ptr);
 
 	while (1);
 })
@@ -163,7 +163,7 @@ RETURN_ERROR_CODE(page_fault_handler, {
 	__asm__ volatile("movq %%cr2, %0" : "=r"(cr2));
 	fprintf(stdserial, "Attempted access to: %lp\n", cr2);
 
-	trace_stack_trace(100, old_base_ptr);
+	trace_stack_trace(10, old_base_ptr);
 	while (1);
 })
 
