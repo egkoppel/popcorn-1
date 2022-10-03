@@ -19,12 +19,13 @@ void test(void *sem) {
 	while (1);
 }
 
-int fsd_main() {
+int fsd_main(void *online_sem) {
 	journal_log("fsd started!\n");
 	void *test_sem = sem_init(1);
 	sys_spawn("test", test, test_sem);
 	journal_log("fsd waiting for sem\n");
-	sem_wait(test_sem);
+	//sem_wait(test_sem);
 	journal_log("fsd back\n");
+	sem_post(online_sem);
 	while (1);
 }

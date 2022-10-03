@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include "userspace_macros.hpp"
+#include "fsd.hpp"
 
 #define hugOS_ascii_logo \
 " \n\
@@ -30,10 +31,12 @@
 "
 
 extern "C" int uinit() {
-	//syscall(syscall_vectors::print, (uint64_t)"\033c");
-	//syscall(syscall_vectors::print, (uint64_t)hugOS_ascii_logo);
-	//syscall(syscall_vectors::print, (uint64_t)"Welcome to userspace\n\n");
-	//*reinterpret_cast<volatile int *>(NULL) = 5;
+	journal_log("uinit started\n");
+	journal_log("[TARGET REACHED] Pre-fsd\n");
+	void *fsd_online_sem = sem_init(1);
+	sys_spawn("fsd", fsd_main, fsd_online_sem);
+	sem_wait(fsd_online_sem);
+	journal_log("[TARGET REACHED] fsd\n");
 
 	while (1);
 }

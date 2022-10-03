@@ -11,6 +11,6 @@
 #ifndef HUG_FSD_HPP
 #define HUG_FSD_HPP
 
-int fsd_main();
+int fsd_main(void *);
 
 #endif //HUG_FSD_HPP

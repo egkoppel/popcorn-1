@@ -13,6 +13,6 @@
 
 #include "initramfs.hpp"
 
-[[noreturn]] extern "C" int uinit();
+extern "C" [[noreturn]] int uinit();
 
 #endif //HUG_UINIT_HPP_A

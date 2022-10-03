@@ -444,7 +444,7 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	// Switch to userspace, and stack switch, and call init
 	auto userspace_stack_top = ktask->get_code_stack().top;
 	// place init function at top of stack
-	*(reinterpret_cast<uint64_t *>(userspace_stack_top) - 1) = reinterpret_cast<uint64_t>(fsd_main);
+	*(reinterpret_cast<uint64_t *>(userspace_stack_top) - 1) = reinterpret_cast<uint64_t>(uinit);
 	// place userpace switch
 	*(reinterpret_cast<uint64_t *>(userspace_stack_top) - 2) = reinterpret_cast<uint64_t>(switch_to_user_mode);
 	auto new_stack_ptr = userspace_stack_top - 2 * 8;
