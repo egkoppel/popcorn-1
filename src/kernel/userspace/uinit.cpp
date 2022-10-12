@@ -34,9 +34,18 @@ extern "C" int uinit() {
 	journal_log("uinit started\n");
 	journal_log("[TARGET REACHED] Pre-fsd\n");
 	void *fsd_online_sem = sem_init(1);
-	sys_spawn("fsd", fsd_main, fsd_online_sem);
+	sys_spawn_1("fsd", fsd_start, (uint64_t)fsd_online_sem);
 	sem_wait(fsd_online_sem);
 	journal_log("[TARGET REACHED] fsd\n");
+
+	volatile uint64_t fsd_pid = get_pid_by_name("fsd");
+	yield();
+
+	threads::message_t send_buf;
+	send_buf._[0] = 5;
+	send_buf._[1] = 8;
+	send_buf._[7] = 2;
+	send_msg(fsd_pid, &send_buf);
 
 	while (1);
 }
