@@ -33,14 +33,17 @@ namespace syscall_vectors {
 		sem_new,
 		sem_destroy,
 
-		message_send, /* int message_send(uint64_t receiver_pid, uint64_t message) */
-		mailbox_create,
-
 		spawn,
 		mmap_anon,
 		munmap_anon,
 
-		journal_log
+		journal_log,
+
+		get_pid_by_name,
+
+		send_msg,
+		wait_msg,
+		get_msg
 	};
 }
 
