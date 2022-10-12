@@ -39,7 +39,8 @@ namespace threads {
 		READY,
 		SLEEPING,
 		WAITING_FOR_LOCK,
-		PAUSED
+		PAUSED,
+		WAITING_FOR_MSG
 	};
 
 	class Scheduler;
@@ -145,15 +146,15 @@ namespace threads {
 		}
 
 	public:
-		inline uint64_t get_pid() { return pid; }
-		inline std::string& get_name() { return name; }
-		inline task_state get_state() { return state; }
+		inline uint64_t get_pid() const { return this->pid; }
+		inline std::string& get_name() { return this->name; }
+		inline task_state get_state() const { return this->state; }
 		inline void set_state(task_state state) { this->state = state; }
-		inline uint64_t get_p4_page_table() { return p4_page_table; }
-		inline Stack& get_code_stack() { return code_stack; }
-		inline Stack& get_kernel_stack() { return kernel_stack; }
-		inline uint64_t get_time_used() { return time_used; }
-		inline uint64_t get_time_slice_length_ms() { return 50; }
+		inline uint64_t get_p4_page_table() const { return this->p4_page_table; }
+		inline Stack& get_code_stack() { return this->code_stack; }
+		inline Stack& get_kernel_stack() { return this->kernel_stack; }
+		inline uint64_t get_time_used() const { return this->time_used; }
+		inline uint64_t get_time_slice_length_ms() const { return 50; }
 	};
 
 	extern "C" void task_init(void);
@@ -244,12 +245,12 @@ namespace threads {
 		uint64_t time_left_for_current_task_ms = 0;
 
 		void task_switch(std::shared_ptr<Task> task);
-		void lock_task_switches();
-		void unlock_task_switches();
 		void update_time_used();
 		inline bool is_idle() { return current_task_ptr == nullptr; }
 
 	public:
+		void lock_task_switches();
+		void unlock_task_switches();
 		void add_task(const std::shared_ptr<Task>& task);
 		void schedule();
 		void block_task(task_state reason);
@@ -263,6 +264,7 @@ namespace threads {
 		uint64_t get_time_ns() const { return this->time_since_start_ns; }
 		void unlock_scheduler();
 		void lock_scheduler();
+		uint64_t get_current_pid() const { return this->current_task_ptr->get_pid(); }
 	};
 }
 

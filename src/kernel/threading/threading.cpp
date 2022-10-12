@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include "../smp/core_local.hpp"
 #include "../amd64_macros.hpp"
+#include "mailing.hpp"
 
 using namespace threads;
 
@@ -30,11 +31,13 @@ auto& task_list = reinterpret_cast<std::map<uint64_t, std::shared_ptr<Task>>&>(t
 std::shared_ptr<Task> threads::init_multitasking(uint64_t stack_bottom, uint64_t stack_top) {
 	new core_local();
 	new(&task_list) std::map<uint64_t, std::shared_ptr<Task>>();
+	new(&mailboxes) std::map<uint64_t, std::unique_ptr<Mailbox>>();
 
 	uint64_t cr3;
 	__asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
 	auto init_task = std::make_shared<threads::Task>("uinit", cr3, stack_top, stack_top);
 	task_list.insert({init_task->get_pid(), init_task});
+	new_mailbox(init_task->get_pid());
 	get_local_data()->scheduler.current_task_ptr = init_task;
 	get_local_data()->scheduler.time_left_for_current_task_ms = init_task->get_time_slice_length_ms();
 	task_state_segment.privilege_stack_table[0] = init_task->get_kernel_stack().top;
@@ -115,6 +118,7 @@ void Scheduler::add_task(const std::shared_ptr<Task>& task) {
 	this->lock_scheduler();
 	this->ready_to_run_tasks.push_back(task);
 	task_list.insert({task->get_pid(), task});
+	new_mailbox(task->get_pid());
 	if (this->ready_to_run_tasks.size() == 1) {
 		// If only one task before adding new task, schedule to make sure new task gets time
 		this->schedule();
