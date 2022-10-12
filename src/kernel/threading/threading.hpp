@@ -44,6 +44,9 @@ namespace threads {
 
 	class Scheduler;
 
+	uint64_t get_pid_by_name(const char *name);
+	std::shared_ptr<Task> get_task_by_pid(uint64_t pid);
+
 	extern "C" struct Task {
 		friend std::shared_ptr<Task> std::make_shared<Task>(char const (&)[6], uint64_t&, uint64_t&, uint64_t&);
 
@@ -251,6 +254,7 @@ namespace threads {
 		void schedule();
 		void block_task(task_state reason);
 		void unblock_task(const std::shared_ptr<Task>& task);
+		int unblock_task_by_pid(uint64_t);
 		inline void sleep(uint64_t ms) { this->sleep_until(get_time_ns() + ms * 1000); }
 		inline void sleep_ns(uint64_t ns) { this->sleep_until(get_time_ns() + ns); }
 		void sleep_until(uint64_t time);
