@@ -1,0 +1,8 @@
+<component name="CopyrightManager">
+  <settings default="Test">
+    <module2copyright>
+      <element module="Project Files" copyright="Test" />
+    </module2copyright>
+    <LanguageOptions name="ObjectiveC" />
+  </settings>
+</component>
