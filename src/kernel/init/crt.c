@@ -32,9 +32,9 @@ void *__dso_handle = 0;
 int __cxa_atexit(void (*f)(void *), void *objptr, void *dso) {
 	if (atexit_used >= ATEXIT_COUNT) return -1;
 	atexit_funcs[atexit_used++] = (atexit_func_entry_t){
-		.destructor_func = f,
-		.obj_ptr = objptr,
-		.dso_handle = dso
+			.destructor_func = f,
+			.obj_ptr = objptr,
+			.dso_handle = dso
 	};
 	return 0;
 }
@@ -61,7 +61,7 @@ extern ctor_func init_array_end;
 
 void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr);
 
-void __cxa_init(uint32_t multiboot_magic, uint32_t multiboot_addr) {
+_Noreturn void __cxa_init(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	printf("[    ] Running ctors\n\tstart: %lp\n\t  end: %lp\n", &start_ctors, &end_ctors);
 	ctor_func *i = &start_ctors;
 	while (i < &end_ctors) {
@@ -84,5 +84,5 @@ void __cxa_init(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 
 	__cxa_finalize(NULL);
 
-	while(1);
+	while (1) __asm__ volatile("");
 }

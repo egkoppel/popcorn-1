@@ -145,7 +145,7 @@ N0_RETURN_ERROR_CODE(double_fault_handler, {
 
 	trace_stack_trace(10, old_base_ptr);
 
-	while (1);
+	while (true) __asm__ volatile("");
 })
 
 RETURN_ERROR_CODE(page_fault_handler, {
@@ -164,7 +164,7 @@ RETURN_ERROR_CODE(page_fault_handler, {
 	fprintf(stdserial, "Attempted access to: %lp\n", cr2);
 
 	trace_stack_trace(10, old_base_ptr);
-	while (1);
+	while (true) __asm__ volatile("");
 })
 
 namespace PIC_IRQ {
@@ -195,7 +195,10 @@ RETURN_NO_ERROR_CODE(timer_interrupt_handler, {
 
 RETURN_NO_ERROR_CODE(breakpoint_handler, {
 	fprintf(stdserial, "BREAKPOINT!\n");
-	while (1);
+	/*uint64_t rsp;
+	__asm__ volatile("movq %%rsp, %0" : "=r"(rsp));
+	fprintf(stdserial, "new SP: %lp\n", rsp);*/
+	while (1) __asm__ volatile("");
 })
 
 void init_idt() {

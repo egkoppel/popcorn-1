@@ -30,7 +30,7 @@
              |___/ \n\
 "
 
-extern "C" int uinit() {
+extern "C" [[noreturn]] int uinit() {
 	journal_log("uinit started\n");
 	journal_log("[TARGET REACHED] Pre-fsd\n");
 	void *fsd_online_sem = sem_init(1);
@@ -47,5 +47,5 @@ extern "C" int uinit() {
 	send_buf._[7] = 2;
 	send_msg(fsd_pid, &send_buf);
 
-	while (1);
+	while (true) __asm__ volatile("");
 }

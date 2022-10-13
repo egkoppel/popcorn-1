@@ -9,9 +9,16 @@ CARGO ?= cargo
 INCLUDE ?= -I../libk/include -Istlport -Imemory
 
 OPT ?= 0
+
+ifeq ($(filter $(OPT),2 3 s z),)
+DEBUG ?= -g
+else
+DEBUG ?= ""
+endif
+
 WARNINGS = -Wall -Wextra -Wpedantic -Wno-language-extension-token -Werror=incompatible-pointer-types -Wno-address-of-packed-member -Wno-gnu-zero-variadic-macro-arguments -Wno-gnu-folding-constant
-CFLAGS_TEST = $(INCLUDE_TEST) -O$(OPT) $(WARNINGS) -MMD -MP -c -g -Wno-incompatible-library-redeclaration
-CFLAGS = $(INCLUDE) -O$(OPT) $(WARNINGS) -mcmodel=large -MMD -MP -c -g -nostdlib -fno-exceptions -fno-rtti -fno-stack-protector -ffreestanding -target x86_64-unknown-none-elf -mno-mmx -mno-sse -mno-sse3 -mno-sse4 -mno-avx -mno-red-zone -msoft-float
+CFLAGS_TEST = $(INCLUDE_TEST) -O$(OPT) $(WARNINGS) -MMD -MP -c $(DEBUG) -Wno-incompatible-library-redeclaration
+CFLAGS = $(INCLUDE) -O$(OPT) $(WARNINGS) -mcmodel=large -MMD -MP -c $(DEBUG) -nostdlib -fno-exceptions -fno-rtti -fno-stack-protector -ffreestanding -target x86_64-unknown-none-elf -mno-mmx -mno-sse -mno-sse3 -mno-sse4 -mno-avx -mno-red-zone -msoft-float
 CXXFLAGS = -std=c++20
 CARGOFLAGS ?=
 LDFLAGS ?=
@@ -20,7 +27,7 @@ RUST_BUILD_TYPE ?= undefined
 RUST_TARGET_NAME ?= hugos-target
 
 ifeq ($(RUST_BUILD_TYPE),undefined)
-ifeq ($(filter $(OPT),2 3),)
+ifeq ($(filter $(OPT),2 3 s z),)
 RUST_BUILD_TYPE = debug
 else
 RUST_BUILD_TYPE = release
@@ -84,7 +91,7 @@ $(BUILD_DIR)/acpi: | $(BUILD_DIR)
 	mkdir -p $(BUILD_DIR)/acpi
 
 $(BUILD_DIR)/bootstrap/%.S.o: bootstrap/%.S | $(BUILD_DIR)/bootstrap
-	$(NASM) -felf64 -g -F dwarf -o $@ $<
+	$(NASM) -felf64 $(DEBUG) -F dwarf -o $@ $<
 
 $(BUILD_DIR)/fonts/%.psf.o: fonts/%.psf | $(BUILD_DIR)/fonts
 	$(OBJCOPY) -O elf64-x86-64 -I binary \
