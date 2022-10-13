@@ -23,4 +23,4 @@ Currently only tested in `qemu`
 
 Live ISOs provided on the release page only support BIOS, not UEFI
 
-Run in qemu with `make run` - debug info will be printed to the terminal
+Run in qemu with `make run` - debug info will be printed to the terminal, or run prebuilt ISOs with `qemu-system-x86_64 -drive file=hug.iso,format=raw`
