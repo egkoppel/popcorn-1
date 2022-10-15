@@ -13,7 +13,7 @@ Should produce a live ISO in `build/`
 
 ### Build dependencies
 - `clang`
-- `gmake`
+- gnu `make`
 - `grub`
 - `nasm`
 - `cargo` - must use nightly toolchain
