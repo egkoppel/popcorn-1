@@ -56,7 +56,7 @@ int oct2bin(char *str, int size) {
 size_t Initramfs::locate_file(const char *filename, void **data) {
 	auto *ptr = reinterpret_cast<tar_file_header *>(this->data_start);
 
-	while (memcmp(ptr->ustar, "ustar", 5) == 0) {
+	while ((uint64_t)ptr < this->data_end && memcmp(ptr->ustar, "ustar", 5) == 0) {
 		int filesize = oct2bin(ptr->size, 11);
 		if (strcmp(ptr->filename, filename) == 0) {
 			*data = static_cast<void *>(ADD_BYTES(ptr, 512));
