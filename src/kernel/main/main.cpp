@@ -331,8 +331,6 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	kernel_space_mapper.set_max_addr(global_sbrk_state.kernel_end); // Don't let mapper map into the heap
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised sbrk and heap\n");
 
-	Initramfs ramfs(initramfs_address, initramfs_address + (boot_module->module_end - boot_module->module_start));
-
 	printf("[    ] Initialising multitasking\n");
 	auto ktask = threads::init_multitasking(old_p4_table_page + 0x1000, old_p4_table_page + 8 * 0x1000);
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised multitasking\n");
@@ -443,13 +441,15 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 
 	// Switch to userspace, and stack switch, and call init
 	auto userspace_stack_top = ktask->get_code_stack().top;
-	// place init function at top of stack
-	*(reinterpret_cast<uint64_t *>(userspace_stack_top) - 1) = reinterpret_cast<uint64_t>(uinit);
+	// place init function and arguments at top of stack
+	*(reinterpret_cast<uint64_t *>(userspace_stack_top) - 1) = reinterpret_cast<uint64_t>(initramfs_address);
+	*(reinterpret_cast<uint64_t *>(userspace_stack_top) - 2) = static_cast<uint64_t>(boot_module->module_end - boot_module->module_start);
+	*(reinterpret_cast<uint64_t *>(userspace_stack_top) - 3) = reinterpret_cast<uint64_t>(uinit);
 	// place userpace switch
-	*(reinterpret_cast<uint64_t *>(userspace_stack_top) - 2) = reinterpret_cast<uint64_t>(switch_to_user_mode);
-	auto new_stack_ptr = userspace_stack_top - 2 * 8;
+	*(reinterpret_cast<uint64_t *>(userspace_stack_top) - 4) = reinterpret_cast<uint64_t>(switch_to_user_mode);
+	auto new_stack_ptr = userspace_stack_top - 4 * 8;
 
 	__asm__ volatile("xor %%rbp, %%rbp; mov %%rax, %%rsp; ret;" : : "a"(new_stack_ptr));
 
-	panic("");
+	panic("unreachable!");
 }
