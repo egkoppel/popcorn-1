@@ -45,9 +45,6 @@ namespace threads {
 
 	class Scheduler;
 
-	uint64_t get_pid_by_name(const char *name);
-	std::shared_ptr<Task> get_task_by_pid(uint64_t pid);
-
 	extern "C" struct Task {
 		friend std::shared_ptr<Task> std::make_shared<Task>(char const (&)[6], uint64_t&, uint64_t&, uint64_t&);
 
@@ -64,6 +61,7 @@ namespace threads {
 		std::string name;
 		task_state state = task_state::READY;
 		uint64_t time_used = 0;
+		syscall_handle_t handle = 0;
 
 		static const uint64_t userspace_stack_top = 0x7fff'ffff'ffff;
 		static const uint64_t userspace_stack_size = 8 * 0x1000;
@@ -155,6 +153,8 @@ namespace threads {
 		inline Stack& get_kernel_stack() { return this->kernel_stack; }
 		inline uint64_t get_time_used() const { return this->time_used; }
 		inline uint64_t get_time_slice_length_ms() const { return 50; }
+		inline syscall_handle_t get_handle() const { return this->handle; }
+		inline void set_handle(syscall_handle_t handle) { this->handle = handle; };
 	};
 
 	extern "C" void task_init(void);
@@ -247,15 +247,14 @@ namespace threads {
 		void task_switch(std::shared_ptr<Task> task);
 		void update_time_used();
 		inline bool is_idle() { return current_task_ptr == nullptr; }
-
-	public:
 		void lock_task_switches();
 		void unlock_task_switches();
+
+	public:
 		void add_task(const std::shared_ptr<Task>& task);
 		void schedule();
 		void block_task(task_state reason);
 		void unblock_task(const std::shared_ptr<Task>& task);
-		int unblock_task_by_pid(uint64_t);
 		inline void sleep(uint64_t ms) { this->sleep_until(get_time_ns() + ms * 1000); }
 		inline void sleep_ns(uint64_t ns) { this->sleep_until(get_time_ns() + ns); }
 		void sleep_until(uint64_t time);
@@ -264,7 +263,7 @@ namespace threads {
 		uint64_t get_time_ns() const { return this->time_since_start_ns; }
 		void unlock_scheduler();
 		void lock_scheduler();
-		uint64_t get_current_pid() const { return this->current_task_ptr->get_pid(); }
+		inline const std::shared_ptr<Task>& get_current_task() const { return this->current_task_ptr; }
 	};
 }
 

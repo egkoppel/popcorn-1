@@ -9,8 +9,3 @@
  */
 
 #include "userspace_macros.hpp"
-
-unsigned long long __attribute__((naked))
-_syscall5(unsigned long long syscallNo, unsigned long long arg1, unsigned long long arg2, unsigned long long arg3, unsigned long long arg4, unsigned long long arg5) {
-	__asm__ volatile("mov %r9, %rax; mov %r8, %r9; mov %rcx, %r8; syscall; ret;");
-}

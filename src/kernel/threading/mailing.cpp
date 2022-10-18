@@ -10,18 +10,22 @@
  */
 
 #include "mailing.hpp"
+#include "../interrupts/handle_table.hpp"
 
-alignas(alignof(std::map<uint64_t, threads::Mailbox>)) static char mailboxes_[sizeof(std::map<uint64_t, threads::Mailbox>)]; // memory for the stream object
-auto& threads::mailboxes = reinterpret_cast<std::map<uint64_t, Mailbox>&>(mailboxes_);
+alignas(alignof(SyscallHandleTable<threads::Mailbox, syscall_handle_type::syscall_handle_type::MAILBOX>)) static char mailbox_handles_list_[sizeof(SyscallHandleTable<threads::Mailbox, syscall_handle_type::syscall_handle_type::MAILBOX>)]; // memory for the stream object
+auto& mailbox_handles_list = reinterpret_cast<SyscallHandleTable<threads::Mailbox, syscall_handle_type::syscall_handle_type::MAILBOX>&>(mailbox_handles_list_);
 
-threads::Mailbox *threads::get_mailbox(uint64_t pid) {
-	if (auto task = mailboxes.find(pid); task != mailboxes.end()) {
-		return &task->second;
-	} else {
-		return nullptr;
-	}
+threads::Mailbox *threads::get_mailbox(syscall_handle_t handle) {
+	return mailbox_handles_list.get_data_from_handle_ptr(handle);
 }
 
-void threads::new_mailbox(uint64_t pid) {
-	mailboxes.insert({pid, Mailbox()});
+syscall_handle_t threads::new_mailbox(std::shared_ptr<Task> for_task) {
+	return mailbox_handles_list.new_handle(Mailbox(for_task));
+}
+
+void threads::destroy_mailbox(syscall_handle_t handle) {
+	mailbox_handles_list.free_handle(handle);
+}
+void threads::mailboxes_init() {
+	new(&mailbox_handles_list) SyscallHandleTable<threads::Mailbox, syscall_handle_type::syscall_handle_type::MAILBOX>();
 }

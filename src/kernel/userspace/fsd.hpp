@@ -11,6 +11,8 @@
 #ifndef HUG_FSD_HPP
 #define HUG_FSD_HPP
 
-[[noreturn]] int fsd_start(void *);
+#include <stdint.h>
+
+[[noreturn]] int fsd_start(void *online_sem, void *ramfs_data, uint64_t ramfs_size);
 
 #endif //HUG_FSD_HPP

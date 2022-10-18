@@ -12,7 +12,7 @@
 #include "../threading/threading.hpp"
 #include "../threading/mailing.hpp"
 #include <stdio.h>
-#include <vector>
+#include <map>
 #include <stdatomic.h>
 #include "../threading/mutex.hpp"
 #include "../threading/semaphore.hpp"
@@ -40,124 +40,201 @@ uint64_t syscall_print(uint64_t arg1, uint64_t arg2) {
 }
 
 union int_uint64_t { uint64_t u; int64_t i; };
-#define SYSCALL_HANDLER_RET_I(x) { union int_uint64_t a { .i = x}; return a.u; }
-#define SYSCALL_HANDLER_RET_U(x) { return x; }
+#define SYSCALL_ARGU(x) *reinterpret_cast<uint64_t *>(&(x))
 
-uint64_t syscall_handler(uint64_t syscall_number, uint64_t arg1, uint64_t arg2, uint64_t arg3, uint64_t arg4, uint64_t arg5) {
+static inline int64_t get_current_task() {
+	auto local_data = get_local_data();
+	return local_data->scheduler.get_current_task()->get_handle();
+}
+static inline int64_t yield() {
+	auto local_data = get_local_data();
+	local_data->scheduler.lock_scheduler();
+	local_data->scheduler.schedule();
+	local_data->scheduler.unlock_scheduler();
+	return 0;
+}
+static inline int64_t exit(int64_t code) { return -1; }
+static inline int64_t sleep(int64_t microseconds) {
+	auto local_data = get_local_data();
+	local_data->scheduler.sleep_ns(microseconds * 1000);
+	return 0;
+}
+static inline int64_t suspend() {
+	auto local_data = get_local_data();
+	local_data->scheduler.block_task(threads::task_state::PAUSED);
+	return 0;
+}
+static inline int64_t resume(syscall_handle_t handle) {
+	auto local_data = get_local_data();
+	//local_data->scheduler.unblock_task(threads::task_state::PAUSED);
+	return -2;
+}
+static inline int64_t spawn(uint64_t name_, uint64_t entrypoint_, uint64_t arg1, uint64_t arg2, uint64_t arg3) {
+	auto name = reinterpret_cast<char *>(name_);
+	auto entrypoint = reinterpret_cast<void (*)(uint64_t, uint64_t, uint64_t)>(entrypoint_);
+
+	auto local_data = get_local_data();
+	auto new_proc = threads::new_proc(std::string(name), entrypoint, arg1, arg2, arg3);
+	local_data->scheduler.add_task(new_proc);
+	return new_proc->get_handle();
+}
+static inline int64_t get_time_used() {
+	auto local_data = get_local_data();
+	return local_data->scheduler.get_current_task()->get_time_used();
+}
+
+static inline int64_t mailbox_new() {
+	return threads::new_mailbox(get_local_data()->scheduler.get_current_task());
+}
+static inline int64_t mailbox_send(syscall_handle_t handle, uint64_t timeout, uint64_t data_) {
+	auto data = reinterpret_cast<void *>(data_);
+	auto mbox = threads::get_mailbox(handle);
+	if (!mbox) return -1;
+
 	auto local_data = get_local_data();
 
-	switch (syscall_number) {
-		case syscall_vectors::yield: {
-			local_data->scheduler.lock_scheduler();
-			local_data->scheduler.schedule();
-			local_data->scheduler.unlock_scheduler();
-			return 0;
-		}
-			//case syscall_vectors::serial_write: SYSCALL_HANDLER_RET_U(syscall_serial_write(arg1, arg2));
-		case syscall_vectors::journal_log: SYSCALL_HANDLER_RET_U(syscall_serial_write(arg1, arg2));
-		case syscall_vectors::get_time_used: SYSCALL_HANDLER_RET_U(local_data->scheduler.get_time_used());
-		case syscall_vectors::sleep: {
-			local_data->scheduler.sleep(arg1);
-			SYSCALL_HANDLER_RET_U(0);
-		}
+	threads::message_t buf;
+	memcpy(&buf.data, data, sizeof(buf.data));
+	buf.sender = local_data->scheduler.get_current_task()->get_handle();
 
+	auto recv_task = mbox->get_owning_task();
+	auto send_success = mbox->send_message(&buf);
+	if (send_success == 0 && recv_task->get_state() == threads::task_state::WAITING_FOR_MSG) local_data->scheduler.unblock_task(recv_task); // Unblock if waiting on message
+
+	return send_success;
+}
+static inline int64_t mailbox_recv(syscall_handle_t handle, uint64_t timeout, uint64_t data_) {
+	auto data = reinterpret_cast<threads::message_t *>(data_);
+	auto mbox = threads::get_mailbox(handle);
+	if (!mbox) return -1;
+
+	auto local_data = get_local_data();
+
+	if (mbox->get_message(data) == 0) return 0;
+	local_data->scheduler.block_task(threads::task_state::WAITING_FOR_MSG);
+	// Unlocked only if message arrived
+	return (mbox->get_message(data));
+}
+static inline int64_t mailbox_destroy(syscall_handle_t handle) {
+	threads::destroy_mailbox(handle);
+	return 0;
+}
+
+int64_t syscall_handler(uint64_t syscall_number, int64_t arg1, int64_t arg2, int64_t arg3, int64_t arg4, int64_t arg5) {
+	switch (syscall_number) {
+		// SCHEDULING
+		case syscall_vectors::get_current_task: return get_current_task();
+		case syscall_vectors::yield: return yield();
+		case syscall_vectors::exit: return exit(arg1);
+		case syscall_vectors::sleep: return sleep(arg1);
+		case syscall_vectors::suspend: return suspend();
+		case syscall_vectors::resume: return resume(arg1);
+		case syscall_vectors::spawn: return spawn(SYSCALL_ARGU(arg1), SYSCALL_ARGU(arg2), SYSCALL_ARGU(arg3), SYSCALL_ARGU(arg4), SYSCALL_ARGU(arg5));
+		case syscall_vectors::get_time_used: return get_time_used();
+
+			// FUTEX
+
+			// IPC
+
+			// VM
+
+			// IRQ
+		case syscall_vectors::mailbox_new: return mailbox_new();
+		case syscall_vectors::mailbox_send: return mailbox_send(arg1, SYSCALL_ARGU(arg2), SYSCALL_ARGU(arg3));
+		case syscall_vectors::mailbox_recv: return mailbox_recv(arg1, SYSCALL_ARGU(arg2), SYSCALL_ARGU(arg3));
+		case syscall_vectors::mailbox_destroy: return mailbox_destroy(arg1);
+
+			// LEGACY SYSCALLS
 		case syscall_vectors::mutex_lock: {
 			((threads::Mutex *)arg1)->lock();
-			SYSCALL_HANDLER_RET_U(0);
+			return 0;
 		}
 		case syscall_vectors::mutex_unlock: {
 			((threads::Mutex *)arg1)->unlock();
-			SYSCALL_HANDLER_RET_U(0);
+			return 0;
 		}
 		case syscall_vectors::mutex_try_lock: {
-			SYSCALL_HANDLER_RET_U(((threads::Mutex *)arg1)->try_lock());
+			return (((threads::Mutex *)arg1)->try_lock());
 		}
 		case syscall_vectors::mutex_new: {
-			SYSCALL_HANDLER_RET_U((uint64_t)(new threads::Mutex()));
+			return ((uint64_t)(new threads::Mutex()));
 		}
 		case syscall_vectors::mutex_destroy: {
 			delete (threads::Mutex *)arg1;
-			SYSCALL_HANDLER_RET_U(0);
+			return 0;
 		}
 
 		case syscall_vectors::sem_post: {
 			((threads::Semaphore *)arg1)->post();
-			SYSCALL_HANDLER_RET_U(0);
+			return 0;
 		}
 		case syscall_vectors::sem_wait: {
 			((threads::Semaphore *)arg1)->wait();
-			SYSCALL_HANDLER_RET_U(0);
+			return 0;
 		}
 		case syscall_vectors::sem_get_count: {
-			SYSCALL_HANDLER_RET_U(((threads::Semaphore *)arg1)->get_count());
+			return (((threads::Semaphore *)arg1)->get_count());
 		}
 		case syscall_vectors::sem_new: {
-			SYSCALL_HANDLER_RET_U((uint64_t)(new threads::Semaphore(arg1)));
+			return ((uint64_t)(new threads::Semaphore(arg1)));
 		}
 		case syscall_vectors::sem_destroy: {
 			delete (threads::Semaphore *)arg1;
-			SYSCALL_HANDLER_RET_U(0);
+			return 0;
 		}
-		case syscall_vectors::spawn: {
-			auto new_proc = threads::new_proc(std::string((char *)arg1), (void (*)(uint64_t, uint64_t, uint64_t))arg2, (uint64_t)arg3, (uint64_t)arg4, (uint64_t)arg5);
-			local_data->scheduler.add_task(new_proc);
-			SYSCALL_HANDLER_RET_U(0);
-		}
-		case syscall_vectors::mmap_anon: {
-			auto start_address = ALIGN_DOWN(arg1, 0x1000);
-			auto size = ALIGN_UP(arg2, 0x1000);
-			auto page_count = IDIV_ROUND_UP(size, 0x1000);
-			fprintf(stdserial, "mmap(%llx, %llx) at %p, size %llx (%lld pages)\n", arg1, arg2, start_address, size,
-			        page_count);
 
-			entry_flags_t page_flags = {
-					.writeable = (bool)(arg3 & mmap_flags::PROT_WRITE),
-					.user_accessible = true,
-					.write_through = false,
-					.cache_disabled = false,
-					.accessed = false,
-					.dirty = false,
-					.huge = false,
-					.global = false,
-					.no_execute = !(bool)(arg3 & mmap_flags::PROT_EXEC),
-			};
+			/*case syscall_vectors::mmap_anon: {
+				auto start_address = ALIGN_DOWN(arg1, 0x1000);
+				auto size = ALIGN_UP(arg2, 0x1000);
+				auto page_count = IDIV_ROUND_UP(size, 0x1000);
+				fprintf(stdserial, "mmap(%llx, %llx) at %p, size %llx (%lld pages)\n", arg1, arg2, start_address, size,
+						page_count);
 
-			fprintf(stdserial, "mmap flags w:%d, nx:%d\n", (bool)(arg3 & mmap_flags::PROT_WRITE), !(bool)(arg3 & mmap_flags::PROT_EXEC));
+				entry_flags_t page_flags = {
+						.writeable = (bool)(arg3 & mmap_flags::PROT_WRITE),
+						.user_accessible = true,
+						.write_through = false,
+						.cache_disabled = false,
+						.accessed = false,
+						.dirty = false,
+						.huge = false,
+						.global = false,
+						.no_execute = !(bool)(arg3 & mmap_flags::PROT_EXEC),
+				};
 
-			for (uint64_t i = 0; i < page_count; i++) {
-				map_page(start_address + i * 0x1000, page_flags, global_frame_allocator);
+				fprintf(stdserial, "mmap flags w:%d, nx:%d\n", (bool)(arg3 & mmap_flags::PROT_WRITE), !(bool)(arg3 & mmap_flags::PROT_EXEC));
+
+				for (uint64_t i = 0; i < page_count; i++) {
+					map_page(start_address + i * 0x1000, page_flags, global_frame_allocator);
+				}
+
+				SYSCALL_HANDLER_RET_U(start_address);
 			}
+			case syscall_vectors::send_msg: {
+				auto pid_to_send_to = arg1;
+				auto get_buf = (threads::message_t *)arg2;
+				get_buf->sender = local_data->scheduler.get_current_pid();
 
-			SYSCALL_HANDLER_RET_U(start_address);
-		}
-		case syscall_vectors::get_pid_by_name: {
-			auto name = (const char *)arg1;
-			SYSCALL_HANDLER_RET_U(threads::get_pid_by_name(name));
-		}
-		case syscall_vectors::send_msg: {
-			auto pid_to_send_to = arg1;
-			auto get_buf = (threads::message_t *)arg2;
-
-			if (auto mailbox = threads::get_mailbox(pid_to_send_to); mailbox != nullptr) {
-				auto task = threads::get_task_by_pid(pid_to_send_to);
-				auto send_success = mailbox->send_message(get_buf);
-				if (send_success == 0 && task->get_state() == threads::task_state::WAITING_FOR_MSG) local_data->scheduler.unblock_task_by_pid(pid_to_send_to); // Unblock if waiting on message
-				SYSCALL_HANDLER_RET_I(send_success);
-			} else SYSCALL_HANDLER_RET_I(-2);
-		}
-		case syscall_vectors::get_msg: {
-			auto store_buf = (threads::message_t *)arg1;
-			SYSCALL_HANDLER_RET_I(threads::get_mailbox(local_data->scheduler.get_current_pid())->get_message(store_buf));
-		}
-		case syscall_vectors::wait_msg: {
-			auto store_buf = (threads::message_t *)arg1;
-			if (threads::get_mailbox(local_data->scheduler.get_current_pid())->get_message(store_buf) == 0) SYSCALL_HANDLER_RET_I(0);
-			get_local_data()->scheduler.block_task(threads::task_state::WAITING_FOR_MSG);
-			// Unlocked only if message arrived
-			SYSCALL_HANDLER_RET_I(threads::get_mailbox(local_data->scheduler.get_current_pid())->get_message(store_buf));
-		}
+				if (auto mailbox = threads::get_mailbox(pid_to_send_to); mailbox != nullptr) {
+					auto task = threads::get_task_by_pid(pid_to_send_to);
+					auto send_success = mailbox->send_message(get_buf);
+					if (send_success == 0 && task->get_state() == threads::task_state::WAITING_FOR_MSG) local_data->scheduler.unblock_task_by_pid(pid_to_send_to); // Unblock if waiting on message
+					SYSCALL_HANDLER_RET_I(send_success);
+				} else SYSCALL_HANDLER_RET_I(-2);
+			}
+			case syscall_vectors::get_msg: {
+				auto store_buf = (threads::message_t *)arg1;
+				SYSCALL_HANDLER_RET_I(threads::get_mailbox(local_data->scheduler.get_current_pid())->get_message(store_buf));
+			}
+			case syscall_vectors::wait_msg: {
+				auto store_buf = (threads::message_t *)arg1;
+				if (threads::get_mailbox(local_data->scheduler.get_current_pid())->get_message(store_buf) == 0) SYSCALL_HANDLER_RET_I(0);
+				get_local_data()->scheduler.block_task(threads::task_state::WAITING_FOR_MSG);
+				// Unlocked only if message arrived
+				SYSCALL_HANDLER_RET_I(threads::get_mailbox(local_data->scheduler.get_current_pid())->get_message(store_buf));
+			}*/
 		default: break;
 	}
 
-	SYSCALL_HANDLER_RET_I(-1);
+	return INT64_MIN;
 }

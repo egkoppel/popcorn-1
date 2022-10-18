@@ -15,16 +15,20 @@
 #include <deque>
 #include <map>
 #include <memory>
+#include <utility>
+#include "../interrupts/handle_table.hpp"
+#include "threading.hpp"
 
 #define MAX_MAILBOX_SIZE 16
 #define MESSAGE_SIZE 256
 
 namespace threads {
-	using message_t = struct { char _[MESSAGE_SIZE]; };
+	using message_t = struct { uint64_t sender; char data[MESSAGE_SIZE]; };
 
 	class Mailbox {
 	private:
 		std::deque<message_t> mail;
+		std::shared_ptr<Task> task;
 	public:
 		inline int send_message(message_t *message) {
 			if (mail.size() >= MAX_MAILBOX_SIZE) return -1;
@@ -38,12 +42,16 @@ namespace threads {
 			mail.pop_front();
 			return 0;
 		}
+
+		explicit Mailbox(std::shared_ptr<Task> for_task) : task(for_task) {}
+		inline std::shared_ptr<Task> get_owning_task() const { return this->task; };
 	};
 
-	Mailbox *get_mailbox(uint64_t pid);
-	void new_mailbox(uint64_t pid);
+	Mailbox *get_mailbox(syscall_handle_t handle);
+	syscall_handle_t new_mailbox(std::shared_ptr<Task> for_task);
+	void destroy_mailbox(syscall_handle_t handle);
 
-	extern std::map<uint64_t, Mailbox>& mailboxes;
+	void mailboxes_init();
 }
 
 #endif //HUG_MAILING_HPP

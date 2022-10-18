@@ -13,6 +13,6 @@
 
 #include "initramfs.hpp"
 
-extern "C" [[noreturn]] int uinit();
+[[noreturn, gnu::naked]] int uinit();
 
 #endif //HUG_UINIT_HPP_A

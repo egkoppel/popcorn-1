@@ -16,6 +16,7 @@
 #include "../smp/core_local.hpp"
 #include "../amd64_macros.hpp"
 #include "mailing.hpp"
+#include "../interrupts/handle_table.hpp"
 
 using namespace threads;
 
@@ -23,21 +24,21 @@ atomic_uint_fast64_t threads::next_pid = 1;
 
 extern "C" void task_switch_asm(Task *new_task, Task *old_task);
 
-alignas(alignof(std::map<uint64_t, std::shared_ptr<Task>>)) static char task_list_[sizeof(std::map<uint64_t, std::shared_ptr<Task>>)]; // memory for the stream object
-auto& task_list = reinterpret_cast<std::map<uint64_t, std::shared_ptr<Task>>&>(task_list_);
+alignas(alignof(SyscallHandleTable<std::shared_ptr<Task>, syscall_handle_type::syscall_handle_type::TASK>)) static char task_handles_list_[sizeof(SyscallHandleTable<std::shared_ptr<Task>, syscall_handle_type::syscall_handle_type::TASK>)]; // memory for the stream object
+auto& task_handles_list = reinterpret_cast<SyscallHandleTable<std::shared_ptr<Task>, syscall_handle_type::syscall_handle_type::TASK>&>(task_handles_list_);
 
 #define TIMER_FREQ (1000)
 
 std::shared_ptr<Task> threads::init_multitasking(uint64_t stack_bottom, uint64_t stack_top) {
 	new core_local();
-	new(&task_list) std::map<uint64_t, std::shared_ptr<Task>>();
-	new(&mailboxes) std::map<uint64_t, std::unique_ptr<Mailbox>>();
+	new(&task_handles_list) SyscallHandleTable<std::shared_ptr<Task>, syscall_handle_type::syscall_handle_type::TASK>();
+	mailboxes_init();
 
 	uint64_t cr3;
 	__asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
 	auto init_task = std::make_shared<threads::Task>("uinit", cr3, stack_top, stack_top);
-	task_list.insert({init_task->get_pid(), init_task});
-	new_mailbox(init_task->get_pid());
+	auto handle = task_handles_list.new_handle(init_task);
+	init_task->set_handle(handle);
 	get_local_data()->scheduler.current_task_ptr = init_task;
 	get_local_data()->scheduler.time_left_for_current_task_ms = init_task->get_time_slice_length_ms();
 	task_state_segment.privilege_stack_table[0] = init_task->get_kernel_stack().top;
@@ -117,8 +118,8 @@ void Scheduler::schedule() {
 void Scheduler::add_task(const std::shared_ptr<Task>& task) {
 	this->lock_scheduler();
 	this->ready_to_run_tasks.push_back(task);
-	task_list.insert({task->get_pid(), task});
-	new_mailbox(task->get_pid());
+	auto handle = task_handles_list.new_handle(task);
+	task->set_handle(handle);
 	if (this->ready_to_run_tasks.size() == 1) {
 		// If only one task before adding new task, schedule to make sure new task gets time
 		this->schedule();
@@ -229,7 +230,7 @@ uint64_t Scheduler::get_time_used() {
 	return this->current_task_ptr->get_time_used();
 }
 
-uint64_t threads::get_pid_by_name(const char *name) {
+/*uint64_t threads::get_pid_by_name(const char *name) {
 	auto name_equal = [name](std::pair<const uint64_t, std::shared_ptr<Task>> i) { return i.second->get_name() == name; };
 
 	if (auto task = std::find_if(task_list.begin(), task_list.end(), name_equal); task != task_list.end()) {
@@ -250,5 +251,7 @@ std::shared_ptr<Task> threads::get_task_by_pid(uint64_t pid) {
 int Scheduler::unblock_task_by_pid(uint64_t pid) {
 	if (auto task = task_list.find(pid); task != task_list.end()) {
 		this->unblock_task(task->second);
+		return 0;
 	} else return -1;
 }
+*/

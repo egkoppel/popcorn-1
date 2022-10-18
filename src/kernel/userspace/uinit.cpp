@@ -30,22 +30,32 @@
              |___/ \n\
 "
 
-extern "C" [[noreturn]] int uinit() {
-	journal_log("uinit started\n");
-	journal_log("[TARGET REACHED] Pre-fsd\n");
-	void *fsd_online_sem = sem_init(1);
-	sys_spawn_1("fsd", fsd_start, (uint64_t)fsd_online_sem);
-	sem_wait(fsd_online_sem);
-	journal_log("[TARGET REACHED] fsd\n");
-
-	volatile uint64_t fsd_pid = get_pid_by_name("fsd");
-	yield();
-
-	threads::message_t send_buf;
-	send_buf._[0] = 5;
-	send_buf._[1] = 8;
-	send_buf._[7] = 2;
-	send_msg(fsd_pid, &send_buf);
+[[noreturn]] int message_test(int64_t mailbox) {
+	char buf[256] = {5, 1, 4, 7, 1, 6, 8, 2, 4, 7, 8, 2, 1};
+	uint64_t status = send_msg(mailbox, 0, buf);
 
 	while (true) __asm__ volatile("");
+}
+
+[[noreturn]] int uinit_main(void *ramfs_data, uint64_t ramfs_size) {
+	void *fsd_online_sem = sem_init(1);
+	sys_spawn_3("fsd", fsd_start, fsd_online_sem, ramfs_data, ramfs_size);
+	sem_wait(fsd_online_sem);
+
+	auto mbox_handle = mbox_new();
+	sys_spawn_1("test", message_test, mbox_handle);
+	threads::message_t buf;
+	recv_msg(mbox_handle, 0, &buf);
+
+	mbox_destroy(mbox_handle);
+	yield();
+
+	while (true) __asm__ volatile("");
+}
+
+[[noreturn, gnu::naked]] int uinit() {
+	__asm__ volatile("pop %rsi"); // pop argument off stack
+	__asm__ volatile("pop %rdi"); // pop argument off stack
+	__asm__ volatile("andq $-16, %rsp"); // align stack
+	__asm__ volatile("jmp %P0" : : "i"(uinit_main));
 }

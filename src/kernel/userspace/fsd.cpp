@@ -10,18 +10,15 @@
 
 #include "fsd.hpp"
 #include "userspace_macros.hpp"
+#include "initramfs.hpp"
 
-[[noreturn]] int fsd_start(void *online_sem) {
-	journal_log("fsd started!\n");
-	journal_log("fsd online\nmounting ramdisk\n");
+[[noreturn]] int fsd_start(void *online_sem, void *ramfs_data, uint64_t ramfs_size) {
+	Initramfs ramfs((uint64_t)ramfs_data, (uint64_t)ramfs_data + ramfs_size);
 
-	__asm__ volatile("int3");
-	while (1) __asm__ volatile("");
+	void *data;
+	size_t data_len = ramfs.locate_file("initramfs/.placeholder", &data);
 
 	sem_post(online_sem);
-	threads::message_t recv;
-	wait_msg(&recv);
 
-	while (1);// __asm__ volatile("");
-	return -1;
+	while (true) __asm__ volatile("");
 }
