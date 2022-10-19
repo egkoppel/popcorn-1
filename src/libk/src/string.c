@@ -74,6 +74,14 @@ __attribute__((section(".userspace.text"))) int strcmp(const char *s1, const cha
 	}
 }
 
+__attribute__((section(".userspace.text"))) char *strcpy(char *destination, const char *source) {
+	size_t i = 0;
+	while ((destination[i] = source[i]) != '\0') {
+		i++;
+	}
+	return destination;
+}
+
 __attribute__((section(".userspace.text"))) int strncmp(const char *s1, const char *s2, size_t n) {
 	if (s1 == NULL || s2 == NULL) {
 		if (s1 < s2) return -1;
@@ -94,4 +102,11 @@ __attribute__((section(".userspace.text"))) int strncmp(const char *s1, const ch
 			return c1 - c2;
 		}
 	}
+}
+
+__attribute__((section(".userspace.text"))) char *strcat(char *destination, const char *source) {
+	size_t dest_strlen = strlen(destination);
+	size_t src_strlen = strlen(source);
+	memcpy(destination + dest_strlen, source, src_strlen + 1);
+	return destination;
 }
