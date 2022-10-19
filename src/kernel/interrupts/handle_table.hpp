@@ -96,7 +96,7 @@ public:
 
 		if (data == this->table.end()) return error_val;
 		if (epoch == this->epochs.end()) return error_val;
-		if (handle.get_epoch() != epoch) return error_val;
+		if (handle.get_epoch() != epoch->second) return error_val;
 
 		return data->second;
 	}
