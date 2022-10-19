@@ -119,6 +119,18 @@ static inline int64_t mailbox_destroy(syscall_handle_t handle) {
 	threads::destroy_mailbox(handle);
 	return 0;
 }
+static inline int64_t mailbox_transfer(syscall_handle_t mailbox_handle, syscall_handle_t task_handle) {
+	auto mbox = threads::get_mailbox(mailbox_handle);
+	if (!mbox) return -1;
+
+	auto task = threads::task_handles_list.get_data_from_handle(task_handle, std::shared_ptr<threads::Task>(nullptr));
+	if (!task) return -2;
+
+	if (mbox->get_owning_task() != get_local_data()->scheduler.get_current_task()) return -3;
+
+	mbox->set_owning_task(task);
+	return 0;
+}
 
 int64_t syscall_handler(uint64_t syscall_number, int64_t arg1, int64_t arg2, int64_t arg3, int64_t arg4, int64_t arg5) {
 	switch (syscall_number) {
@@ -143,6 +155,7 @@ int64_t syscall_handler(uint64_t syscall_number, int64_t arg1, int64_t arg2, int
 		case syscall_vectors::mailbox_send: return mailbox_send(arg1, SYSCALL_ARGU(arg2), SYSCALL_ARGU(arg3));
 		case syscall_vectors::mailbox_recv: return mailbox_recv(arg1, SYSCALL_ARGU(arg2), SYSCALL_ARGU(arg3));
 		case syscall_vectors::mailbox_destroy: return mailbox_destroy(arg1);
+		case syscall_vectors::mailbox_transfer: return mailbox_transfer(arg1, arg2);
 
 			// LEGACY SYSCALLS
 		case syscall_vectors::mutex_lock: {

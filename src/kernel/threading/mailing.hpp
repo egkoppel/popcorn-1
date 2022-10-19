@@ -45,6 +45,7 @@ namespace threads {
 
 		explicit Mailbox(std::shared_ptr<Task> for_task) : task(for_task) {}
 		inline std::shared_ptr<Task> get_owning_task() const { return this->task; };
+		inline void set_owning_task(std::shared_ptr<Task> task) { this->task = task; };
 	};
 
 	Mailbox *get_mailbox(syscall_handle_t handle);
