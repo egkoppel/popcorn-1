@@ -140,7 +140,7 @@ $(BUILD_DIR)/threading/%.S.o: threading/%.S | $(BUILD_DIR)/threading
 -include $(RUST_LIB_DIR)/libhugos.d
 $(RUST_LIB_DIR)/libhugos.a:
 ifeq ($(RUST_BUILD_TYPE),release)
-	+cd $(RUST_DIR) && $(CARGO) build --release
+	+cd $(RUST_DIR) && RUSTFLAGS="-C opt-level=$(OPT)" $(CARGO) build --release
 else
 	+cd $(RUST_DIR) && $(CARGO) build
 endif
