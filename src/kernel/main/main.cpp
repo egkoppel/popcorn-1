@@ -84,11 +84,12 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	global_descriptor_table.load();
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded GDT\n");
 
-	// Load STAR and LSTAR registers with syscall handler
+	// Load STAR and LSTAR registers with syscall handler, and set IF bit in SFMASK register to disable interrupts for proper SWAPGS handling
 	__asm__ volatile("mov $0xC0000081, %%ecx; mov $0, %%eax; mov $0x001B0008, %%edx; wrmsr;" : : : "%eax", "%edx", "%ecx"); // STAR
 	uint32_t handler_low = (uint64_t)syscall_long_mode_handler;
 	uint32_t handler_high = (uint64_t)syscall_long_mode_handler >> 32;
 	__asm__ volatile("mov $0xC0000082, %%ecx; wrmsr;" : : "d"(handler_high), "a"(handler_low) : "%ecx"); // LSTAR
+	__asm__ volatile("mov $0xC0000084, %%ecx; wrmsr;" : : "d"(0), "a"(1 << 9) : "%ecx"); // SFMASK set IF bit
 
 	printf("[    ] Initialising memory\n");
 
