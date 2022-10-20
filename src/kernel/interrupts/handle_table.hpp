@@ -87,7 +87,7 @@ private:
 public:
 	SyscallHandleTable() : next_key(0), table(), epochs(), free_keys() {}
 
-	template<class E> T& get_data_from_handle(syscall_handle_t handle, E error_val) {
+	template<class E> T& get_data_from_handle(syscall_handle_t handle, E&& error_val) {
 		if (handle <= 0) return error_val;
 		if (handle.get_type() != handle_type) return error_val;
 
