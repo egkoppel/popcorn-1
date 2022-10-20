@@ -33,6 +33,8 @@ namespace syscall_vectors {
 		mailbox_recv = 0x202,
 		mailbox_destroy = 0x203,
 		mailbox_transfer = 0x204,
+		mailbox_reply = 0x205,
+		mailbox_send_with_reply = 0x206,
 
 		region_new = 0x300,
 		region_new_anon = 0x301,

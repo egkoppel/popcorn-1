@@ -66,8 +66,10 @@ static inline int64_t suspend() {
 }
 static inline int64_t resume(syscall_handle_t handle) {
 	auto local_data = get_local_data();
-	//local_data->scheduler.unblock_task(threads::task_state::PAUSED);
-	return -2;
+	auto task = threads::task_handles_list.get_data_from_handle(handle, std::shared_ptr<threads::Task>(nullptr));
+	if (!task) return -1;
+	local_data->scheduler.unblock_task(task);
+	return 0;
 }
 static inline int64_t spawn(uint64_t name_, uint64_t entrypoint_, uint64_t arg1, uint64_t arg2, uint64_t arg3) {
 	auto name = reinterpret_cast<char *>(name_);
@@ -80,7 +82,7 @@ static inline int64_t spawn(uint64_t name_, uint64_t entrypoint_, uint64_t arg1,
 }
 static inline int64_t get_time_used() {
 	auto local_data = get_local_data();
-	return local_data->scheduler.get_current_task()->get_time_used();
+	return static_cast<int64_t>(local_data->scheduler.get_current_task()->get_time_used());
 }
 
 static inline int64_t mailbox_new() {
@@ -131,6 +133,32 @@ static inline int64_t mailbox_transfer(syscall_handle_t mailbox_handle, syscall_
 	mbox->set_owning_task(task);
 	return 0;
 }
+static inline int64_t mailbox_reply(uint64_t data_) {
+	auto local_data = get_local_data();
+	auto data = reinterpret_cast<threads::message_t *>(data_);
+
+	auto task = threads::task_handles_list.get_data_from_handle(data->sender, std::shared_ptr<threads::Task>(nullptr));
+	if (!task) return -1;
+
+	*task->get_message_reply_buf() = *data;
+
+	local_data->scheduler.unblock_task(task);
+
+	return 0;
+}
+static inline int64_t mailbox_send_with_reply(syscall_handle_t handle, uint64_t timeout, uint64_t data_) {
+	auto local_data = get_local_data();
+	auto data = reinterpret_cast<threads::message_t *>(data_);
+	auto reply_buffer = std::make_unique<threads::message_t>();
+	local_data->scheduler.get_current_task()->set_message_reply_buf(reply_buffer.get());
+	auto send_status = mailbox_send(handle, timeout, data_);
+	if (send_status < 0) return send_status;
+	local_data->scheduler.block_task(threads::task_state::WAITING_FOR_MSG_REPLY);
+
+	memcpy(data, reply_buffer->data, sizeof(reply_buffer->data));
+
+	return 0;
+}
 
 int64_t syscall_handler(uint64_t syscall_number, int64_t arg1, int64_t arg2, int64_t arg3, int64_t arg4, int64_t arg5) {
 	switch (syscall_number) {
@@ -156,6 +184,8 @@ int64_t syscall_handler(uint64_t syscall_number, int64_t arg1, int64_t arg2, int
 		case syscall_vectors::mailbox_recv: return mailbox_recv(arg1, SYSCALL_ARGU(arg2), SYSCALL_ARGU(arg3));
 		case syscall_vectors::mailbox_destroy: return mailbox_destroy(arg1);
 		case syscall_vectors::mailbox_transfer: return mailbox_transfer(arg1, arg2);
+		case syscall_vectors::mailbox_reply: return mailbox_reply(arg1);
+		case syscall_vectors::mailbox_send_with_reply: return mailbox_send_with_reply(arg1, SYSCALL_ARGU(arg2), SYSCALL_ARGU(arg3));
 
 			// LEGACY SYSCALLS
 		case syscall_vectors::mutex_lock: {
