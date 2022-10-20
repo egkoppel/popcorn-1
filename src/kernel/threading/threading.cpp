@@ -25,7 +25,7 @@ atomic_uint_fast64_t threads::next_pid = 1;
 extern "C" void task_switch_asm(Task *new_task, Task *old_task);
 
 alignas(alignof(SyscallHandleTable<std::shared_ptr<Task>, syscall_handle_type::syscall_handle_type::TASK>)) static char task_handles_list_[sizeof(SyscallHandleTable<std::shared_ptr<Task>, syscall_handle_type::syscall_handle_type::TASK>)]; // memory for the stream object
-auto& task_handles_list = reinterpret_cast<SyscallHandleTable<std::shared_ptr<Task>, syscall_handle_type::syscall_handle_type::TASK>&>(task_handles_list_);
+auto& threads::task_handles_list = reinterpret_cast<SyscallHandleTable<std::shared_ptr<Task>, syscall_handle_type::syscall_handle_type::TASK>&>(task_handles_list_);
 
 #define TIMER_FREQ (1000)
 

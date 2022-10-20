@@ -11,6 +11,10 @@
 #ifndef _HUGOS_THREADING_H
 #define _HUGOS_THREADING_H
 
+namespace threads {
+	extern "C" struct Task;
+}
+
 #include <vector>
 #include <deque>
 #include <map>
@@ -27,6 +31,7 @@
 #include "../interrupts/syscall.hpp"
 #include "../userspace/elf.hpp"
 #include "../interrupts/idt.hpp"
+#include "mailing.hpp"
 
 namespace threads {
 	uint64_t get_time_ms();
@@ -40,7 +45,8 @@ namespace threads {
 		SLEEPING,
 		WAITING_FOR_LOCK,
 		PAUSED,
-		WAITING_FOR_MSG
+		WAITING_FOR_MSG,
+		WAITING_FOR_MSG_REPLY
 	};
 
 	class Scheduler;
@@ -62,6 +68,7 @@ namespace threads {
 		task_state state = task_state::READY;
 		uint64_t time_used = 0;
 		syscall_handle_t handle = 0;
+		message_t *message_reply_buf;
 
 		static const uint64_t userspace_stack_top = 0x7fff'ffff'ffff;
 		static const uint64_t userspace_stack_size = 8 * 0x1000;
@@ -155,6 +162,8 @@ namespace threads {
 		inline uint64_t get_time_slice_length_ms() const { return 50; }
 		inline syscall_handle_t get_handle() const { return this->handle; }
 		inline void set_handle(syscall_handle_t handle) { this->handle = handle; };
+		inline void set_message_reply_buf(threads::message_t *message_reply_buf) { this->message_reply_buf = message_reply_buf; }
+		inline threads::message_t *get_message_reply_buf() const { return message_reply_buf; }
 	};
 
 	extern "C" void task_init(void);
@@ -265,6 +274,8 @@ namespace threads {
 		void lock_scheduler();
 		inline const std::shared_ptr<Task>& get_current_task() const { return this->current_task_ptr; }
 	};
+
+	extern SyscallHandleTable<std::shared_ptr<Task>, syscall_handle_type::syscall_handle_type::TASK>& task_handles_list;
 }
 
 #endif

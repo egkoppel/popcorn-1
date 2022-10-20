@@ -12,6 +12,14 @@
 #ifndef HUG_MAILING_HPP
 #define HUG_MAILING_HPP
 
+#include <stdint.h>
+
+#define MAX_MAILBOX_SIZE 16
+#define MESSAGE_SIZE 256
+namespace threads {
+	using message_t = struct { int64_t sender; char data[MESSAGE_SIZE]; };
+}
+
 #include <deque>
 #include <map>
 #include <memory>
@@ -19,12 +27,7 @@
 #include "../interrupts/handle_table.hpp"
 #include "threading.hpp"
 
-#define MAX_MAILBOX_SIZE 16
-#define MESSAGE_SIZE 256
-
 namespace threads {
-	using message_t = struct { uint64_t sender; char data[MESSAGE_SIZE]; };
-
 	class Mailbox {
 	private:
 		std::deque<message_t> mail;
@@ -43,13 +46,13 @@ namespace threads {
 			return 0;
 		}
 
-		explicit Mailbox(std::shared_ptr<Task> for_task) : task(for_task) {}
-		inline std::shared_ptr<Task> get_owning_task() const { return this->task; };
-		inline void set_owning_task(std::shared_ptr<Task> task) { this->task = task; };
+		explicit Mailbox(std::shared_ptr<threads::Task> for_task) : task(for_task) {}
+		inline std::shared_ptr<threads::Task> get_owning_task() const { return this->task; };
+		inline void set_owning_task(std::shared_ptr<threads::Task> task) { this->task = task; };
 	};
 
 	Mailbox *get_mailbox(syscall_handle_t handle);
-	syscall_handle_t new_mailbox(std::shared_ptr<Task> for_task);
+	syscall_handle_t new_mailbox(std::shared_ptr<threads::Task> for_task);
 	void destroy_mailbox(syscall_handle_t handle);
 
 	void mailboxes_init();
