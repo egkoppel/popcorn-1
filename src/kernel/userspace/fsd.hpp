@@ -13,6 +13,58 @@
 
 #include <stdint.h>
 
-[[noreturn]] int fsd_start(void *online_sem, void *ramfs_data, uint64_t ramfs_size);
+[[noreturn]] int fsd_start(void *online_sem, long fsd_command_mailbox);
+
+extern "C" struct fsd_command_t {
+	enum : uint32_t {
+		READ,
+		WRITE,
+		OPEN,
+		CLOSE,
+		MOUNT,
+		UMOUNT,
+		STRING_EXTRA
+	} command;
+
+	union {
+		struct {
+
+		} read;
+
+		struct {
+
+		} write;
+
+		struct {
+
+		} open;
+
+		struct {
+
+		} close;
+
+		struct {
+			uint32_t driver_command_len;
+			char mountpoint;
+			char driver_info[247];
+		} mount;
+
+		struct {
+
+		} umount;
+
+		struct {
+			uint32_t idx;
+			char str[248];
+		} string_extra;
+	} data;
+};
+static_assert(sizeof(fsd_command_t) == 256);
+
+extern "C" struct fsd_command_response_t {
+	int64_t return_code;
+	[[maybe_unused]] char reserved[248];
+};
+static_assert(sizeof(fsd_command_response_t) == 256);
 
 #endif //HUG_FSD_HPP

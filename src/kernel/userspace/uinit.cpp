@@ -30,25 +30,36 @@
              |___/ \n\
 "
 
-[[noreturn]] int message_test(int64_t mailbox) {
-	char buf[256] = {5, 1, 4, 7, 1, 6, 8, 2, 4, 7, 8, 2, 1};
-	uint64_t status = send_msg(mailbox, 0, buf);
-
-	while (true) __asm__ volatile("");
-}
-
-[[noreturn]] int uinit_main(void *ramfs_data, uint64_t ramfs_size) {
+[[noreturn]] int uinit_main(uint64_t ramfs_data, uint64_t ramfs_size) {
 	void *fsd_online_sem = sem_init(1);
-	sys_spawn_3("fsd", fsd_start, fsd_online_sem, ramfs_data, ramfs_size);
+	auto fsd_mbox = mbox_new();
+	auto fsd_task_handle = sys_spawn_2("fsd", fsd_start, fsd_online_sem, fsd_mbox);
+	mbox_transfer(fsd_mbox, fsd_task_handle);
+
 	sem_wait(fsd_online_sem);
 
-	auto mbox_handle = mbox_new();
-	sys_spawn_1("test", message_test, mbox_handle);
-	threads::message_t buf;
-	recv_msg(mbox_handle, 0, &buf);
+	fsd_command_t mount_ramfs_command = {
+			.command = fsd_command_t::MOUNT,
+			.data = {
+					.mount = {
+							.driver_command_len = 0,
+							.mountpoint = 'A',
+							.driver_info = "initramfs \0"
+					}
+			}
+	};
+	char ramfs_data_str[32];
+	char ramfs_size_str[32];
+	utoa(ramfs_data, ramfs_data_str, 10);
+	utoa(ramfs_size, ramfs_size_str, 10);
+	strcat(mount_ramfs_command.data.mount.driver_info, ramfs_data_str);
+	strcat(mount_ramfs_command.data.mount.driver_info, " ");
+	strcat(mount_ramfs_command.data.mount.driver_info, ramfs_size_str);
+	mount_ramfs_command.data.mount.driver_command_len = strlen(mount_ramfs_command.data.mount.driver_info);
 
-	mbox_destroy(mbox_handle);
-	yield();
+	send_msg_with_reply(fsd_mbox, UINT64_MAX, &mount_ramfs_command);
+	
+	auto mount_command_response = reinterpret_cast<fsd_command_response_t *>(&mount_ramfs_command);
 
 	while (true) __asm__ volatile("");
 }

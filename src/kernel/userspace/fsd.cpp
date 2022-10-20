@@ -12,13 +12,52 @@
 #include "userspace_macros.hpp"
 #include "initramfs.hpp"
 
-[[noreturn]] int fsd_start(void *online_sem, void *ramfs_data, uint64_t ramfs_size) {
-	Initramfs ramfs((uint64_t)ramfs_data, (uint64_t)ramfs_data + ramfs_size);
+struct mountpoint_t {
+	int64_t driver_mailbox_handle;
+};
 
-	void *data;
-	size_t data_len = ramfs.locate_file("initramfs/.placeholder", &data);
+mountpoint_t mountpoints[26];
+Initramfs *initramfs;
 
+static inline fsd_command_response_t fsd_mount(fsd_command_t& command) {
+	if (command.data.mount.mountpoint <= 'z' && command.data.mount.mountpoint >= 'a') command.data.mount.mountpoint -= ('a' - 'A');
+	if (command.data.mount.mountpoint < 'A' || command.data.mount.mountpoint > 'Z') return fsd_command_response_t{.return_code = -1};
+
+	if (strncmp("initramfs", command.data.mount.driver_info, 9) == 0) {
+		mountpoints[command.data.mount.mountpoint - 'A'] = {.driver_mailbox_handle = -1};
+		const char *s = command.data.mount.driver_info;
+		while (*s++ != ' ') {};
+		auto initramfs_addr_ = atoll_p(&s);
+		auto initramfs_addr = *reinterpret_cast<uint64_t *>(&initramfs_addr_);
+		while (*s++ != ' ') {};
+		auto initramfs_size_ = atoll_p(&s);
+		auto initramfs_size = *reinterpret_cast<uint64_t *>(&initramfs_size_);
+
+		// TODO
+		//initramfs = new Initramfs(initramfs_addr, initramfs_addr + initramfs_size);
+		
+		return fsd_command_response_t{.return_code = 0};
+	} else {
+		return fsd_command_response_t{.return_code = -2};
+	}
+}
+
+static inline fsd_command_response_t process_command(fsd_command_t& command) {
+	switch (command.command) {
+		case fsd_command_t::MOUNT: return fsd_mount(command);
+		default: return fsd_command_response_t{.return_code = INT64_MIN};
+	}
+}
+
+[[noreturn]] int fsd_start(void *online_sem, long fsd_command_mailbox) {
 	sem_post(online_sem);
 
-	while (true) __asm__ volatile("");
+	while (true) {
+		threads::message_t recv_buf;
+		recv_msg(fsd_command_mailbox, UINT64_MAX, &recv_buf);
+		auto command = *reinterpret_cast<fsd_command_t *>(&recv_buf.data);
+		auto response = process_command(command);
+		memcpy(recv_buf.data, &response, sizeof(response));
+		send_reply(&recv_buf);
+	}
 }
