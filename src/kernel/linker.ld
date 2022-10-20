@@ -78,6 +78,12 @@ SECTIONS {
         *userspace/*.o(.data*)
     }
 
+    .userspace.bss ALIGN(4K) : AT(ADDR(.userspace.bss) - KERNEL_OFFSET)
+    {
+        *userspace/*.o(COMMON)
+        *userspace/*.o(.bss*)
+    }
+
 	/DISCARD/ : {
 		*(.debug_gdb_scripts*)
 	}
