@@ -35,6 +35,8 @@ _syscall5(unsigned long long syscallNo, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 a
 #define mbox_destroy(handle) _syscall5<int64_t>(syscall_vectors::mailbox_destroy, handle,0,0,0,0)
 #define recv_msg(handle, timeout, buf) _syscall5<int64_t>(syscall_vectors::mailbox_recv,handle,timeout,buf,0,0)
 #define send_msg(handle, timeout, buf) _syscall5<int64_t>(syscall_vectors::mailbox_send,handle,timeout,buf,0,0)
+#define send_msg_with_reply(handle, timeout, buf) _syscall5<int64_t>(syscall_vectors::mailbox_send_with_reply,handle,timeout,buf,0,0)
+#define send_reply(buf) _syscall5<int64_t>(syscall_vectors::mailbox_reply,buf,0,0,0,0)
 #define mbox_transfer(mbox, task) _syscall5<int64_t>(syscall_vectors::mailbox_transfer,mbox, task,0,0,0)
 
 #define yield() _syscall5<int64_t>(syscall_vectors::yield,0,0,0,0,0)
