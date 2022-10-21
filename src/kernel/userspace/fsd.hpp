@@ -26,44 +26,56 @@ extern "C" struct fsd_command_t {
 		STRING_EXTRA
 	} command;
 
-	union {
-		struct {
+	char data[252];
+};
+struct fsd_command_read_t {
+	uint64_t fd;
+	uint64_t size;
+};
+struct fsd_command_write_t {
 
-		} read;
+};
+struct fsd_command_open_t {
+	uint32_t path_len;
+	char path[248];
+};
+struct fsd_command_close_t {
 
-		struct {
+};
+struct fsd_command_mount_t {
+	uint32_t driver_command_len;
+	char mountpoint;
+	char driver_info[247];
+};
+struct fsd_command_umount_t {
 
-		} write;
-
-		struct {
-
-		} open;
-
-		struct {
-
-		} close;
-
-		struct {
-			uint32_t driver_command_len;
-			char mountpoint;
-			char driver_info[247];
-		} mount;
-
-		struct {
-
-		} umount;
-
-		struct {
-			uint32_t idx;
-			char str[248];
-		} string_extra;
-	} data;
+};
+struct fsd_command_string_extra_t {
+	uint32_t idx;
+	char str[248];
 };
 static_assert(sizeof(fsd_command_t) == 256);
+static_assert(sizeof(fsd_command_read_t) <= 252);
+static_assert(sizeof(fsd_command_write_t) <= 252);
+static_assert(sizeof(fsd_command_open_t) <= 252);
+static_assert(sizeof(fsd_command_close_t) <= 252);
+static_assert(sizeof(fsd_command_mount_t) <= 252);
+static_assert(sizeof(fsd_command_umount_t) <= 252);
+static_assert(sizeof(fsd_command_string_extra_t) <= 252);
 
 extern "C" struct fsd_command_response_t {
 	int64_t return_code;
-	[[maybe_unused]] char reserved[248];
+
+	union {
+		struct {
+			uint64_t fd;
+		} open;
+		struct {
+			int64_t mmap_vm_handle;
+		} read;
+	} data;
+
+	[[maybe_unused]] char reserved[240];
 };
 static_assert(sizeof(fsd_command_response_t) == 256);
 

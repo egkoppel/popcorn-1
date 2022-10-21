@@ -19,13 +19,15 @@ struct mountpoint_t {
 mountpoint_t mountpoints[26];
 Initramfs *initramfs;
 
-static inline fsd_command_response_t fsd_mount(fsd_command_t& command) {
-	if (command.data.mount.mountpoint <= 'z' && command.data.mount.mountpoint >= 'a') command.data.mount.mountpoint -= ('a' - 'A');
-	if (command.data.mount.mountpoint < 'A' || command.data.mount.mountpoint > 'Z') return fsd_command_response_t{.return_code = -1};
+static inline fsd_command_response_t fsd_mount(fsd_command_t *command_) {
+	auto command = reinterpret_cast<fsd_command_mount_t *>(&command_->data);
 
-	if (strncmp("initramfs", command.data.mount.driver_info, 9) == 0) {
-		mountpoints[command.data.mount.mountpoint - 'A'] = {.driver_mailbox_handle = -1};
-		const char *s = command.data.mount.driver_info;
+	if (command->mountpoint <= 'z' && command->mountpoint >= 'a') command->mountpoint -= ('a' - 'A');
+	if (command->mountpoint < 'A' || command->mountpoint > 'Z') return fsd_command_response_t{.return_code = -1};
+
+	if (strncmp("initramfs", command->driver_info, 9) == 0) {
+		mountpoints[command->mountpoint - 'A'] = {.driver_mailbox_handle = -1};
+		const char *s = command->driver_info;
 		while (*s++ != ' ') {};
 		auto initramfs_addr_ = atoll_p(&s);
 		auto initramfs_addr = *reinterpret_cast<uint64_t *>(&initramfs_addr_);
@@ -35,16 +37,26 @@ static inline fsd_command_response_t fsd_mount(fsd_command_t& command) {
 
 		// TODO
 		//initramfs = new Initramfs(initramfs_addr, initramfs_addr + initramfs_size);
-		
-		return fsd_command_response_t{.return_code = 0};
+
+		return fsd_command_response_t{.return_code = -1};
 	} else {
 		return fsd_command_response_t{.return_code = -2};
 	}
 }
+static inline fsd_command_response_t fsd_open(fsd_command_t *command_) {
+	auto command = reinterpret_cast<fsd_command_open_t *>(&command_->data);
+	return fsd_command_response_t{.return_code = INT64_MIN};
+}
+static inline fsd_command_response_t fsd_close(fsd_command_t *command_) {
+	auto command = reinterpret_cast<fsd_command_close_t *>(&command_->data);
+	return fsd_command_response_t{.return_code = INT64_MIN};
+}
 
 static inline fsd_command_response_t process_command(fsd_command_t& command) {
 	switch (command.command) {
-		case fsd_command_t::MOUNT: return fsd_mount(command);
+		case fsd_command_t::MOUNT: return fsd_mount(&command);
+		case fsd_command_t::OPEN: return fsd_open(&command);
+		case fsd_command_t::CLOSE: return fsd_close(&command);
 		default: return fsd_command_response_t{.return_code = INT64_MIN};
 	}
 }

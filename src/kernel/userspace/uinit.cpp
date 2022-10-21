@@ -31,35 +31,51 @@
 "
 
 [[noreturn]] int uinit_main(uint64_t ramfs_data, uint64_t ramfs_size) {
+	// [TARGET PRE-FSD]
 	void *fsd_online_sem = sem_init(1);
 	auto fsd_mbox = mbox_new();
 	auto fsd_task_handle = sys_spawn_2("fsd", fsd_start, fsd_online_sem, fsd_mbox);
 	mbox_transfer(fsd_mbox, fsd_task_handle);
 
 	sem_wait(fsd_online_sem);
+	// [TARGET FSD]
 
-	fsd_command_t mount_ramfs_command = {
-			.command = fsd_command_t::MOUNT,
-			.data = {
-					.mount = {
-							.driver_command_len = 0,
-							.mountpoint = 'A',
-							.driver_info = "initramfs \0"
-					}
-			}
+	// [TARGET PRE-INITRAMFS]
+	fsd_command_t fsd_command;
+
+	fsd_command_mount_t mount_ramfs_command = {
+			.driver_command_len = 0,
+			.mountpoint = 'A',
+			.driver_info = "initramfs \0"
 	};
 	char ramfs_data_str[32];
 	char ramfs_size_str[32];
 	utoa(ramfs_data, ramfs_data_str, 10);
 	utoa(ramfs_size, ramfs_size_str, 10);
-	strcat(mount_ramfs_command.data.mount.driver_info, ramfs_data_str);
-	strcat(mount_ramfs_command.data.mount.driver_info, " ");
-	strcat(mount_ramfs_command.data.mount.driver_info, ramfs_size_str);
-	mount_ramfs_command.data.mount.driver_command_len = strlen(mount_ramfs_command.data.mount.driver_info);
+	strcat(mount_ramfs_command.driver_info, ramfs_data_str);
+	strcat(mount_ramfs_command.driver_info, " ");
+	strcat(mount_ramfs_command.driver_info, ramfs_size_str);
+	mount_ramfs_command.driver_command_len = strlen(mount_ramfs_command.driver_info);
 
-	send_msg_with_reply(fsd_mbox, UINT64_MAX, &mount_ramfs_command);
-	
-	auto mount_command_response = reinterpret_cast<fsd_command_response_t *>(&mount_ramfs_command);
+	fsd_command = {.command = fsd_command_t::MOUNT};
+	memcpy(fsd_command.data, &mount_ramfs_command, sizeof(mount_ramfs_command));
+
+	send_msg_with_reply(fsd_mbox, UINT64_MAX, &fsd_command);
+	auto mount_command_response = reinterpret_cast<fsd_command_response_t *>(&fsd_command);
+
+	// [TARGET INITRAMFS]
+
+	fsd_command_open_t open_ramfs_command = {
+			.path_len = 15,
+			.path = "a:/.placeholder"
+	};
+	fsd_command = {.command = fsd_command_t::OPEN};
+	memcpy(fsd_command.data, &open_ramfs_command, sizeof(open_ramfs_command));
+	send_msg_with_reply(fsd_mbox, UINT64_MAX, &fsd_command);
+	auto open_command_response = reinterpret_cast<fsd_command_response_t *>(&fsd_command);
+
+	// [TARGET PRE-LOGINSHELL]
+	// [TARGET LOGINSHELL]
 
 	while (true) __asm__ volatile("");
 }
