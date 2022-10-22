@@ -34,6 +34,7 @@
 #include "../acpi/acpi.hpp"
 #include "../acpi/apic.hpp"
 #include "../acpi/lapic.hpp"
+#include "../memory/vm_map.hpp"
 
 #include <panic.h>
 
@@ -331,6 +332,8 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	};
 	kernel_space_mapper.set_max_addr(global_sbrk_state.kernel_end); // Don't let mapper map into the heap
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised sbrk and heap\n");
+
+	vm_map_init();
 
 	printf("[    ] Initialising multitasking\n");
 	auto ktask = threads::init_multitasking(old_p4_table_page + 0x1000, old_p4_table_page + 8 * 0x1000);
