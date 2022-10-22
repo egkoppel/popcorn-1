@@ -27,22 +27,22 @@ SECTIONS {
 	{
 		ALIGN(64)
 		preinit_array_start = .;
-		*(SORT(EXCLUDE_FILE(*userspace/*.o */ap_bootstrap*.o) .preinit_array*))
+		*(SORT(.preinit_array*))
 		preinit_array_end = .;
 
 		ALIGN(64)
 		init_array_start = .;
-		*(SORT(EXCLUDE_FILE(*userspace/*.o */ap_bootstrap*.o) .init_array*))
+		*(SORT(.init_array*))
 		init_array_end = .;
 
 		ALIGN(64)
 		start_ctors = .;
-        *(SORT(EXCLUDE_FILE(*userspace/*.o */ap_bootstrap*.o) .ctors*))
+        *(SORT(.ctors*))
         end_ctors = .;
 
 		ALIGN(64)
         start_dtors = .;
-        *(SORT(EXCLUDE_FILE(*userspace/*.o */ap_bootstrap*.o) .dtors*))
+        *(SORT(.dtors*))
         end_dtors = .;
 
 		*(EXCLUDE_FILE(*userspace/*.o */ap_bootstrap*.o) .rodata*)
