@@ -15,6 +15,7 @@
 
 const allocator_vtable frame_main_alloc_state_vtable = {
 		.allocate = reinterpret_cast<uint64_t(*)(struct _allocator_vtable *)>(frame_main_alloc_state::main_alloc_allocate),
+		.allocate_at = reinterpret_cast<uint64_t(*)(struct _allocator_vtable *, uint64_t)>(frame_main_alloc_state::main_alloc_allocate_at),
 		.deallocate =  reinterpret_cast<void (*)(struct _allocator_vtable *, uint64_t)>(frame_main_alloc_state::main_alloc_deallocate)
 };
 
@@ -28,6 +29,20 @@ int frame_main_alloc_state::set_bit(uint64_t addr) {
 	if (this->bitmap_start + bitmap_index < this->bitmap_end) {
 		this->bitmap_start[bitmap_index] |= (1 << bit_index);
 		return 0;
+	}
+	return -1;
+}
+
+int frame_main_alloc_state::get_bit(uint64_t addr) {
+	uint64_t frame_num = (uint64_t)addr / 0x1000;
+	uint64_t bitmap_index = frame_num / 64;
+	uint64_t bit_index = frame_num % 64;
+
+	fprintf(stdserial, "Set allocator bit for %p (%llx, %llx, %llx)\n", addr, frame_num, bitmap_index, bit_index);
+
+	if (this->bitmap_start + bitmap_index < this->bitmap_end) {
+		this->bitmap_start[bitmap_index] |= (1 << bit_index);
+		return (bool)(this->bitmap_start[bitmap_index] & (1 << bit_index));
 	}
 	return -1;
 }
@@ -49,6 +64,14 @@ uint64_t frame_main_alloc_state::allocate() {
 	panic("OOOOOOOOOOM");
 }
 
+uint64_t frame_main_alloc_state::allocate_at(uint64_t addr) {
+	int allocated = this->get_bit(addr);
+	if (!allocated) {
+		this->set_bit(addr);
+		return addr;
+	} else return 0;
+}
+
 void frame_main_alloc_state::deallocate(uint64_t addr) {
 	fprintf(stdserial, "Deallocate frame at %p\n", addr);
 	uint64_t frame_num = addr / 0x1000;
@@ -60,6 +83,10 @@ void frame_main_alloc_state::deallocate(uint64_t addr) {
 
 uint64_t frame_main_alloc_state::main_alloc_allocate(frame_main_alloc_state *allocator) {
 	return allocator->allocate();
+}
+
+uint64_t frame_main_alloc_state::main_alloc_allocate_at(frame_main_alloc_state *allocator, uint64_t addr) {
+	return allocator->allocate_at(addr);
 }
 
 void frame_main_alloc_state::main_alloc_deallocate(frame_main_alloc_state *allocator, uint64_t addr) {

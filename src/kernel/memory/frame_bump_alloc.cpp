@@ -13,8 +13,9 @@
 #include <stdio.h>
 
 const allocator_vtable frame_bump_alloc_state_vtable = {
-	.allocate = reinterpret_cast<uint64_t(*)(struct _allocator_vtable*)>(frame_bump_alloc_state::bump_alloc_allocate),
-	.deallocate = nullptr
+		.allocate = reinterpret_cast<uint64_t(*)(struct _allocator_vtable *)>(frame_bump_alloc_state::bump_alloc_allocate),
+		.deallocate = nullptr,
+		.allocate_at = nullptr
 };
 
 uint64_t frame_bump_alloc_state::allocate() {

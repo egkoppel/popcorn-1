@@ -16,6 +16,11 @@ uint64_t allocator_allocate(allocator_vtable *allocator) {
 	return 0;
 }
 
+uint64_t allocator_allocate_at(allocator_vtable *allocator, uint64_t at) {
+	if (allocator->allocate_at != NULL) return allocator->allocate_at(allocator, at);
+	return 0;
+}
+
 void allocator_deallocate(allocator_vtable *allocator, uint64_t address) {
 	if (allocator->deallocate != NULL) allocator->deallocate(allocator, address);
 }
