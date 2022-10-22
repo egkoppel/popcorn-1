@@ -34,7 +34,7 @@
 	// [TARGET PRE-FSD]
 	void *fsd_online_sem = sem_init(1);
 	auto fsd_mbox = mbox_new();
-	auto fsd_task_handle = sys_spawn_2("fsd", fsd_start, fsd_online_sem, fsd_mbox);
+	auto fsd_task_handle = sys_spawn_2("fsd_bootstrap", fsd_start, fsd_online_sem, fsd_mbox);
 	mbox_transfer(fsd_mbox, fsd_task_handle);
 
 	sem_wait(fsd_online_sem);
