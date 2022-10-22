@@ -58,7 +58,7 @@ size_t Initramfs::locate_file(const char *filename, void **data) {
 
 	while ((uint64_t)ptr < this->data_end && memcmp(ptr->ustar, "ustar", 5) == 0) {
 		int filesize = oct2bin(ptr->size, 11);
-		if (strcmp(ptr->filename, filename) == 0) {
+		if (strcmp(ptr->filename + 10, filename) == 0) { /* ptr->filename + 10 gives filename without preceding initramfs/ */
 			*data = static_cast<void *>(ADD_BYTES(ptr, 512));
 			return filesize;
 		}
