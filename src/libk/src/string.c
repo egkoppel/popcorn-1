@@ -24,11 +24,11 @@ __attribute__((section(".userspace.text"))) void *memmove(void *dest, const void
 			((char *)dest)[i] = ((char *)src)[i];
 		}
 	} else { // copy right to left
-		for (size_t i = num - 1; i >= 0; --i) {
-			((char *)dest)[i] = ((char *)src)[i];
+		for (size_t i = num; i > 0; --i) {
+			((char *)dest)[i - 1] = ((char *)src)[i - 1];
 		}
 	}
-
+	
 	return dest;
 }
 
