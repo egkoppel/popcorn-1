@@ -66,16 +66,26 @@
 	// [TARGET INITRAMFS]
 
 	fsd_command_open_t open_ramfs_command = {
-			.path_len = 15,
-			.path = "a:/.placeholder"
+			.path_len = 23,
+			.path = "initramfs:/.placeholder"
 	};
 	fsd_command = {.command = fsd_command_t::OPEN};
 	memcpy(fsd_command.data, &open_ramfs_command, sizeof(open_ramfs_command));
 	send_msg_with_reply(fsd_mbox, UINT64_MAX, &fsd_command);
 	auto open_command_response = reinterpret_cast<fsd_command_response_t *>(&fsd_command);
 
-	// [TARGET PRE-LOGINSHELL]
-	// [TARGET LOGINSHELL]
+	fsd_command_read_t read_ramfs_command = {
+			.fd = open_command_response->data.open.fd,
+			.size = 36
+	};
+	fsd_command = {.command = fsd_command_t::READ};
+	memcpy(fsd_command.data, &read_ramfs_command, sizeof(read_ramfs_command));
+	send_msg_with_reply(fsd_mbox, UINT64_MAX, &fsd_command);
+	auto read_command_response = reinterpret_cast<fsd_command_response_t *>(&fsd_command);
+	// TODO: Check contents reads `Help I'm stuck in a universe factory`
+
+	// [TARGET BOOTSTRAPPED]
+	// TODO: Call `exec(` or `spawn2("initramfs:/bin/init")`
 
 	while (true) __asm__ volatile("");
 }
