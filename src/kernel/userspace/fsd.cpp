@@ -12,21 +12,24 @@
 #include "userspace_macros.hpp"
 #include "initramfs.hpp"
 
-struct mountpoint_t {
-	int64_t driver_mailbox_handle;
+Initramfs initramfs(0, 0);
+
+struct fd_t {
+	char *start_addr;
+	char *end_addr;
+	char *read_addr;
 };
 
-mountpoint_t mountpoints[26];
-Initramfs *initramfs;
+fd_t file_descriptors[16];
+uint64_t next_fd = 0;
 
 static inline fsd_command_response_t fsd_mount(fsd_command_t *command_) {
 	auto command = reinterpret_cast<fsd_command_mount_t *>(&command_->data);
 
-	if (command->mountpoint <= 'z' && command->mountpoint >= 'a') command->mountpoint -= ('a' - 'A');
-	if (command->mountpoint < 'A' || command->mountpoint > 'Z') return fsd_command_response_t{.return_code = -1};
+	if (command->mountpoint != 'a' && command->mountpoint != 'A') return fsd_command_response_t{.return_code = -1};
 
 	if (strncmp("initramfs", command->driver_info, 9) == 0) {
-		mountpoints[command->mountpoint - 'A'] = {.driver_mailbox_handle = -1};
+		command->driver_info[command->driver_command_len] = '\0';
 		const char *s = command->driver_info;
 		while (*s++ != ' ') {};
 		auto initramfs_addr_ = atoll_p(&s);
@@ -35,28 +38,39 @@ static inline fsd_command_response_t fsd_mount(fsd_command_t *command_) {
 		auto initramfs_size_ = atoll_p(&s);
 		auto initramfs_size = *reinterpret_cast<uint64_t *>(&initramfs_size_);
 
-		// TODO
-		//initramfs = new Initramfs(initramfs_addr, initramfs_addr + initramfs_size);
+		initramfs = Initramfs(initramfs_addr, initramfs_addr + initramfs_size);
 
-		return fsd_command_response_t{.return_code = -1};
+		return fsd_command_response_t{.return_code = 0};
 	} else {
 		return fsd_command_response_t{.return_code = -2};
 	}
 }
 static inline fsd_command_response_t fsd_open(fsd_command_t *command_) {
 	auto command = reinterpret_cast<fsd_command_open_t *>(&command_->data);
-	return fsd_command_response_t{.return_code = INT64_MIN};
-}
-static inline fsd_command_response_t fsd_close(fsd_command_t *command_) {
-	auto command = reinterpret_cast<fsd_command_close_t *>(&command_->data);
-	return fsd_command_response_t{.return_code = INT64_MIN};
+
+	if (command->path_len >= 248) return fsd_command_response_t{.return_code = -2};
+	if (next_fd >= 16) return fsd_command_response_t{.return_code = -1};
+	if (strncmp("initramfs:/", command->path, 11) != 0) return fsd_command_response_t{.return_code = -3};
+
+	command->path[command->path_len] = '\0';
+	void *file_addr;
+	size_t file_size = initramfs.locate_file(command->path + 11, &file_addr); /* +11 to remove mountpoint name */
+	if (file_size == 0) return fsd_command_response_t{.return_code = -4};
+
+	uint64_t fd = next_fd++;
+	file_descriptors[fd] = fd_t{
+			.start_addr = (char *)file_addr,
+			.end_addr = (char *)file_addr + file_size,
+			.read_addr = (char *)file_addr
+	};
+
+	return fsd_command_response_t{.return_code = 0};
 }
 
 static inline fsd_command_response_t process_command(fsd_command_t& command) {
 	switch (command.command) {
 		case fsd_command_t::MOUNT: return fsd_mount(&command);
 		case fsd_command_t::OPEN: return fsd_open(&command);
-		case fsd_command_t::CLOSE: return fsd_close(&command);
 		default: return fsd_command_response_t{.return_code = INT64_MIN};
 	}
 }
