@@ -70,3 +70,28 @@ void FrameMainAllocator::deallocate(uint64_t addr) {
 	assert_msg(this->bitmap_start + bitmap_index < this->bitmap_end, "Attempted deallocation at %p outside of bitmap", addr);
 	this->bitmap_start[bitmap_index] &= ~(1ull << bit_index);
 }
+
+void FrameMainAllocator::init_from(FrameBumpAllocator& bump) {
+	for (auto *i = reinterpret_cast<uint64_t *>(this->bitmap_start);
+	     i < reinterpret_cast<uint64_t *>(this->bitmap_end); ++i) {
+		*i = 0;
+	}
+	printf("init_alloc.next_alloc: %p\n", bump.get_next_alloc());
+	for (uint64_t i = 0; i < bump.get_next_alloc(); i += 0x1000) {
+		this->set_bit(i);
+	}
+	for (uint64_t i = bump.get_kernel_start(); i < bump.get_kernel_end(); i += 0x1000) {
+		this->set_bit(i);
+	}
+	for (uint64_t i = bump.get_multiboot_start(); i < bump.get_multiboot_end(); i += 0x1000) {
+		this->set_bit(i);
+	}
+	for (multiboot::memory_map_entry& entry : *bump.get_mem_map()) {
+		if (entry.type != multiboot::memory_type::AVAILABLE) {
+			for (uint64_t i = ALIGN_DOWN(entry.base_addr, 0x1000);
+			     i < ALIGN_UP(entry.base_addr + entry.length, 0x1000); i += 0x1000) {
+				this->set_bit(i);
+			}
+		}
+	}
+}

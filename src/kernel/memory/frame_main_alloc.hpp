@@ -15,6 +15,7 @@
 #include "../main/multiboot.hpp"
 #include "memory.h"
 #include "allocator.hpp"
+#include "frame_bump_alloc.hpp"
 
 class FrameMainAllocator : public Allocator {
 private:
@@ -25,10 +26,11 @@ private:
 	int get_bit(uint64_t addr);
 
 public:
-	FrameMainAlloc(uint64_t *bitmap_start, uint64_t *bitmap_end) : bitmap_start(bitmap_start), bitmap_end(bitmap_end) {}
+	FrameMainAllocator(uint64_t *bitmap_start, uint64_t *bitmap_end) : bitmap_start(bitmap_start), bitmap_end(bitmap_end) {}
 	Option<uint64_t> allocate() override;
 	Option<uint64_t> allocate_at(uint64_t) override;
 	void deallocate(uint64_t addr) override;
+	void init_from(FrameBumpAllocator&);
 };
 
 #endif

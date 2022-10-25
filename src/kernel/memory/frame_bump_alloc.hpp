@@ -33,6 +33,13 @@ public:
 	                                                                                                                                                       mem_map(mem_map) {}
 
 	Option<uint64_t> allocate() override;
+	
+	inline uint64_t get_next_alloc() const { return this->next_alloc; }
+	inline uint64_t get_kernel_start() const { return this->kernel_start; }
+	inline uint64_t get_kernel_end() const { return this->kernel_end; }
+	inline uint64_t get_multiboot_start() const { return this->multiboot_start; }
+	inline uint64_t get_multiboot_end() const { return this->multiboot_end; }
+	inline multiboot::memory_map_tag *get_mem_map() const { return this->mem_map; }
 };
 
 #endif

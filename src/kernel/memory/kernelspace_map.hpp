@@ -26,8 +26,8 @@ public:
 public:
 	KernelspaceMapper(uint64_t start_addr) : next_addr(ALIGN_UP(start_addr, 0x1000)) {};
 
-	uint64_t map_to(uint64_t phys_addr, uint64_t size, entry_flags_t flags, allocator_vtable *allocator);
-	uint64_t map(uint64_t size, entry_flags_t flags, allocator_vtable *allocator);
+	uint64_t map_to(uint64_t phys_addr, uint64_t size, entry_flags_t flags, Allocator *allocator);
+	uint64_t map(uint64_t size, entry_flags_t flags, Allocator *allocator);
 	uint64_t get_next_addr() const { return next_addr; }
 };
 

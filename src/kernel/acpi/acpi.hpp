@@ -30,7 +30,7 @@ struct AcpiSdtHeader {
 extern "C" struct RSDT {
 	AcpiSdtHeader header;
 	uint32_t SDT_ptrs[];
-	void *find_sdt(const char *signature, KernelspaceMapper& page_mapper, allocator_vtable *allocator);
+	void *find_sdt(const char *signature, KernelspaceMapper& page_mapper, Allocator *allocator);
 } __attribute__((packed));
 
 #endif //HUG_ACPI_HPP

@@ -46,7 +46,7 @@
 extern "C" gdt::GDT global_descriptor_table = gdt::GDT();
 extern "C" tss::TSS task_state_segment = tss::TSS();
 
-extern "C" allocator_vtable *global_frame_allocator = nullptr;
+extern "C" Allocator *global_frame_allocator = nullptr;
 extern "C" void switch_to_user_mode(void);
 extern "C" volatile uint8_t ap_running_count;
 volatile uint8_t *real_ap_running_count = &ap_running_count + 0xFFFFFF8000000000;
@@ -128,19 +128,11 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 		       entry.type == multiboot::memory_type::AVAILABLE ? "AVAILABLE" : "RESERVED");
 	}
 
-	frame_bump_alloc_state init_alloc = {
-			.vtable = frame_bump_alloc_state_vtable,
-			.next_alloc = 0,
-			.kernel_start = kernel_min,
-			.kernel_end = kernel_max,
-			.multiboot_start = reinterpret_cast<uint64_t>(mb.mb_data_start),
-			.multiboot_end = reinterpret_cast<uint64_t>(mb.mb_data_end),
-			.mem_map = mmap
-	};
-	global_frame_allocator = &init_alloc.vtable;
+	auto init_alloc = FrameBumpAllocator(kernel_min, kernel_max, reinterpret_cast<uint64_t>(mb.mb_data_start), reinterpret_cast<uint64_t>(mb.mb_data_end), mmap);
+	global_frame_allocator = &init_alloc;
 
 	// ******************************* BEGIN PAGE TABLE REMAPPING *******************************
-	uint64_t new_p4_table = create_p4_table(&init_alloc.vtable);
+	uint64_t new_p4_table = create_p4_table(global_frame_allocator);
 	mapper_ctx_t ctx = mapper_ctx_begin(new_p4_table, global_frame_allocator);
 
 	// Map the kernel with section flags
@@ -282,37 +274,12 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	uint64_t memory_bitmap_start = memory_bitmap_address;
 	uint64_t memory_bitmap_end = memory_bitmap_start + bitmap_needed_bytes;
 
-	frame_main_alloc_state main_frame_allocator = {
-			.vtable = frame_main_alloc_state_vtable,
-			.bitmap_start = reinterpret_cast<uint64_t *>(memory_bitmap_start),
-			.bitmap_end = reinterpret_cast<uint64_t *>(memory_bitmap_end)
-	};
+	auto main_frame_allocator = FrameMainAllocator(reinterpret_cast<uint64_t *>(memory_bitmap_start), reinterpret_cast<uint64_t *>(memory_bitmap_end));
 	printf("[    ] Initialising memory bitmap\n");
-	for (auto *i = reinterpret_cast<uint64_t *>(memory_bitmap_start);
-	     i < reinterpret_cast<uint64_t *>(memory_bitmap_end); ++i) {
-		*i = 0;
-	}
-	printf("init_alloc.next_alloc: %p\n", init_alloc.next_alloc);
-	for (uint64_t i = 0; i < init_alloc.next_alloc; i += 0x1000) {
-		main_frame_allocator.set_bit(i);
-	}
-	for (uint64_t i = init_alloc.kernel_start; i < init_alloc.kernel_end; i += 0x1000) {
-		main_frame_allocator.set_bit(i);
-	}
-	for (uint64_t i = init_alloc.multiboot_start; i < init_alloc.multiboot_end; i += 0x1000) {
-		main_frame_allocator.set_bit(i);
-	}
-	for (multiboot::memory_map_entry& entry : *mmap) {
-		if (entry.type != multiboot::memory_type::AVAILABLE) {
-			for (uint64_t i = ALIGN_DOWN(entry.base_addr, 0x1000);
-			     i < ALIGN_UP(entry.base_addr + entry.length, 0x1000); i += 0x1000) {
-				main_frame_allocator.set_bit(i);
-			}
-		}
-	}
+	main_frame_allocator.init_from(init_alloc);
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised memory bitmap\n");
 
-	global_frame_allocator = &main_frame_allocator.vtable;
+	global_frame_allocator = &main_frame_allocator;
 
 	Stack double_fault_stack(0x1000);
 	task_state_segment.interrupt_stack_table[0] = double_fault_stack.top;

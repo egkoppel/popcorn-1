@@ -12,7 +12,7 @@
 #include <utils.h>
 #include <stdio.h>
 
-uint64_t KernelspaceMapper::map_to(uint64_t phys_addr, uint64_t size, entry_flags_t flags, allocator_vtable *allocator) {
+uint64_t KernelspaceMapper::map_to(uint64_t phys_addr, uint64_t size, entry_flags_t flags, Allocator *allocator) {
 	uint64_t phys_addr_start = ALIGN_DOWN(phys_addr, 0x1000);
 	uint64_t phys_addr_diff = phys_addr - phys_addr_start;
 	uint64_t phys_addr_end = ALIGN_UP(phys_addr + size, 0x1000);
@@ -29,7 +29,7 @@ uint64_t KernelspaceMapper::map_to(uint64_t phys_addr, uint64_t size, entry_flag
 	return virtual_addr_start + phys_addr_diff;
 }
 
-uint64_t KernelspaceMapper::map(uint64_t size, entry_flags_t flags, allocator_vtable *allocator) {
+uint64_t KernelspaceMapper::map(uint64_t size, entry_flags_t flags, Allocator *allocator) {
 	uint64_t virtual_addr_start = this->next_addr;
 	uint64_t needed_frame_count = IDIV_ROUND_UP(size, 0x1000);
 

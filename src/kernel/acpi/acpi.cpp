@@ -11,7 +11,7 @@
 #include "../memory/kernelspace_map.hpp"
 #include "acpi.hpp"
 
-void *RSDT::find_sdt(const char *signature, KernelspaceMapper& page_mapper, allocator_vtable *allocator) {
+void *RSDT::find_sdt(const char *signature, KernelspaceMapper& page_mapper, Allocator *allocator) {
 	auto is_xsdt = strncmp(this->header.signature, "RSDT", 4);
 
 	entry_flags_t flags = {

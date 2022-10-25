@@ -24,7 +24,17 @@ void vm_map_init() {
 
 syscall_handle_t new_vm_mapping_anon(uint64_t size, VmMapping::vm_flags flags_owner, VmMapping::vm_flags flags_shared, std::shared_ptr<threads::Task> owner) {
 	auto backing_frames = std::vector<uint64_t>(IDIV_ROUND_UP(size, 0x1000));
-	for (uint64_t i = 0; i < size; i += 0x1000) backing_frames.push_back(allocator_allocate(global_frame_allocator));
+	for (uint64_t i = 0; i < size; i += 0x1000) {
+		auto frame = global_frame_allocator->allocate();
+		if (frame.is_none()) {
+			for (auto frame : backing_frames) {
+				global_frame_allocator->deallocate(frame);
+			}
+			backing_frames.clear();
+			return -1;
+		}
+		backing_frames.push_back(global_frame_allocator->allocate().unwrap());
+	}
 
 	auto handle = vm_map_handles_list.new_handle(VmMapping(std::move(backing_frames), flags_owner, flags_shared, owner));
 	auto data = vm_map_handles_list.get_data_from_handle_ptr(handle);
@@ -37,9 +47,15 @@ syscall_handle_t new_vm_mapping(uint64_t phys_addr, uint64_t size, VmMapping::vm
 
 	auto backing_frames = std::vector<uint64_t>(IDIV_ROUND_UP(size, 0x1000));
 	for (uint64_t i = phys_addr; i < size; i += 0x1000) {
-		auto frame = allocator_allocate_at(global_frame_allocator, i);
-		if (!frame) return 0;
-		backing_frames.push_back(frame);
+		auto frame = global_frame_allocator->allocate_at(i);
+		if (frame.is_none()) {
+			for (auto frame : backing_frames) {
+				global_frame_allocator->deallocate(frame);
+			}
+			backing_frames.clear();
+			return -1;
+		}
+		backing_frames.push_back(frame.unwrap());
 	}
 
 	auto handle = vm_map_handles_list.new_handle(VmMapping(std::move(backing_frames), flags_owner, flags_shared, owner));
@@ -56,7 +72,7 @@ inline void VmMapping::decrement_refcount() {
 	this->refcount--;
 	if (this->refcount == 0) {
 		for (auto frame : this->backing_frames) {
-			allocator_deallocate(global_frame_allocator, frame);
+			global_frame_allocator->deallocate(frame);
 		}
 		vm_map_handles_list.free_handle(this->handle);
 	}

@@ -17,7 +17,7 @@
 
 extern "C" {
 
-extern allocator_vtable *global_frame_allocator;
+extern Allocator *global_frame_allocator;
 extern gdt::GDT global_descriptor_table;
 extern tss::TSS task_state_segment;
 
