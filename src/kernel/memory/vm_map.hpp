@@ -40,7 +40,7 @@ private:
 	std::shared_ptr<threads::Task> owner;
 public:
 	inline void increment_refcount() { this->refcount++; }
-	void decrement_refcount();
+	void decrement_refcount(Allocator *allocator);
 
 	explicit VmMapping(std::vector<uint64_t> backing_frames, vm_flags flags_owner, vm_flags flags_shared, std::shared_ptr<threads::Task> owner) : backing_frames(std::move(backing_frames)), handle(0),
 	                                                                                                                                              flags_owner(flags_owner),
@@ -54,8 +54,8 @@ public:
 	inline const std::vector<uint64_t>& get_frames() const { return this->backing_frames; }
 };
 
-syscall_handle_t new_vm_mapping_anon(uint64_t size, VmMapping::vm_flags flags_owner, VmMapping::vm_flags flags_shared, std::shared_ptr<threads::Task> owner);
-syscall_handle_t new_vm_mapping(uint64_t phys_addr, uint64_t size, VmMapping::vm_flags flags_owner, VmMapping::vm_flags flags_shared, std::shared_ptr<threads::Task> owner);
+syscall_handle_t new_vm_mapping_anon(uint64_t size, VmMapping::vm_flags flags_owner, VmMapping::vm_flags flags_shared, std::shared_ptr<threads::Task> owner, Allocator *allocator);
+syscall_handle_t new_vm_mapping(uint64_t phys_addr, uint64_t size, VmMapping::vm_flags flags_owner, VmMapping::vm_flags flags_shared, std::shared_ptr<threads::Task> owner, Allocator *allocator);
 VmMapping *get_vm_region(syscall_handle_t);
 
 void vm_map_init();

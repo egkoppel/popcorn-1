@@ -162,10 +162,10 @@ static inline int64_t mailbox_send_with_reply(syscall_handle_t handle, uint64_t 
 }
 
 static inline int64_t region_new(uint64_t physaddr, uint64_t size, VmMapping::vm_flags flags, VmMapping::vm_flags flags_share) {
-	return new_vm_mapping(physaddr, size, flags, flags_share, std::move(get_local_data()->scheduler.get_current_task()));
+	return new_vm_mapping(physaddr, size, flags, flags_share, std::move(get_local_data()->scheduler.get_current_task()), global_frame_allocator);
 }
 static inline int64_t region_new_anon(uint64_t size, VmMapping::vm_flags flags, VmMapping::vm_flags flags_share) {
-	return new_vm_mapping_anon(size, flags, flags_share, std::move(get_local_data()->scheduler.get_current_task()));
+	return new_vm_mapping_anon(size, flags, flags_share, std::move(get_local_data()->scheduler.get_current_task()), global_frame_allocator);
 }
 //static inline int64_t region_new_dma(uint64_t size, flags)
 //static inline int64_t set_flags(handle_t region, flags)
