@@ -14,26 +14,21 @@
 #include <stdint.h>
 #include "../main/multiboot.hpp"
 #include "memory.h"
-#include "allocator.h"
+#include "allocator.hpp"
 
-struct frame_main_alloc_state {
-	allocator_vtable vtable;
+class FrameMainAllocator : public Allocator {
+private:
 	uint64_t *bitmap_start;
 	uint64_t *bitmap_end;
 
 	int set_bit(uint64_t addr);
 	int get_bit(uint64_t addr);
-	uint64_t allocate();
-	uint64_t allocate_at(uint64_t);
-	void deallocate(uint64_t addr);
-	uint64_t free_frame_count();
-	uint64_t used_frame_count();
 
-	static uint64_t main_alloc_allocate(frame_main_alloc_state *);
-	static uint64_t main_alloc_allocate_at(frame_main_alloc_state *, uint64_t addr);
-	static void main_alloc_deallocate(frame_main_alloc_state *, uint64_t addr);
+public:
+	FrameMainAlloc(uint64_t *bitmap_start, uint64_t *bitmap_end) : bitmap_start(bitmap_start), bitmap_end(bitmap_end) {}
+	Option<uint64_t> allocate() override;
+	Option<uint64_t> allocate_at(uint64_t) override;
+	void deallocate(uint64_t addr) override;
 };
-
-extern const allocator_vtable frame_main_alloc_state_vtable;
 
 #endif

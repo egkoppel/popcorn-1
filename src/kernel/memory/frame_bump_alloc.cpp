@@ -12,13 +12,7 @@
 #include <utils.h>
 #include <stdio.h>
 
-const allocator_vtable frame_bump_alloc_state_vtable = {
-		.allocate = reinterpret_cast<uint64_t(*)(struct _allocator_vtable *)>(frame_bump_alloc_state::bump_alloc_allocate),
-		.deallocate = nullptr,
-		.allocate_at = nullptr
-};
-
-uint64_t frame_bump_alloc_state::allocate() {
+Option<uint64_t> FrameBumpAllocator::allocate() {
 	uint64_t attempt = ALIGN_UP(this->next_alloc, 0x1000);
 
 	while (true) {
@@ -39,7 +33,7 @@ uint64_t frame_bump_alloc_state::allocate() {
 			if (entry.base_addr <= attempt && attempt < entry.base_addr + entry.length) {
 				if (entry.type == multiboot::memory_type::AVAILABLE) {
 					this->next_alloc = attempt + 0x1000;
-					return attempt;
+					return Some<uint64_t>(attempt);
 				} else {
 					attempt = ALIGN_UP(entry.base_addr + entry.length, 0x1000);
 					break;
@@ -48,8 +42,4 @@ uint64_t frame_bump_alloc_state::allocate() {
 		}
 		attempt = ALIGN_UP(attempt + 0x1000, 0x1000);
 	}
-}
-
-uint64_t frame_bump_alloc_state::bump_alloc_allocate(frame_bump_alloc_state *allocator) {
-	return allocator->allocate();
 }

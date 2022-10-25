@@ -14,21 +14,25 @@
 #include <stdint.h>
 #include "../main/multiboot.hpp"
 #include "memory.h"
-#include "allocator.h"
+#include "allocator.hpp"
 
-struct frame_bump_alloc_state {
-	allocator_vtable vtable;
+class FrameBumpAllocator : public Allocator {
+private:
 	uint64_t next_alloc;
 	uint64_t kernel_start;
 	uint64_t kernel_end;
 	uint64_t multiboot_start;
 	uint64_t multiboot_end;
 	multiboot::memory_map_tag *mem_map;
+public:
+	FrameBumpAllocator(uint64_t kernel_start, uint64_t kernel_end, uint64_t multiboot_start, uint64_t multiboot_end, multiboot::memory_map_tag *mem_map) : next_alloc(0),
+	                                                                                                                                                       kernel_start(kernel_start),
+	                                                                                                                                                       kernel_end(kernel_end),
+	                                                                                                                                                       multiboot_start(multiboot_start),
+	                                                                                                                                                       multiboot_end(multiboot_end),
+	                                                                                                                                                       mem_map(mem_map) {}
 
-	static uint64_t bump_alloc_allocate(frame_bump_alloc_state *self);
-	uint64_t allocate();
+	Option<uint64_t> allocate() override;
 };
-
-extern const allocator_vtable frame_bump_alloc_state_vtable;
 
 #endif
