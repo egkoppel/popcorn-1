@@ -57,19 +57,6 @@ namespace syscall_vectors {
 	};
 }
 
-namespace vm_flags {
-	enum {
-		PROT_READ = 1ull << 1,
-		PROT_WRITE = 1ull << 2,
-		PROT_EXEC = 1ull << 3,
-
-		HINT_FAIL = 1ull << 4,
-		COW = 1ull << 5,
-		TRANSFER = 1ull << 6,
-		NO_CACHE = 1ull << 7
-	};
-}
-
 int64_t syscall_handler(uint64_t syscall_number, int64_t arg1, int64_t arg2, int64_t arg3, int64_t arg4, int64_t arg5);
 
 #endif

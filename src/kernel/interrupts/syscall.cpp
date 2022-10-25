@@ -17,6 +17,7 @@
 #include "../threading/mutex.hpp"
 #include "../threading/semaphore.hpp"
 #include "../smp/core_local.hpp"
+#include "../memory/vm_map.hpp"
 
 extern "C" __attribute__((naked)) void syscall_long_mode_handler() {
 	// TODO: ****** should really switch to kernel stack here ******
@@ -160,6 +161,45 @@ static inline int64_t mailbox_send_with_reply(syscall_handle_t handle, uint64_t 
 	return 0;
 }
 
+static inline int64_t region_new(uint64_t physaddr, uint64_t size, VmMapping::vm_flags flags, VmMapping::vm_flags flags_share) {
+	return new_vm_mapping(physaddr, size, flags, flags_share, std::move(get_local_data()->scheduler.get_current_task()));
+}
+static inline int64_t region_new_anon(uint64_t size, VmMapping::vm_flags flags, VmMapping::vm_flags flags_share) {
+	return new_vm_mapping_anon(size, flags, flags_share, std::move(get_local_data()->scheduler.get_current_task()));
+}
+//static inline int64_t region_new_dma(uint64_t size, flags)
+//static inline int64_t set_flags(handle_t region, flags)
+static inline int64_t map_region(uint64_t hint, syscall_handle_t region_handle, uint64_t flags) {
+	auto region = get_vm_region(region_handle);
+	if (!region) return -1;
+	region->increment_refcount();
+
+	if (get_local_data()->scheduler.get_current_task() == region->get_owner()) flags &= region->get_flags_owner();
+	else flags &= region->get_flags_shared();
+
+	entry_flags_t page_flags = {
+			.writeable = static_cast<bool>(flags & VmMapping::PROT_WRITE),
+			.user_accessible = true,
+			.write_through = static_cast<bool>(flags & VmMapping::NO_CACHE),
+			.cache_disabled = static_cast<bool>(flags & VmMapping::NO_CACHE),
+			.accessed = false,
+			.dirty = false,
+			.huge = false,
+			.global = false,
+			.no_execute = static_cast<bool>(flags & VmMapping::PROT_EXEC)
+	};
+
+	if (hint == 0) return -2;
+
+	for (auto frame : region->get_frames()) {
+		map_page_to(hint, frame, page_flags, global_frame_allocator);
+		hint += 0x1000;
+	}
+	return 0;
+}
+//static inline int64_t unmap_region(TBD)
+//static inline int64_t share_region(uint64_t hint, handle_t region, handle_t task, flags)
+
 int64_t syscall_handler(uint64_t syscall_number, int64_t arg1, int64_t arg2, int64_t arg3, int64_t arg4, int64_t arg5) {
 	switch (syscall_number) {
 		// SCHEDULING
@@ -177,6 +217,10 @@ int64_t syscall_handler(uint64_t syscall_number, int64_t arg1, int64_t arg2, int
 			// IPC
 
 			// VM
+		case syscall_vectors::region_new:
+			return region_new(SYSCALL_ARGU(arg1), SYSCALL_ARGU(arg2), static_cast<VmMapping::vm_flags>(SYSCALL_ARGU(arg3)), static_cast<VmMapping::vm_flags>(SYSCALL_ARGU(arg4)));
+		case syscall_vectors::region_new_anon: return region_new_anon(SYSCALL_ARGU(arg1), static_cast<VmMapping::vm_flags>(SYSCALL_ARGU(arg2)), static_cast<VmMapping::vm_flags>(SYSCALL_ARGU(arg3)));
+		case syscall_vectors::map_region: return map_region(SYSCALL_ARGU(arg1), arg2, SYSCALL_ARGU(arg3));
 
 			// IRQ
 		case syscall_vectors::mailbox_new: return mailbox_new();
