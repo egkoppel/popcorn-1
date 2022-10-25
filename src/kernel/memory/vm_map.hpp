@@ -15,7 +15,7 @@
 #include <stdint.h>
 #include "../interrupts/syscall.hpp"
 #include <vector>
-#include "allocator.h"
+#include "allocator.hpp"
 #include "../main/main.hpp"
 #include <utility>
 #include "../threading/threading.hpp"

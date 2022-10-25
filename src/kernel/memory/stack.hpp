@@ -13,15 +13,15 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include "allocator.h"
+#include "allocator.hpp"
 
 extern "C" struct Stack {
-	public:
+public:
 	uint64_t top;
 	uint64_t bottom;
 
 	Stack(uint64_t size, bool user_access = false);
-	Stack(uint64_t top, uint64_t bottom): top(top), bottom(bottom) {}
+	Stack(uint64_t top, uint64_t bottom) : top(top), bottom(bottom) {}
 	~Stack();
 };
 

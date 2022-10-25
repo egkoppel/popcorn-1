@@ -11,7 +11,7 @@
 #ifndef _HUGOS_MAIN_H
 #define _HUGOS_MAIN_H
 
-#include "../memory/allocator.h"
+#include "../memory/allocator.hpp"
 #include "../gdt/gdt.hpp"
 #include "../gdt/tss.hpp"
 

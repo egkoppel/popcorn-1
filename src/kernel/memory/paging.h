@@ -14,7 +14,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "memory.h"
-#include "allocator.h"
+#include "allocator.hpp"
 #include <utils.h>
 
 #ifdef __cplusplus

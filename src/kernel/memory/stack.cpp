@@ -10,7 +10,7 @@
 
 #include "stack.hpp"
 #include "../main/main.hpp"
-#include "allocator.h"
+#include "allocator.hpp"
 #include <assert.h>
 #include "paging.h"
 #include <stdio.h>
