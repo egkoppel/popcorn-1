@@ -140,9 +140,9 @@ $(BUILD_DIR)/threading/%.S.o: threading/%.S | $(BUILD_DIR)/threading
 -include $(RUST_LIB_DIR)/libhugos.d
 $(RUST_LIB_DIR)/libhugos.a:
 ifeq ($(RUST_BUILD_TYPE),release)
-	+cd $(RUST_DIR) && RUSTFLAGS="-C opt-level=$(OPT)" $(CARGO) build --release
+	+cd $(RUST_DIR) && RUSTFLAGS="-C opt-level=$(OPT) -C force-frame-pointers=y" $(CARGO) build --release
 else
-	+cd $(RUST_DIR) && $(CARGO) build
+	+cd $(RUST_DIR) && RUSTFLAGS="-C force-frame-pointers=y" $(CARGO) build
 endif
 
 $(BUILD_DIR)/hug.bin: $(OBJS) ../libk/$(BUILD_DIR)/libk.a $(RUST_LIB_DIR)/libhugos.a
