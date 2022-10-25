@@ -17,6 +17,7 @@
 #include <stdarg.h>
 #include "userspace_macros.hpp"
 #include "fsd.hpp"
+#include "../memory/vm_map.hpp"
 
 #define hugOS_ascii_logo \
 " \n\
@@ -29,6 +30,8 @@
               __/ | \n\
              |___/ \n\
 "
+
+char *pointer = (char *)0xfc000000;
 
 [[noreturn]] int uinit_main(uint64_t ramfs_data, uint64_t ramfs_size) {
 	// [TARGET PRE-FSD]
@@ -82,6 +85,7 @@
 	memcpy(fsd_command.data, &read_ramfs_command, sizeof(read_ramfs_command));
 	send_msg_with_reply(fsd_mbox, UINT64_MAX, &fsd_command);
 	auto read_command_response = reinterpret_cast<fsd_command_response_t *>(&fsd_command);
+	vm_map_region(pointer, read_command_response->data.read.mmap_vm_handle, VmMapping::PROT_READ);
 	// TODO: Check contents reads `Help I'm stuck in a universe factory`
 
 	// [TARGET BOOTSTRAPPED]

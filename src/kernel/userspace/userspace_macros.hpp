@@ -39,6 +39,9 @@ _syscall5(unsigned long long syscallNo, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 a
 #define send_reply(buf) _syscall5<int64_t>(syscall_vectors::mailbox_reply,buf,0,0,0,0)
 #define mbox_transfer(mbox, task) _syscall5<int64_t>(syscall_vectors::mailbox_transfer,mbox, task,0,0,0)
 
+#define vm_region_new_anon(size, flags, flags_share) _syscall5<int64_t>(syscall_vectors::region_new_anon, size, flags, flags_share, 0,0)
+#define vm_map_region(hint, region_handle, flags) _syscall5<int64_t>(syscall_vectors::map_region, hint, region_handle, flags, 0,0)
+
 #define yield() _syscall5<int64_t>(syscall_vectors::yield,0,0,0,0,0)
 
 #endif //HUG_USERSPACE_MACROS_HPP
