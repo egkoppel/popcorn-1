@@ -19,7 +19,7 @@ framebuffer_type: resb 1
 section .text
 global read_multiboot_info
 
-KERNEL_VIRTUAL_BASE: equ 0xFFFFFF8000000000
+KERNEL_VIRTUAL_BASE: equ 0xFFFF800000000000
 TAG_TYPE_END: equ 0
 TAG_TYPE_FRAMEBUFFER: equ 8
 

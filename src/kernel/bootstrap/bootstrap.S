@@ -1,6 +1,6 @@
 bits 32
 
-KERNEL_VIRTUAL_BASE: equ 0xFFFFFF8000000000
+KERNEL_VIRTUAL_BASE: equ 0xFFFF800000000000
 
 section .rodata
 
@@ -235,7 +235,7 @@ _start:
 	mov eax, level3_page_table - KERNEL_VIRTUAL_BASE
 	or eax, 0b11 ; set present and write bits
 	mov [level4_page_table + 8*0 - KERNEL_VIRTUAL_BASE], eax ; map p4[0] to p3_0
-	mov [level4_page_table + 8*511 - KERNEL_VIRTUAL_BASE], eax ; map p4[511] to p3_0
+	mov [level4_page_table + 8*256 - KERNEL_VIRTUAL_BASE], eax ; map p4[256] to p3_0
 
 	mov eax, level2_page_table_0 - KERNEL_VIRTUAL_BASE
 	or eax, 0b11 ; set present and write bits

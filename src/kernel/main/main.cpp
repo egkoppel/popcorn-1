@@ -49,9 +49,9 @@ extern "C" tss::TSS task_state_segment = tss::TSS();
 extern "C" Allocator *global_frame_allocator = nullptr;
 extern "C" void switch_to_user_mode(void);
 extern "C" volatile uint8_t ap_running_count;
-volatile uint8_t *real_ap_running_count = &ap_running_count + 0xFFFFFF8000000000;
+volatile uint8_t *real_ap_running_count = &ap_running_count + 0xFFFF800000000000;
 extern "C" volatile uint8_t ap_wait_flag;
-volatile uint8_t *real_ap_wait_flag = &ap_wait_flag + 0xFFFFFF8000000000;
+volatile uint8_t *real_ap_wait_flag = &ap_wait_flag + 0xFFFF800000000000;
 
 extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	if (multiboot_magic == 0x36d76289) {
@@ -103,7 +103,7 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 			auto name = reinterpret_cast<char *>(sections->find_strtab()->addr + i.name_index);
 			auto is_ap_bootstrap = strncmp(name, ".ap_bootstrap", 13) == 0;
 			uint64_t offset = 0;
-			if (!is_ap_bootstrap) offset = 0xFFFFFF8000000000;
+			if (!is_ap_bootstrap) offset = 0xFFFF800000000000;
 
 			if (i.addr - offset < kernel_min) kernel_min = i.addr - offset;
 			if (i.addr - offset + i.size > kernel_max) kernel_max = i.addr - offset + i.size;
@@ -143,7 +143,7 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 
 			auto is_ap_bootstrap = strncmp(name, ".ap_bootstrap", 13) == 0;
 			uint64_t offset = 0;
-			if (!is_ap_bootstrap) offset = 0xFFFFFF8000000000;
+			if (!is_ap_bootstrap) offset = 0xFFFF800000000000;
 
 			for (uint64_t phys_addr = i.addr - offset;
 			     phys_addr < ALIGN_UP(i.addr - offset + i.size, 0x1000); phys_addr += 0x1000) {
@@ -159,13 +159,13 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 						.no_execute = !(i.flags & SHF_EXECINSTR)
 				};
 
-				fprintf(stdserial, "Kexe - Mapping %p -> %p\n", phys_addr + 0xFFFFFF8000000000, phys_addr);
-				map_page_to(phys_addr + 0xFFFFFF8000000000, phys_addr, flags, global_frame_allocator);
+				fprintf(stdserial, "Kexe - Mapping %p -> %p\n", phys_addr + 0xFFFF800000000000, phys_addr);
+				map_page_to(phys_addr + 0xFFFF800000000000, phys_addr, flags, global_frame_allocator);
 			}
 		}
 	}
 
-	auto kernel_space_mapper = KernelspaceMapper(0xFFFFFF8040000000);
+	auto kernel_space_mapper = KernelspaceMapper(0xFFFF800000000000+0x40000000);
 
 	fprintf(stdserial, "Map framebuffer\n");
 	entry_flags_t framebuffer_flags = {
@@ -238,7 +238,7 @@ extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 
 	uint64_t old_p4_table_page;
 	__asm__ volatile("mov %%cr3, %0" : "=r"(old_p4_table_page));
-	old_p4_table_page += 0xFFFFFF8000000000;
+	old_p4_table_page += 0xFFFF800000000000;
 	__asm__ volatile("mov %0, %%cr3" : : "r"(new_p4_table));
 
 	// Reload multiboot info from new address

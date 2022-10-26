@@ -50,7 +50,7 @@ FILE *stderr = &_stderr;
 FILE *stdserial = &_stdserial;
 static FILE *stdstrbuf = &_stdstrbuf;
 
-#define FRAMEBUFFER ((char*)0xffffff8040000000L)
+#define FRAMEBUFFER ((char*)0xffff800040000000L)
 
 void shift_up() {
 	memmove(FRAMEBUFFER, FRAMEBUFFER + framebuffer_pitch * psf_height, framebuffer_pitch * psf_height * (termsize_y - 1)); // copy one line upwards

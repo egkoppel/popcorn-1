@@ -23,7 +23,7 @@ extern font_psf_start
 extern font_psf_end
 extern font_psf_size
 
-KERNEL_VIRTUAL_BASE: equ 0xFFFFFF8000000000
+KERNEL_VIRTUAL_BASE: equ 0xFFFF800000000000
 PSF_FONT_MAGIC: equ 0x864ab572
 
 parse_psf:

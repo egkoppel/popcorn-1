@@ -31,8 +31,8 @@ memory_map_entry *memory_map_tag::end() {
 }
 
 void elf_sections_entry::print() {
-	printf("\tphys: %lp virt: %lp S: 0x%llx F: 0x%llx\n", this->addr - 0xFFFFFF8000000000, this->addr, this->size, this->flags);
-	fprintf(stdserial, "\tphys: %lp virt: %lp S: 0x%llx F: 0x%llx\n", this->addr - 0xFFFFFF8000000000, this->addr, this->size, this->flags);
+	printf("\tphys: %lp virt: %lp S: 0x%llx F: 0x%llx\n", this->addr - 0xFFFF800000000000, this->addr, this->size, this->flags);
+	fprintf(stdserial, "\tphys: %lp virt: %lp S: 0x%llx F: 0x%llx\n", this->addr - 0xFFFF800000000000, this->addr, this->size, this->flags);
 }
 
 elf_sections_entry *elf_sections_tag::begin() {

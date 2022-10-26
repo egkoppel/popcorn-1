@@ -14,7 +14,7 @@ SECTIONS {
         */ap_bootstrap*.o(.data*)
     }
 
-	KERNEL_OFFSET = 0xFFFFFF8000000000;
+	KERNEL_OFFSET = 0xFFFF800000000000;
 	. = 1M + KERNEL_OFFSET;
 
 	.kernelspace.text ALIGN(4K) : AT(ADDR(.kernelspace.text) - KERNEL_OFFSET)

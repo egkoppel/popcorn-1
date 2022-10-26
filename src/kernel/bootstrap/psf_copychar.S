@@ -23,7 +23,7 @@ extern framebuffer_bpp
 
 extern col
 
-KERNEL_VIRTUAL_BASE: equ 0xFFFFFF8000000000
+KERNEL_VIRTUAL_BASE: equ 0xFFFF800000000000
 
 psf_copychar: ; (char_index, y, x)
 	; prologue
