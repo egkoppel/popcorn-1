@@ -6,6 +6,7 @@ Welcome to popcorn's documentation!
     :caption: Contents:
 
     kernel/index.rst
+    kernel/arch/index.rst
 
 Indices and tables
 ==================

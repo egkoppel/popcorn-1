@@ -8,4 +8,3 @@ Convolution internal APIs
 
     memory.rst
     paging.rst
-    arch/index.rst
