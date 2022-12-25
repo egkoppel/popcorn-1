@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 2022 Eliyahu Gluschove-Koppel.
- *
+ *  
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -32,9 +32,16 @@
 HUGOS_STL_BEGIN_NAMESPACE
 namespace detail {
 	template<size_t Index, typename T> class tuple_leaf {
-	public:
+	private:
 		T value;
-		tuple_leaf(const T& value) : value(value) {}
+
+	public:
+		template<class U>
+		tuple_leaf(U&& value)
+			requires(!std::is_same_v<std::remove_cvref<U>, tuple_leaf> && std::is_constructible_v<T, U>)
+			: value(std::forward<U>(value)) {}
+		T& get() noexcept { return this->value; }
+		const T& get() const noexcept { return this->value; }
 	};
 
 	template<class s, class... Ts> class tuple_impl {};
@@ -42,7 +49,7 @@ namespace detail {
 	template<size_t... Is, class... Ts>
 	class tuple_impl<std::index_sequence<Is...>, Ts...> : public tuple_leaf<Is, Ts>... {
 	public:
-		tuple_impl(const Ts&...args) : tuple_leaf<Is, Ts>(args)... {}
+		template<class... Us> tuple_impl(Us&&...args) : tuple_leaf<Is, Ts>(std::forward<Us>(args))... {}
 	};
 }   // namespace detail
 
@@ -50,7 +57,7 @@ template<class... Types> class tuple;
 
 template<class... Types> tuple<typename std::decay<Types>::type...> make_tuple(Types&&...args) { return {args...}; }
 
-template<class T> struct tuple_size;
+template<class...> struct tuple_size;
 template<class... Types> struct tuple_size<tuple<Types...>> : std::integral_constant<size_t, sizeof...(Types)> {};
 
 template<size_t I, class T> struct tuple_element;
@@ -61,31 +68,38 @@ template<class Head, class... Rest> struct tuple_element<0, tuple<Head, Rest...>
 };
 
 template<class... Types> class tuple {
-	template<size_t I> friend typename tuple_element<I, tuple<Types...>>::type& get(tuple<Types...>& t);
-	template<size_t I> friend typename tuple_element<I, tuple<Types...>>::type&& get(tuple<Types...>&& t);
-	template<size_t I> friend const typename tuple_element<I, tuple<Types...>>::type& get(const tuple<Types...>& t);
-	template<size_t I> friend const typename tuple_element<I, tuple<Types...>>::type&& get(const tuple<Types...>&& t);
+	template<size_t I, class... U> friend typename tuple_element<I, tuple<U...>>::type& get(tuple<U...>& t) noexcept;
+	template<size_t I, class... U> friend typename tuple_element<I, tuple<U...>>::type&& get(tuple<U...>&& t) noexcept;
+	template<size_t I, class... U>
+	friend const typename tuple_element<I, tuple<U...>>::type& get(const tuple<U...>& t) noexcept;
+	template<size_t I, class... U>
+	friend const typename tuple_element<I, tuple<U...>>::type&& get(const tuple<U...>&& t) noexcept;
 
 private:
 	detail::tuple_impl<std::make_index_sequence<sizeof...(Types)>, Types...> impl;
 
 public:
-	constexpr tuple(const Types&...args) : impl(args...) {}
+	template<class... Us> constexpr tuple(Us&&...args) : impl(std::forward<Us>(args)...) {}
 };
 
 template<size_t I, class... Types> typename tuple_element<I, tuple<Types...>>::type& get(tuple<Types...>& t) noexcept {
-	return static_cast<detail::tuple_leaf<I, typename tuple_element<I, tuple<Types...>>::type>>(t.impl).value;
-}
-template<size_t I, class... Types> typename tuple_element<I, tuple<Types...>>::type&& get(tuple<Types...>&& t) {
-	return static_cast<detail::tuple_leaf<I, typename tuple_element<I, tuple<Types...>>::type>>(t.impl).value;
+	typedef typename tuple_element<I, tuple<Types...>>::type type;
+	return static_cast<detail::tuple_leaf<I, type>>(t.impl).get();
 }
 template<size_t I, class... Types>
-const typename tuple_element<I, tuple<Types...>>::type& get(const tuple<Types...>& t) {
-	return static_cast<detail::tuple_leaf<I, typename tuple_element<I, tuple<Types...>>::type>>(t.impl).value;
+typename tuple_element<I, tuple<Types...>>::type&& get(tuple<Types...>&& t) noexcept {
+	typedef typename tuple_element<I, tuple<Types...>>::type type;
+	return static_cast<type&&>(static_cast<detail::tuple_leaf<I, type>&&>(t.impl).get());
 }
 template<size_t I, class... Types>
-const typename tuple_element<I, tuple<Types...>>::type&& get(const tuple<Types...>&& t) {
-	return static_cast<detail::tuple_leaf<I, typename tuple_element<I, tuple<Types...>>::type>>(t.impl).value;
+const typename tuple_element<I, tuple<Types...>>::type& get(const tuple<Types...>& t) noexcept {
+	typedef typename tuple_element<I, tuple<Types...>>::type type;
+	return static_cast<detail::tuple_leaf<I, type>>(t.impl).get();
+}
+template<size_t I, class... Types>
+const typename tuple_element<I, tuple<Types...>>::type&& get(const tuple<Types...>&& t) noexcept {
+	typedef typename tuple_element<I, tuple<Types...>>::type type;
+	return static_cast<type&&>(static_cast<detail::tuple_leaf<I, type>&&>(t.impl).get());
 }
 
 namespace detail {
@@ -107,14 +121,14 @@ namespace detail {
 	}
 }   // namespace detail
 
-template<class F, class Tuple> constexpr decltype(auto) apply(F&& f, Tuple&& t) noexcept(noexcept(
-		detail::apply_impl(std::forward<F>(f),
-                           std::forward<Tuple>(t),
-                           make_index_sequence<tuple_size<Tuple>::value>())
-		)) {
+template<class F, class Tuple>
+constexpr decltype(auto) apply(F&& f, Tuple&& t) noexcept(
+		noexcept(detail::apply_impl(std::forward<F>(f),
+                                    std::forward<Tuple>(t),
+                                    make_index_sequence<tuple_size<std::remove_reference_t<Tuple>>::value>()))) {
 	return detail::apply_impl(std::forward<F>(f),
 	                          std::forward<Tuple>(t),
-	                          make_index_sequence<tuple_size<Tuple>::value>());
+	                          make_index_sequence<tuple_size<std::remove_reference_t<Tuple>>::value>());
 }
 
 HUGOS_STL_END_NAMESPACE
