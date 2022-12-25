@@ -43,9 +43,7 @@ namespace memory {
 	template<class VAllocator> KStack<VAllocator>::~KStack() {
 		std::fprintf(stdserial, "Stack (%p -> %p) dropped\n", this->bottom(), this->top());
 
-		for (auto page = this->virtual_region.begin(); page != this->virtual_region.end(); ++page) {
-			paging::kas.unmap_page(page);
-		}
+		for (auto page : this->virtual_region) { paging::kas.unmap_page(page); }
 
 		// FIXME: Fix guard page
 		// paging::unmark_for_no_map(this->start_page - 1);   // Guard page

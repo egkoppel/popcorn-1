@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <main/main.hpp>
 #include <popcorn_prelude.h>
+#include <utility/iter_wrapper.hpp>
 #include <utils.h>
 
 namespace memory {
@@ -26,9 +27,12 @@ namespace memory {
 
 	class PhysicalRegion {
 	public:
+		using iterator       = iter::iter_wrapper<frame_t *>;
+		using const_iterator = iter::iter_wrapper<const frame_t *>;
+
 		PhysicalRegion() noexcept = default;
 		PhysicalRegion(usize allocation_size, IPhysicalAllocator& allocator = allocators.general());
-		PhysicalRegion(frame_t* start, usize allocation_size) noexcept :
+		PhysicalRegion(frame_t *start, usize allocation_size) noexcept :
 			start(start),
 			allocation_size(allocation_size) {}
 		PhysicalRegion(const PhysicalRegion&, shallow_copy_t = shallow_copy) noexcept;
@@ -44,12 +48,19 @@ namespace memory {
 
 		usize size() const noexcept { return this->allocation_size; }
 
-		const frame_t* begin() const noexcept { return this->start; }
-		const frame_t* end() const noexcept {
-			return &this->start[IDIV_ROUND_UP(this->allocation_size, constants::frame_size)];
+		iterator begin() noexcept { return iter::iter_wrapper(this->start); }
+		iterator end() noexcept {
+			return iter::iter_wrapper(&this->start[IDIV_ROUND_UP(this->allocation_size, constants::frame_size)]);
 		}
+		const_iterator cbegin() const noexcept { return iter::iter_wrapper(const_cast<const frame_t *>(this->start)); }
+		const_iterator cend() const noexcept {
+			return iter::iter_wrapper(const_cast<const frame_t *>(
+					&this->start[IDIV_ROUND_UP(this->allocation_size, constants::frame_size)]));
+		}
+		const_iterator begin() const noexcept { return this->cbegin(); }
+		const_iterator end() const noexcept { return this->cend(); }
 
-		frame_t* release() noexcept;
+		frame_t *release() noexcept;
 
 	private:
 		frame_t *start        = nullptr;

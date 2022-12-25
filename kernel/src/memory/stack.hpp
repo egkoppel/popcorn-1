@@ -39,8 +39,14 @@ namespace memory {
 		}
 
 		usize size() const noexcept { return this->backing_region.size(); }
-		aligned<vaddr_t> top() const noexcept { return this->virtual_region.end(); }
-		aligned<vaddr_t> bottom() const noexcept { return this->virtual_region.begin(); }
+
+		using iterator = typename VirtualRegion<VAllocator>::iterator;
+		using const_iterator = typename VirtualRegion<VAllocator>::const_iterator;
+
+		iterator top() noexcept { return this->virtual_region.end(); }
+		iterator bottom() noexcept { return this->virtual_region.begin(); }
+		const_iterator top() const noexcept { return this->virtual_region.cend(); }
+		const_iterator bottom() const noexcept { return this->virtual_region.cbegin(); }
 
 	private:
 		PhysicalRegion backing_region{};

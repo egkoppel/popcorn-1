@@ -26,7 +26,7 @@ TSS::TSS() noexcept {
 void TSS::load(uint16_t gdt_index) noexcept { __asm__ volatile("ltr %w0" : : "q"(gdt_index * 8)); }
 
 void TSS::add_stack(uint8_t stack_idx, const memory::KStack<>& stack) noexcept {
-	this->interrupt_stack_table[stack_idx] = stack.top();
+	this->interrupt_stack_table[stack_idx] = *stack.top();
 }
 
 TSS arch::amd64::task_state_segment = TSS();

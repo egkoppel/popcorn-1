@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <main/main.hpp>
 #include <popcorn_prelude.h>
+#include <utility/iter_wrapper.hpp>
 #include <utility/step_by.hpp>
 
 namespace memory {
@@ -30,6 +31,9 @@ namespace memory {
 
 	template<class Allocator = general_allocator_t> class VirtualRegion {
 	public:
+		using iterator       = iter::iter_wrapper<aligned<vaddr_t>>;
+		using const_iterator = iter::iter_wrapper<aligned<vaddr_t>>;
+
 		explicit VirtualRegion(Allocator allocator = Allocator()) : start{{.address = 0}}, allocation_page_count{0} {}
 		explicit VirtualRegion(usize allocation_size, Allocator allocator = Allocator());
 		VirtualRegion(const VirtualRegion&) noexcept = delete;
@@ -39,8 +43,12 @@ namespace memory {
 		VirtualRegion& operator=(const VirtualRegion&) noexcept = delete;
 		VirtualRegion& operator=(VirtualRegion&& other) noexcept { std::swap(*this, other); }
 
-		auto begin() const { return this->start; }
-		auto end() const { return this->start + this->allocation_page_count; }
+		iterator begin() { return iter::iter_wrapper(this->start); }
+		iterator end() { return iter::iter_wrapper(this->start + this->allocation_page_count); }
+		const_iterator cbegin() const { return iter::iter_wrapper(this->start); }
+		const_iterator cend() const { return iter::iter_wrapper(this->start + this->allocation_page_count); }
+		const_iterator begin() const { return this->cbegin(); }
+		const_iterator end() const { return this->cend(); }
 
 	private:
 		aligned<vaddr_t> start;
