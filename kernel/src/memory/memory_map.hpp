@@ -128,4 +128,6 @@ namespace memory {
 	};
 }   // namespace memory
 
+#include "memory_map.ipp"
+
 #endif   // HUGOS_MEMORY_MAPPER_HPP
