@@ -79,9 +79,9 @@ using namespace memory;
  */
 extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept try {
 	if (multiboot_magic == 0x36d76289) {
-		printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Mulitboot magic: 0x%x (correct)\n", multiboot_magic);
+		printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Multiboot magic: 0x%x (correct)\n", multiboot_magic);
 	} else {
-		printf("[" TERMCOLOR_RED "FAIL" TERMCOLOR_RESET "] Mulitboot magic: 0x%x (incorrect)\n", multiboot_magic);
+		printf("[" TERMCOLOR_RED "FAIL" TERMCOLOR_RESET "] Multiboot magic: 0x%x (incorrect)\n", multiboot_magic);
 	}
 
 	// FIXME: why the flip does this not work
