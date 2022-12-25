@@ -5,7 +5,7 @@ Welcome to popcorn's documentation!
     :maxdepth: 2
     :caption: Contents:
 
-    kernel/index.rst
+    kernel/api/index.rst
     kernel/arch/index.rst
 
 Indices and tables
