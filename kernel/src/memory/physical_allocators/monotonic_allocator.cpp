@@ -15,26 +15,30 @@
 
 namespace memory::physical_allocators {
 	frame_t *MonotonicAllocator::allocate_(u64 byte_length) {
-		if (byte_length > constants::frame_size) throw std::bad_alloc();
-		/* TODO: Take byte length into account */
 		while (true) {
+			auto allocation_end_frame = this->next_frame + IDIV_ROUND_UP(byte_length, constants::frame_size);
+
 			//fprintf(stdserial, "Attempt alloc at %p\n", attempt);
-			if (this->next_frame >= this->kernel_start_frame && this->next_frame < this->kernel_end_frame) {
+			if ((this->next_frame >= this->kernel_start_frame && this->next_frame < this->kernel_end_frame)
+			    || (this->next_frame >= allocation_end_frame && allocation_end_frame < this->kernel_end_frame)) {
 				//fprintf(stdserial, "bump alloc kernel jump\n");
 				this->next_frame = this->kernel_end_frame;
 				continue;
 			}
 
-			if (this->next_frame >= this->multiboot_start_frame && this->next_frame < this->multiboot_end_frame) {
+			if ((this->next_frame >= this->multiboot_start_frame && this->next_frame < this->multiboot_end_frame)
+			    || (this->next_frame >= allocation_end_frame && allocation_end_frame < this->multiboot_end_frame)) {
 				//fprintf(stdserial, "bump alloc multiboot jump\n");
 				this->next_frame = this->multiboot_end_frame;
 				continue;
 			}
 
 			for (auto entry : *this->mem_map) {
-				if (entry.get_start_address() <= this->next_frame && this->next_frame < entry.get_end_address()) {
+				if (entry.get_start_address() <= this->next_frame && allocation_end_frame < entry.get_end_address()) {
 					if (entry.get_type() == multiboot::tags::MemoryMap::Type::AVAILABLE) {
-						return (this->next_frame++).frame();
+						auto f           = this->next_frame;
+						this->next_frame = allocation_end_frame;
+						return f.frame();
 					} else {
 						this->next_frame = aligned<paddr_t>::aligned_up(entry.get_end_address());
 						continue;
