@@ -82,6 +82,11 @@ SECTIONS {
 		*(EXCLUDE_FILE(*userspace* *ap_bootstrap*) .bss*)
 	}
 
+	.kernelspace.tbss ALIGN(4K) : AT(ADDR(.kernelspace.tbss) - KERNEL_OFFSET)
+    {
+    		*(EXCLUDE_FILE(*userspace* *ap_bootstrap*) .tbss*)
+    }
+
 	.userspace.text ALIGN(4K) : AT(ADDR(.userspace.text) - KERNEL_OFFSET)
 	{
 	    *userspace*(.text*)
