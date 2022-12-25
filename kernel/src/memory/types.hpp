@@ -39,7 +39,8 @@ namespace memory {
 		frame_t(const frame_t&) = delete;
 	};
 
-	inline frame_t *const mem_map = reinterpret_cast<frame_t *>(constants::mem_map_start);
+	// Starts at the 1M mark
+	inline frame_t *const mem_map = reinterpret_cast<frame_t *>(constants::mem_map_start) - 256;
 
 	struct vaddr_t : mixin::unary_post_ops<vaddr_t>,
 					 mixin::binary_ops<vaddr_t, usize> {
