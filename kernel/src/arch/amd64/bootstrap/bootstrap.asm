@@ -233,10 +233,15 @@ _start:
 	or eax, 0b11 ; set present and write bits
 	mov [level4_page_table + 8*0 - KERNEL_OFFSET], eax ; map p4[0] to p3_low
 
+    ; Mapping to mem_map_start
+	mov eax, level3_mem_map - KERNEL_OFFSET
+    or eax, 0b11 ; set present and write bits
+    mov [level4_page_table + 8*256 - KERNEL_OFFSET], eax ; map p4[256] to p3_mem_map
+
 	; Mapping to page_offset_start
 	mov eax, level3_low_page_table - KERNEL_OFFSET
     or eax, 0b11 ; set present and write bits
-    mov [level4_page_table + 8*256 - KERNEL_OFFSET], eax ; map p4[256] to p3_low
+    mov [level4_page_table + 8*288 - KERNEL_OFFSET], eax ; map p4[288] to p3_low
 
     ; Higher half mapping
 	mov eax, level3_high_page_table - KERNEL_OFFSET
@@ -258,6 +263,24 @@ _start:
 	mov eax, level2_page_table_fbmap - KERNEL_OFFSET
 	or eax, 0b11 ; set present and write bits
 	mov [level3_high_page_table + 8*511 - KERNEL_OFFSET], eax ; map p3_high[511] to p2_fbmap
+
+    ; Mapping to mem_map_start
+    mov eax, level2_mem_map - KERNEL_OFFSET
+    or eax, 0b11 ; set present and write bits
+    mov [level3_mem_map + 8*0 - KERNEL_OFFSET], eax ; map p3_mem_map[0] to p2_mem_map
+
+    ; map p2_mem_map[0->2] to a huge page (2MiB)
+    mov ecx, 0
+    .map_level2_page_table_mem_map_loop:
+        mov eax, 0x200000 ; size of each entry (2MiB)
+        mul ecx ; real start address of entry (counter * 2MiB)
+        add eax, (0x40000000 - 0x400000) ; start mapping from (1G-4M)
+        or eax, 0b10000011 ; present, write, and huge bits
+        mov [level2_mem_map + ecx * 8 - KERNEL_OFFSET], eax ; map p2[counter] to eax
+
+        inc ecx
+        cmp ecx, 2
+    jne .map_level2_page_table_mem_map_loop
 
 	; map each p2_0 entry to a huge page (2MiB)
 	mov ecx, 0
@@ -345,9 +368,13 @@ level3_high_page_table:
 	resb 0x1000
 level3_low_page_table:
 	resb 0x1000
+level3_mem_map:
+    resb 0x1000
 level2_page_table_kmap:
 	resb 0x1000
 level2_page_table_fbmap:
+	resb 0x1000
+level2_mem_map:
 	resb 0x1000
 _stack_bottom:
 	resb 0x1000*4
