@@ -1,0 +1,93 @@
+BasedOnStyle: LLVM
+AccessModifierOffset: -4
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveMacros: AcrossEmptyLines
+AlignOperands: Align
+AlignEscapedNewlines: Right
+AlignTrailingComments: true
+AllowAllArgumentsOnNextLine: false
+AllowAllConstructorInitializersOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortBlocksOnASingleLine: Always
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AlwaysBreakBeforeMultilineStrings: true
+AllowShortLambdasOnASingleLine: All
+AllowShortEnumsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+AlignArrayOfStructures: Right
+AlignConsecutiveBitFields: Consecutive
+AlwaysBreakAfterReturnType: None
+AlwaysBreakTemplateDeclarations: MultiLine
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: false
+  AfterClass: false
+  AfterControlStatement: Never
+  AfterEnum: false
+  AfterFunction: false
+  AfterNamespace: false
+  AfterUnion: false
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: true
+BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeTernaryOperators: false
+BreakConstructorInitializers: AfterColon
+BreakInheritanceList: AfterComma
+BinPackArguments: false
+BinPackParameters: false
+BitFieldColonSpacing: Both
+BreakBeforeConceptDeclarations: Never
+# BreakBeforeInlineASMColon: OnlyMultiline
+ColumnLimit: 120
+CompactNamespaces: false
+ContinuationIndentWidth: 8
+EmptyLineBeforeAccessModifier: Always
+EmptyLineAfterAccessModifier: Never
+FixNamespaceComments: true
+IndentCaseLabels: true
+IndentPPDirectives: BeforeHash
+IncludeBlocks: Regroup
+IndentWidth: 4
+IndentExternBlock: Indent
+LambdaBodyIndentation: Signature
+IndentGotoLabels: false
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 2
+NamespaceIndentation: All
+ObjCSpaceAfterProperty: false
+ObjCSpaceBeforeProtocolList: true
+PointerAlignment: Right
+PackConstructorInitializers: CurrentLine
+QualifierAlignment: Custom
+QualifierOrder: [ 'static', 'inline', 'const', 'volatile', 'type' ]
+ReflowComments: false
+ReferenceAlignment: Left
+SpaceAfterCStyleCast: false
+SpaceAfterLogicalNot: false
+SpaceAfterTemplateKeyword: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+SpaceBeforeParens: ControlStatementsExceptControlMacros
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 3
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: true
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SortIncludes: CaseInsensitive
+SortUsingDeclarations: true
+SpacesInLineCommentPrefix:
+  Minimum: 1
+  Maximum: -1
+TabWidth: 4
+UseTab: AlignWithSpaces
