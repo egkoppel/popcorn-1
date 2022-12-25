@@ -40,7 +40,8 @@ namespace memory {
 		MemoryMap(usize byte_count,
 		          paging::PageTableFlags flags,
 		          IPhysicalAllocator& page_allocator,
-		          paging::AddressSpace& in = threads::local_scheduler->get_current_task()->address_space());
+		          paging::AddressSpaceBase& in = threads::local_scheduler->get_current_task()->address_space(),
+		          VAllocator allocator         = VAllocator());
 
 		/**
 		 * Creates a memory mapping at the requested location
@@ -54,7 +55,8 @@ namespace memory {
 		          usize byte_count,
 		          paging::PageTableFlags flags,
 		          IPhysicalAllocator& page_allocator,
-		          paging::AddressSpace& in = threads::local_scheduler->get_current_task()->address_space());
+		          paging::AddressSpaceBase& in = threads::local_scheduler->get_current_task()->address_space(),
+		          VAllocator allocator         = VAllocator());
 		MemoryMap(const MemoryMap&) = delete;
 		~MemoryMap();
 
@@ -120,8 +122,9 @@ namespace memory {
 		                                      paging::AddressSpace& in = *paging::current_page_table);*/
 
 	private:
-		PhysicalRegion backing_region{};
-		VirtualRegion<VAllocator> virtual_region{};
+		PhysicalRegion backing_region;
+		VirtualRegion<VAllocator> virtual_region;
+		paging::AddressSpaceBase *address_space;
 	};
 }   // namespace memory
 
