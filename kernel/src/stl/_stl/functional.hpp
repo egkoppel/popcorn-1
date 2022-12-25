@@ -12,6 +12,8 @@
 #ifndef HUGOS_KERNEL_SRC_STL__STL_FUNCTIONAL_HPP
 #define HUGOS_KERNEL_SRC_STL__STL_FUNCTIONAL_HPP
 
+#include <utility>
+
 HUGOS_STL_BEGIN_NAMESPACE
 template<class T = void> struct less {
 	constexpr bool operator()(const T& lhs, const T& rhs) const {
@@ -48,6 +50,12 @@ template<class T = void> struct not_equal_to {
 		return lhs != rhs;   // assumes that the implementation uses a flat address space
 	}
 };
+
+template<class Fp, class... Args>
+inline constexpr decltype(std::declval<Fp>()(std::declval<Args>()...))
+invoke(Fp&& f, Args&&...args) noexcept(noexcept(static_cast<Fp&&>(f)(static_cast<Args&&>(args)...))) {
+	return static_cast<Fp&&>(f)(std::forward<Args>(args)...);
+}
 
 HUGOS_STL_END_NAMESPACE
 

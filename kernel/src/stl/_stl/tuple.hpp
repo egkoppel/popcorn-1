@@ -28,7 +28,9 @@
 #ifndef HUGOS_KERNEL_SRC_STL__STL_TUPLE_HPP
 #define HUGOS_KERNEL_SRC_STL__STL_TUPLE_HPP
 
+#include <functional>
 #include <stddef.h>
+
 HUGOS_STL_BEGIN_NAMESPACE
 namespace detail {
 	template<size_t Index, typename T> class tuple_leaf {
@@ -108,10 +110,6 @@ namespace detail {
 	};
 }   // namespace detail
 inline constexpr detail::ignore_t ignore;
-
-template<class Fp, class... Args>
-inline constexpr decltype(std::declval<Fp>()(std::declval<Args>()...))
-invoke(Fp&& f, Args&&...args) noexcept(noexcept(static_cast<Fp&&>(f)(static_cast<Args&&>(args)...)));
 
 namespace detail {
 	template<class F, class Tuple, std::size_t... Ns>
