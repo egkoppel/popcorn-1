@@ -274,7 +274,7 @@ _start:
     .map_level2_page_table_mem_map_loop:
         mov eax, 0x200000 ; size of each entry (2MiB)
         mul ecx ; real start address of entry (counter * 2MiB)
-        add eax, (0x40000000 - 0x600000) ; start mapping from (1G-6M) - must be 2M aligned
+        add eax, 0x200000 ; start mapping from 2MiB - must be 2M aligned
         or eax, 0b10000011 ; present, write, and huge bits
         mov [level2_mem_map + ecx * 8 - KERNEL_OFFSET], eax ; map p2[counter] to eax
 
