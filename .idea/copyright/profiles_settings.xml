@@ -1,8 +1,8 @@
 <component name="CopyrightManager">
-  <settings default="Test">
-    <module2copyright>
-      <element module="Project Files" copyright="Test" />
-    </module2copyright>
-    <LanguageOptions name="ObjectiveC" />
+  <settings default="eliyahu">
+    <LanguageOptions name="ObjectiveC">
+      <option name="block" value="false" />
+      <option name="prefixLines" value="false" />
+    </LanguageOptions>
   </settings>
 </component>

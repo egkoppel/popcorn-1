@@ -1,0 +1,84 @@
+/*
+ * Copyright (c) 2022 Eliyahu Gluschove-Koppel.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <termcolor.h>
+
+void *__dso_handle = 0;
+void __cxa_finalize(void *dso);
+
+typedef void (*ctor_func)(void);
+
+extern ctor_func start_ctors;
+extern ctor_func end_ctors;
+extern ctor_func init_array_start;
+extern ctor_func init_array_end;
+
+void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr);
+
+_Noreturn void __cxa_init(uint32_t multiboot_magic, uint32_t multiboot_addr) {
+	printf("[    ] Running ctors\n\tstart: %lp\n\t  end: %lp\n", &start_ctors, &end_ctors);
+	ctor_func *i = &start_ctors;
+	while (i < &end_ctors) {
+		//printf("Calling constructor at %lp\n", i);
+		if (*i != NULL) (*i)();
+		i++;
+	}
+	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Ran ctors\n");
+
+	printf("[    ] Running elements of init array\n\tstart: %lp\n\t  end: %lp\n", &init_array_start, &init_array_end);
+	i = &init_array_start;
+	while (i < &init_array_end) {
+		//printf("Calling constructor at 0x%x\n", i);
+		if (*i != NULL) (*i)();
+		i++;
+	}
+	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Done running elements of init array\n");
+
+	kmain(multiboot_magic, multiboot_addr);
+
+	__cxa_finalize(NULL);
+
+	while (1) __asm__ volatile("");
+}
+#define ATEXIT_COUNT 128
+
+typedef struct {
+	void (*destructor_func)(void *);
+	void *obj_ptr;
+	void *dso_handle;
+} atexit_func_entry_t;
+
+atexit_func_entry_t atexit_funcs[ATEXIT_COUNT] = {0};
+unsigned int atexit_used                       = 0;
+
+static struct atexit_handler {
+	void (*f)(void *);
+	void *p;
+	void *d;
+	struct atexit_handler *next;
+} * head;
+
+int __cxa_atexit(void (*f)(void *), void *objptr, void *dso) {
+	if (atexit_used >= ATEXIT_COUNT) return -1;
+	atexit_funcs[atexit_used++] = (atexit_func_entry_t){.destructor_func = f, .obj_ptr = objptr, .dso_handle = dso};
+	return 0;
+}
+
+void __cxa_finalize(void *dso) {
+	for (int i = ATEXIT_COUNT - 1; i >= 0; --i) {
+		if (dso == NULL || atexit_funcs[i].dso_handle == dso) {
+			if (atexit_funcs[i].destructor_func != NULL) atexit_funcs[i].destructor_func(atexit_funcs[i].obj_ptr);
+			atexit_funcs[i].destructor_func = NULL;
+		}
+	}
+}

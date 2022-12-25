@@ -1,0 +1,59 @@
+/*
+ * Copyright (c) 2022 Eliyahu Gluschove-Koppel.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "memory_map.hpp"
+
+#include <optional>
+#include <stdio.h>
+#include <utils.h>
+#include <vector>
+
+using namespace memory;
+
+Page MemoryMapper::new_map(FrameVector frames,
+                           paging::PageTableEntry::flags_t flags,
+                           IVirtualAllocator& page_allocator,
+                           IPhysicalAllocator& page_table_allocator,
+                           paging::AddressSpace& in) {
+	auto start_page = page_allocator.allocate(frames.byte_length());
+
+	Page page = start_page;
+	for (Frame frame : frames) {
+		fprintf(stdserial, "Mapping (p)%p -> (v)%p\n", frame.begin(), page.begin());
+		in.map_page_to(page++, frame, flags, page_table_allocator);
+	}
+
+	return start_page;
+}
+
+Page MemoryMapper::new_anonymous_map(uint64_t byte_length,
+                                     paging::PageTableEntry::flags_t flags,
+                                     IVirtualAllocator& page_allocator,
+                                     IPhysicalAllocator& frame_allocator,
+                                     IPhysicalAllocator& page_table_allocator,
+                                     paging::AddressSpace& in) {
+	auto frames = frame_allocator.allocate(byte_length);
+	return new_map(std::move(frames), flags, page_allocator, page_table_allocator, in);
+}
+
+VirtualAddress MemoryMapper::new_address_map(PhysicalAddress start,
+                                             uint64_t byte_length,
+                                             paging::PageTableEntry::flags_t flags,
+                                             IVirtualAllocator& page_allocator,
+                                             IPhysicalAllocator& page_table_allocator,
+                                             paging::AddressSpace& in) {
+	Frame start_frame = Frame::containing_address(start);
+	Frame end_frame   = Frame::containing_address(start + byte_length) + 1;
+
+	auto start_page = new_map({FrameRange(start_frame, end_frame)}, flags, page_allocator, page_table_allocator, in);
+
+	auto difference = start - start_frame.begin();
+	return {start_page.begin() + difference};
+}
