@@ -37,11 +37,16 @@ namespace detail {
 	private:
 		T value;
 
+		template<class Tp> static constexpr bool can_bind_reference() { return !__reference_binds_to_temporary(T, Tp); }
+
 	public:
 		template<class U>
 		tuple_leaf(U&& value)
 			requires(!std::is_same_v<std::remove_cvref<U>, tuple_leaf> && std::is_constructible_v<T, U>)
-			: value(std::forward<U>(value)) {}
+			: value(std::forward<U>(value)) {
+			static_assert(can_bind_reference<U&&>(),
+			              "Attempted construction of reference element binds to a temporary whose lifetime has ended");
+		}
 		T& get() noexcept { return this->value; }
 		const T& get() const noexcept { return this->value; }
 	};
@@ -86,7 +91,7 @@ public:
 
 template<size_t I, class... Types> typename tuple_element<I, tuple<Types...>>::type& get(tuple<Types...>& t) noexcept {
 	typedef typename tuple_element<I, tuple<Types...>>::type type;
-	return static_cast<detail::tuple_leaf<I, type>>(t.impl).get();
+	return static_cast<detail::tuple_leaf<I, type>&>(t.impl).get();
 }
 template<size_t I, class... Types>
 typename tuple_element<I, tuple<Types...>>::type&& get(tuple<Types...>&& t) noexcept {
@@ -96,12 +101,12 @@ typename tuple_element<I, tuple<Types...>>::type&& get(tuple<Types...>&& t) noex
 template<size_t I, class... Types>
 const typename tuple_element<I, tuple<Types...>>::type& get(const tuple<Types...>& t) noexcept {
 	typedef typename tuple_element<I, tuple<Types...>>::type type;
-	return static_cast<detail::tuple_leaf<I, type>>(t.impl).get();
+	return static_cast<const detail::tuple_leaf<I, type>&>(t.impl).get();
 }
 template<size_t I, class... Types>
 const typename tuple_element<I, tuple<Types...>>::type&& get(const tuple<Types...>&& t) noexcept {
 	typedef typename tuple_element<I, tuple<Types...>>::type type;
-	return static_cast<type&&>(static_cast<detail::tuple_leaf<I, type>&&>(t.impl).get());
+	return static_cast<type&&>(static_cast<const detail::tuple_leaf<I, type>&&>(t.impl).get());
 }
 
 namespace detail {

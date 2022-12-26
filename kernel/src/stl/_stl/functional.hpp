@@ -54,7 +54,7 @@ template<class T = void> struct not_equal_to {
 template<class Fp, class... Args>
 inline constexpr decltype(std::declval<Fp>()(std::declval<Args>()...))
 invoke(Fp&& f, Args&&...args) noexcept(noexcept(static_cast<Fp&&>(f)(static_cast<Args&&>(args)...))) {
-	return static_cast<Fp&&>(f)(std::forward<Args>(args)...);
+	return (std::forward<Fp>(f))(std::forward<Args>(args)...);
 }
 
 HUGOS_STL_END_NAMESPACE
