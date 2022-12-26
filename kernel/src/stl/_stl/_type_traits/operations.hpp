@@ -44,15 +44,15 @@ template<class T> struct is_default_constructible : is_constructible<T> {};
 template<class T> struct is_trivially_default_constructible : is_trivially_constructible<T> {};
 template<class T> struct is_nothrow_default_constructible : is_nothrow_constructible<T> {};
 
-template<class T> struct is_copy_constructible : is_constructible<add_lvalue_reference_t<add_const_t<T>>> {};
+template<class T> struct is_copy_constructible : is_constructible<T, add_lvalue_reference_t<add_const_t<T>>> {};
 template<class T>
-struct is_trivially_copy_constructible : is_trivially_constructible<add_lvalue_reference_t<add_const_t<T>>> {};
+struct is_trivially_copy_constructible : is_trivially_constructible<T, add_lvalue_reference_t<add_const_t<T>>> {};
 template<class T>
-struct is_nothrow_copy_constructible : is_nothrow_constructible<add_lvalue_reference_t<add_const_t<T>>> {};
+struct is_nothrow_copy_constructible : is_nothrow_constructible<T, add_lvalue_reference_t<add_const_t<T>>> {};
 
-template<class T> struct is_move_constructible : is_constructible<add_rvalue_reference_t<T>> {};
-template<class T> struct is_trivially_move_constructible : is_trivially_constructible<add_rvalue_reference_t<T>> {};
-template<class T> struct is_nothrow_move_constructible : is_nothrow_constructible<add_rvalue_reference_t<T>> {};
+template<class T> struct is_move_constructible : is_constructible<T, add_rvalue_reference_t<T>> {};
+template<class T> struct is_trivially_move_constructible : is_trivially_constructible<T, add_rvalue_reference_t<T>> {};
+template<class T> struct is_nothrow_move_constructible : is_nothrow_constructible<T, add_rvalue_reference_t<T>> {};
 
 template<class T> struct is_trivially_copyable : bool_constant<__is_trivially_copyable(T)> {};
 
