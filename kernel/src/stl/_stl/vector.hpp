@@ -85,7 +85,7 @@ public:
 		other.buffer_end_   = nullptr;
 		other.item_count_   = 0;
 	}
-	vector(std::initializer_list<T> init);
+	vector(std::initializer_list<T> init) : vector(init.begin(), init.end()) {}
 
 	template<class InputIt>
 	vector(InputIt begin, InputIt end)
