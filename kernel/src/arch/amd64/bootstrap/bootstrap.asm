@@ -85,6 +85,8 @@ extern psf_copychar
 extern parse_psf
 extern _32_init_io
 
+extern initial_mem_map_start
+
 _start:
 	mov esp, _stack_top - KERNEL_OFFSET
 	mov ebp, esp
@@ -274,7 +276,7 @@ _start:
     .map_level2_page_table_mem_map_loop:
         mov eax, 0x200000 ; size of each entry (2MiB)
         mul ecx ; real start address of entry (counter * 2MiB)
-        add eax, 0x200000 ; start mapping from 2MiB - must be 2M aligned
+        lea eax, [initial_mem_map_start - KERNEL_OFFSET] ; start mapping from initial_mem_map region
         or eax, 0b10000011 ; present, write, and huge bits
         mov [level2_mem_map + ecx * 8 - KERNEL_OFFSET], eax ; map p2[counter] to eax
 

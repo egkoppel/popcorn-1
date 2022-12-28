@@ -59,6 +59,9 @@ volatile u8 *real_ap_running_count = &ap_running_count + memory::constants::kexe
 extern "C" volatile u8 ap_wait_flag;
 volatile u8 *real_ap_wait_flag = &ap_wait_flag + memory::constants::kexe_start;
 extern "C" char *FRAMEBUFFER;
+extern "C" u8 initial_mem_map_start;
+memory::paddr_t real_initial_mem_map_start{
+		.address = reinterpret_cast<usize>(&initial_mem_map_start - memory::constants::kexe_start)};
 
 using namespace memory;
 
@@ -149,7 +152,13 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept tr
 		       entry.get_type() == multiboot::tags::MemoryMap::Type::AVAILABLE ? "AVAILABLE" : "RESERVED");
 	}
 
-	// Basic allocator that allocates between first MiB (after SMBIOS) and first GiB (where page_offset area initially ends)
+	LOG(Log::DEBUG,
+	    "Detected %d MiB of available memory (%d MiB total)",
+	    available_ram / (1024 * 1024),
+	    total_ram / (1024 * 1024));
+	//}
+
+	// Basic allocator that allocates between 1MiB and 1GiB (where page_offset area and mem_map initially end)
 	auto kernel_monotonic_frame_allocator = memory::physical_allocators::MonotonicAllocator(0x100000_pa,
 	                                                                                        0x40000000_pa,
 	                                                                                        kernel_min,

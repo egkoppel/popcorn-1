@@ -14,7 +14,7 @@ SECTIONS {
     }
 
 	KERNEL_OFFSET = 0xFFFFFFFF80000000;
-	. = 6M + KERNEL_OFFSET;
+	. = 1M + KERNEL_OFFSET;
 
 	.kernelspace.text ALIGN(4K) : AT(ADDR(.kernelspace.text) - KERNEL_OFFSET)
 	{
