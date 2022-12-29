@@ -1,18 +1,26 @@
-#include <stdint.h>
-#include <stddef.h>
+/*
+ * Copyright (c) 2022 Eliyahu Gluschove-Koppel.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <serial.h>
 #include <stdarg.h>
 #include <stdbool.h>
-
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <stdio.h>
-#include <serial.h>
 #include <termcolor.h>
 
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-#define TABSIZE 8
+#define TABSIZE   8
 
 extern uint16_t x, y;
 extern uint32_t col;
@@ -34,64 +42,61 @@ extern uint32_t framebuffer_height;
 extern uint8_t framebuffer_bpp;
 
 static size_t stdio_char_count_theoretical = 0;
-static size_t stdio_char_count = 0;
-static size_t stdio_char_limit = 0;
-static char *stdio_strbuf; // for sprintf, snprintf
+static size_t stdio_char_count             = 0;
+static size_t stdio_char_limit             = 0;
+static char *stdio_strbuf;   // for sprintf, snprintf
 
-static FILE _stdin = { .fd = 0 };
-static FILE _stdout = { .fd = 1 };
-static FILE _stderr = { .fd = 2 };
-static FILE _stdserial = { .fd = 3 };
-static FILE _stdstrbuf = {.fd = 4 };
+static FILE _stdin     = {.fd = 0};
+static FILE _stdout    = {.fd = 1};
+static FILE _stderr    = {.fd = 2};
+static FILE _stdserial = {.fd = 3};
+static FILE _stdstrbuf = {.fd = 4};
 
-FILE *stdin = &_stdin;
-FILE *stdout = &_stdout;
-FILE *stderr = &_stderr;
-FILE *stdserial = &_stdserial;
+FILE *stdin            = &_stdin;
+FILE *stdout           = &_stdout;
+FILE *stderr           = &_stderr;
+FILE *stdserial        = &_stdserial;
 static FILE *stdstrbuf = &_stdstrbuf;
 
 char *FRAMEBUFFER = (char *)0xffffffffc0000000L;
 
 void shift_up() {
-	memmove(FRAMEBUFFER, FRAMEBUFFER + framebuffer_pitch * psf_height, framebuffer_pitch * psf_height * (termsize_y - 1)); // copy one line upwards
-	memset(FRAMEBUFFER + framebuffer_pitch * psf_height * (termsize_y - 1), 0, framebuffer_pitch * psf_height); // zero the final line
+	memmove(FRAMEBUFFER,
+	        FRAMEBUFFER + framebuffer_pitch * psf_height,
+	        framebuffer_pitch * psf_height * (termsize_y - 1));   // copy one line upwards
+	memset(FRAMEBUFFER + framebuffer_pitch * psf_height * (termsize_y - 1),
+	       0,
+	       framebuffer_pitch * psf_height);   // zero the final line
 }
 
 void putchar(unsigned char c) {
 	static bool esc = false;
 	static int code = 0;
-	
+
 	if (esc) {
 		switch (c) {
-			case 'm':
-				esc = false;
-				__attribute__((fallthrough));
+			case 'm': esc = false; __attribute__((fallthrough));
 			case ';':
-				handle_esc_code(code); // then fallthrough to reset code (necessary to parse next one, harmless if 'm')
+				handle_esc_code(
+						code);   // then fallthrough to reset code (necessary to parse next one, harmless if 'm')
 				__attribute__((fallthrough));
-			case '[':
-				code = 0;
-				break;
+			case '[': code = 0; break;
 			case 'c':
 				term_clear();
 				esc = false;
 				break;
-			default:
-				code = 10*code + (c - '0');
-				break;
+			default: code = 10 * code + (c - '0'); break;
 		}
 		return;
 	}
-	
-	if (c == 0x1b) { // ESC
+
+	if (c == 0x1b) {   // ESC
 		esc = true;
 	} else if (c == '\t') {
-		do {
-			x++;
-		} while (x % TABSIZE);
+		do { x++; } while (x % TABSIZE);
 		if (x >= termsize_x) goto newline;
 	} else if (c == '\n') {
-		newline:
+newline:
 		x = 0;
 		y++;
 		if (y >= termsize_y) {
@@ -100,30 +105,30 @@ void putchar(unsigned char c) {
 		}
 	} else {
 		if (c >= psf_numglyph) return;
-		
+
 		char *fb_target = FRAMEBUFFER + y * framebuffer_pitch * psf_height + x * (psf_width + 1) * framebuffer_bpp / 8;
 		for (uint32_t yy = 0; yy < psf_height; ++yy) {
 			for (uint32_t xx = 0; xx < psf_width; ++xx) {
 				uint32_t bit_addr = yy * psf_width + xx;
-				char font_byte = *((char*)&font_psf_start + psf_headersize + c * psf_bytesperglyph + bit_addr / 8);
-				bool bit = (font_byte << (bit_addr % 8)) & (1 << 7);
-				*(uint32_t*)(fb_target + xx * framebuffer_bpp / 8) = bit ? col : 0;
+				char font_byte    = *((char *)&font_psf_start + psf_headersize + c * psf_bytesperglyph + bit_addr / 8);
+				bool bit          = (font_byte << (bit_addr % 8)) & (1 << 7);
+				*(uint32_t *)(fb_target + xx * framebuffer_bpp / 8) = bit ? col : 0;
 			}
 			fb_target += framebuffer_pitch;
 		}
-		
+
 		x++;
-		
+
 		if (x >= termsize_x) goto newline;
 	}
 }
 
-void fputc(unsigned char c, FILE* stream) {
+void fputc(unsigned char c, FILE *stream) {
 	++stdio_char_count_theoretical;
-	
+
 	if (stdio_char_count >= stdio_char_limit) return;
 	++stdio_char_count;
-	
+
 	if (stream->fd == stdout->fd) {
 		putchar(c);
 	} else if (stream->fd == stderr->fd) {
@@ -137,23 +142,19 @@ void fputc(unsigned char c, FILE* stream) {
 	}
 }
 
-inline void fputs(const char* str, FILE* stream) {
+inline void fputs(const char *str, FILE *stream) {
 	char c;
-	while ((c = *str++)) {
-		fputc(c, stream);
-	}
+	while ((c = *str++)) { fputc(c, stream); }
 }
 
-inline void puts(const char* str) {
+inline void puts(const char *str) {
 	char c;
-	while ((c = *str++)) {
-		putchar(c);
-	}
+	while ((c = *str++)) { putchar(c); }
 }
 
 enum printf_length_specifiers {
 	PRINTF_LENGTH_DEFAULT,
-	
+
 	PRINTF_LENGTH_hh,
 	PRINTF_LENGTH_h,
 	PRINTF_LENGTH_l,
@@ -164,60 +165,46 @@ enum printf_length_specifiers {
 	PRINTF_LENGTH_L,
 };
 
-int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
+int _kvfprintf(FILE *stream, const char *fmt, va_list args) {
 	char c;
 	void *p;
 	static char itoabuf[72];
-	
+
 	while ((c = *fmt++)) {
 		if (c == '%') {
 			struct {
-				bool left_justify; // NOT SUPPORTED
-				bool force_sign; // NOT SUPPORTED
-				bool space_if_no_sign; // NOT SUPPORTED
-				bool num_mode; // NOT SUPPORTED
+				bool left_justify;       // NOT SUPPORTED
+				bool force_sign;         // NOT SUPPORTED
+				bool space_if_no_sign;   // NOT SUPPORTED
+				bool num_mode;           // NOT SUPPORTED
 				bool zeropad;
 				int width;
-				int precision; // only supported for floats and strings
+				int precision;   // only supported for floats and strings
 				enum printf_length_specifiers length;
-			} options = {false};
+			} options     = {false};
 			options.width = options.precision = -1;
-			
+
 			bool done_with_flags = false;
 			while (*fmt != '\0' && !done_with_flags) {
-				switch (*fmt) { // flags
-					case '-':
-						options.left_justify = true;
-						break;
-						
-					case '+':
-						options.force_sign = true;
-						break;
-					
-					case ' ':
-						options.space_if_no_sign = true;
-						break;
-					
-					case '#':
-						options.num_mode = true;
-						break;
-					
-					case '0':
-						options.zeropad = true;
-						break;
-					
-					default:
-						--fmt;
-						done_with_flags = true;
+				switch (*fmt) {   // flags
+					case '-': options.left_justify = true; break;
+
+					case '+': options.force_sign = true; break;
+
+					case ' ': options.space_if_no_sign = true; break;
+
+					case '#': options.num_mode = true; break;
+
+					case '0': options.zeropad = true; break;
+
+					default: --fmt; done_with_flags = true;
 				}
 				++fmt;
 			}
-			
-			switch (*fmt) { // width
-				case '*':
-					options.width = va_arg(args, int);
-					break;
-					
+
+			switch (*fmt) {   // width
+				case '*': options.width = va_arg(args, int); break;
+
 				default:
 					if ('0' <= *fmt && *fmt <= '9') options.width = 0;
 					while ('0' <= *fmt && *fmt <= '9') {
@@ -227,14 +214,12 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 					};
 					break;
 			}
-			
+
 			if (*fmt == '.') {
 				++fmt;
-				switch (*fmt) { // precision
-					case '*':
-						options.precision = va_arg(args, int);
-						break;
-						
+				switch (*fmt) {   // precision
+					case '*': options.precision = va_arg(args, int); break;
+
 					default:
 						if ('0' <= *fmt && *fmt <= '9') options.precision = 0;
 						while ('0' <= *fmt && *fmt <= '9') {
@@ -245,7 +230,7 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 						break;
 				}
 			}
-			
+
 			switch (*fmt) {
 				case 'h':
 					++fmt;
@@ -256,7 +241,7 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 						--fmt;
 					}
 					break;
-					
+
 				case 'l':
 					++fmt;
 					if (*fmt == '\0') break;
@@ -266,29 +251,19 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 						--fmt;
 					}
 					break;
-					
-				case 'j':
-					options.length = PRINTF_LENGTH_j;
-					break;
-					
-				case 'z':
-					options.length = PRINTF_LENGTH_z;
-					break;
-					
-				case 't':
-					options.length = PRINTF_LENGTH_t;
-					break;
-					
-				case 'L':
-					options.length = PRINTF_LENGTH_L;
-					break;
-				
-				default:
-					--fmt;
-					break;
+
+				case 'j': options.length = PRINTF_LENGTH_j; break;
+
+				case 'z': options.length = PRINTF_LENGTH_z; break;
+
+				case 't': options.length = PRINTF_LENGTH_t; break;
+
+				case 'L': options.length = PRINTF_LENGTH_L; break;
+
+				default: --fmt; break;
 			}
 			++fmt;
-			
+
 			int64_t n;
 			uint64_t un;
 			long len;
@@ -297,24 +272,24 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 			//uint64_t f_intpart, f_floatpart;
 			//bool neg;
 			switch (*fmt) {
-				case 'c': // todo: handle %lc
+				case 'c':   // todo: handle %lc
 					fputc(va_arg(args, int /*char*/), stream);
 					break;
-				
+
 				case 'u':
 				case 'o':
 				case 'x':
 				case 'X':
-				case 'b': // unofficial extension: formats as binary
+				case 'b':   // unofficial extension: formats as binary
 					switch (options.length) {
 						case PRINTF_LENGTH_hh: un = va_arg(args, int /*unsigned char*/); break;
-						case PRINTF_LENGTH_h:  un = va_arg(args, int /*unsigned short int*/); break;
-						case PRINTF_LENGTH_l:  un = va_arg(args, unsigned long int); break;
+						case PRINTF_LENGTH_h: un = va_arg(args, int /*unsigned short int*/); break;
+						case PRINTF_LENGTH_l: un = va_arg(args, unsigned long int); break;
 						case PRINTF_LENGTH_ll: un = va_arg(args, unsigned long long int); break;
-						case PRINTF_LENGTH_j:  un = va_arg(args, uintmax_t); break;
-						case PRINTF_LENGTH_z:  un = va_arg(args, size_t); break;
-						case PRINTF_LENGTH_t:  un = va_arg(args, ptrdiff_t); break;
-						default:               un = va_arg(args, unsigned int); break;
+						case PRINTF_LENGTH_j: un = va_arg(args, uintmax_t); break;
+						case PRINTF_LENGTH_z: un = va_arg(args, size_t); break;
+						case PRINTF_LENGTH_t: un = va_arg(args, ptrdiff_t); break;
+						default: un = va_arg(args, unsigned int); break;
 					}
 					int base = 16;
 					if (*fmt == 'o') base = 8;
@@ -331,18 +306,18 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 					}
 					fputs(itoabuf, stream);
 					break;
-					
+
 				case 'd':
 				case 'i':
 					switch (options.length) {
 						case PRINTF_LENGTH_hh: n = va_arg(args, int /*char*/); break;
-						case PRINTF_LENGTH_h:  n = va_arg(args, int /*short int*/); break;
-						case PRINTF_LENGTH_l:  n = va_arg(args, long int); break;
+						case PRINTF_LENGTH_h: n = va_arg(args, int /*short int*/); break;
+						case PRINTF_LENGTH_l: n = va_arg(args, long int); break;
 						case PRINTF_LENGTH_ll: n = va_arg(args, long long int); break;
-						case PRINTF_LENGTH_j:  n = va_arg(args, intmax_t); break;
-						case PRINTF_LENGTH_z:  n = va_arg(args, size_t); break;
-						case PRINTF_LENGTH_t:  n = va_arg(args, ptrdiff_t); break;
-						default:               n = va_arg(args, int); break;
+						case PRINTF_LENGTH_j: n = va_arg(args, intmax_t); break;
+						case PRINTF_LENGTH_z: n = va_arg(args, size_t); break;
+						case PRINTF_LENGTH_t: n = va_arg(args, ptrdiff_t); break;
+						default: n = va_arg(args, int); break;
 					}
 					itoa(n, itoabuf, 10);
 					if (n < 0) fputc('-', stream);
@@ -356,19 +331,19 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 					}
 					fputs(n < 0 ? itoabuf + 1 : itoabuf, stream);
 					break;
-				
+
 				case 'p':
-					p = va_arg(args, void*);
+					p = va_arg(args, void *);
 					if (p == NULL && !(options.length == PRINTF_LENGTH_l)) {
 						fputs("(nil)", stream);
 						break;
 					}
 					fputs("0x", stream);
 					utoa((uint64_t)p, itoabuf, 16);
-					for(size_t i = 0; i < sizeof(void*) * 2 - strlen(itoabuf); ++i) fputc('0', stream);
+					for (size_t i = 0; i < sizeof(void *) * 2 - strlen(itoabuf); ++i) fputc('0', stream);
 					fputs(itoabuf, stream);
 					break;
-				
+
 				case 'f':
 				case 'F':
 				/* // while we compile with -mno-sse, floats are basically broken, so this won't work anyway. If we ever enable floats again, we can uncomment this.
@@ -410,48 +385,43 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 					}
 					break;
 				*/
-				case 'e': // todo: other floats
+				case 'e':   // todo: other floats
 				case 'E':
 				case 'g':
 				case 'G':
 				case 'a':
-				case 'A':
-					fputs("[UNSUPPORTED]", stream);
-					break;
-				
-				case 's': // todo: handle %ls
-					str = va_arg(args, char*);
+				case 'A': fputs("[UNSUPPORTED]", stream); break;
+
+				case 's':   // todo: handle %ls
+					str = va_arg(args, char *);
 					len = strlen(str);
-					
+
 					if (options.precision >= 0) len = MIN((long)len, options.precision);
-					
+
 					if (len < options.width) {
 						for (int i = 0; i < options.width - len; ++i) fputc(' ', stream);
 					}
-					
+
 					for (int i = 0; i < len; ++i) fputc(*str++, stream);
-					
+
 					break;
-				
+
 				case 'n':
 					switch (options.length) {
-						case PRINTF_LENGTH_hh: *(va_arg(args, char*)) = stdio_char_count; break;
-						case PRINTF_LENGTH_h:  *(va_arg(args, short int*)) = stdio_char_count; break;
-						case PRINTF_LENGTH_l:  *(va_arg(args, long int*)) = stdio_char_count; break;
-						case PRINTF_LENGTH_ll: *(va_arg(args, long long int*)) = stdio_char_count; break;
-						case PRINTF_LENGTH_j:  *(va_arg(args, intmax_t*)) = stdio_char_count; break;
-						case PRINTF_LENGTH_z:  *(va_arg(args, size_t*)) = stdio_char_count; break;
-						case PRINTF_LENGTH_t:  *(va_arg(args, ptrdiff_t*)) = stdio_char_count; break;
-						default:               *(va_arg(args, int*)) = stdio_char_count; break;
+						case PRINTF_LENGTH_hh: *(va_arg(args, char *)) = stdio_char_count; break;
+						case PRINTF_LENGTH_h: *(va_arg(args, short int *)) = stdio_char_count; break;
+						case PRINTF_LENGTH_l: *(va_arg(args, long int *)) = stdio_char_count; break;
+						case PRINTF_LENGTH_ll: *(va_arg(args, long long int *)) = stdio_char_count; break;
+						case PRINTF_LENGTH_j: *(va_arg(args, intmax_t *)) = stdio_char_count; break;
+						case PRINTF_LENGTH_z: *(va_arg(args, size_t *)) = stdio_char_count; break;
+						case PRINTF_LENGTH_t: *(va_arg(args, ptrdiff_t *)) = stdio_char_count; break;
+						default: *(va_arg(args, int *)) = stdio_char_count; break;
 					}
 					break;
-					
-				case '%':
-					fputc('%', stream);
-					break;
-					
-				default:
-					break;
+
+				case '%': fputc('%', stream); break;
+
+				default: break;
 			}
 			++fmt;
 		} else {
@@ -461,59 +431,57 @@ int _kvfprintf(FILE* stream, const char *fmt, va_list args) {
 	return stdio_char_count;
 }
 
-int vfprintf(FILE* stream, const char *fmt, va_list args) {
+int vfprintf(FILE *stream, const char *fmt, va_list args) {
 	stdio_char_count = 0;
 	stdio_char_limit = SIZE_MAX;
-	
+
 	return _kvfprintf(stream, fmt, args);
 }
 
-int vprintf(const char *fmt, va_list args) {
-	return vfprintf(stdout, fmt, args);
-}
+int vprintf(const char *fmt, va_list args) { return vfprintf(stdout, fmt, args); }
 
 int fprintf(FILE *stream, const char *fmt, ...) {
 	stdio_char_count = 0;
 	stdio_char_limit = SIZE_MAX;
-	
+
 	va_list args;
 	va_start(args, fmt);
 
 	int ret = vfprintf(stream, fmt, args);
 
 	va_end(args);
-	
+
 	return ret;
 }
 
 int printf(const char *fmt, ...) {
 	stdio_char_count = 0;
 	stdio_char_limit = SIZE_MAX;
-	
+
 	va_list args;
 	va_start(args, fmt);
 
 	int ret = vfprintf(stdout, fmt, args);
 
 	va_end(args);
-	
+
 	return ret;
 }
 
 int vsnprintf(char *str, size_t size, const char *fmt, va_list args) {
-	stdio_strbuf = str;
-	stdio_char_count = 0;
+	stdio_strbuf                 = str;
+	stdio_char_count             = 0;
 	stdio_char_count_theoretical = 0;
-	stdio_char_limit = size;
-	
+	stdio_char_limit             = size;
+
 	_kvfprintf(stdstrbuf, fmt, args);
-	
+
 	if (stdio_char_count >= stdio_char_limit) {
-		*(--stdio_strbuf) = '\0'; // don't write off the end of the buffer
+		*(--stdio_strbuf) = '\0';   // don't write off the end of the buffer
 	} else {
 		*stdio_strbuf = '\0';
 	}
-	
+
 	return stdio_char_count_theoretical;
 }
 
@@ -524,13 +492,11 @@ int snprintf(char *str, size_t size, const char *fmt, ...) {
 	int ret = vsnprintf(str, size, fmt, args);
 
 	va_end(args);
-	
+
 	return ret;
 }
 
-int vsprintf(char *str, const char *fmt, va_list args) {
-	return vsnprintf(str, SIZE_MAX, fmt, args);
-}
+int vsprintf(char *str, const char *fmt, va_list args) { return vsnprintf(str, SIZE_MAX, fmt, args); }
 
 int sprintf(char *str, const char *fmt, ...) {
 	va_list args;
@@ -539,7 +505,7 @@ int sprintf(char *str, const char *fmt, ...) {
 	int ret = vsprintf(str, fmt, args);
 
 	va_end(args);
-	
+
 	return ret;
 }
 
@@ -550,7 +516,7 @@ int asprintf(char **strp, const char *fmt, ...) {
 	va_copy(args2, args);
 
 	size_t len = vsnprintf(NULL, 0, fmt, args) + 1;
-	*strp = malloc(len);
+	*strp      = malloc(len);
 	if (*strp == NULL) return -1;
 	vsprintf(*strp, fmt, args2);
 
@@ -561,7 +527,7 @@ int asprintf(char **strp, const char *fmt, ...) {
 
 void handle_esc_code(int code) {
 	switch (code) {
-		case 0:  col = COLOR_WHITE; break;
+		case 0: col = COLOR_WHITE; break;
 		case 30: col = COLOR_BLACK; break;
 		case 31: col = COLOR_RED; break;
 		case 32: col = COLOR_GREEN; break;
@@ -574,7 +540,7 @@ void handle_esc_code(int code) {
 }
 
 void term_clear() {
-	memset(FRAMEBUFFER, 0, framebuffer_pitch * psf_height * termsize_y); // zero whole screen
+	memset(FRAMEBUFFER, 0, framebuffer_pitch * psf_height * termsize_y);   // zero whole screen
 	x = 0;
 	y = 0;
 }
