@@ -32,6 +32,9 @@ namespace memory {
 
 		PhysicalRegion() noexcept = default;
 		PhysicalRegion(usize allocation_size, IPhysicalAllocator& allocator = allocators.general());
+		PhysicalRegion(aligned<paddr_t> at,
+		               usize allocation_size,
+		               IPhysicalAllocator& allocator = allocators.general());
 		PhysicalRegion(frame_t *start, usize allocation_size) noexcept :
 			start(start),
 			allocation_size(allocation_size) {}

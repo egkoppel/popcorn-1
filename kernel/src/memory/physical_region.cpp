@@ -19,6 +19,12 @@ namespace memory {
 		this->start->ref_count = 1;
 	}
 
+	PhysicalRegion::PhysicalRegion(aligned<paddr_t> at, usize allocation_size, IPhysicalAllocator& allocator) :
+		start(allocator.allocate(at, allocation_size)),
+		allocation_size(allocation_size) {
+		this->start->ref_count = 1;
+	}
+
 	PhysicalRegion::~PhysicalRegion() { this->decrement_and_drop(); }
 
 	PhysicalRegion::PhysicalRegion(const PhysicalRegion& rhs, shallow_copy_t) noexcept :
@@ -40,8 +46,8 @@ namespace memory {
 		if (--this->start->ref_count == 0) IPhysicalAllocator::deallocate(this->start, this->allocation_size);
 	}
 
-	frame_t* PhysicalRegion::release() noexcept {
-		auto ret   = this->start;
+	frame_t *PhysicalRegion::release() noexcept {
+		auto ret    = this->start;
 		this->start = nullptr;
 		return ret;
 	}
@@ -49,6 +55,6 @@ namespace memory {
 	usize frame_t::number() const { return (this - mem_map); }
 
 	aligned<vaddr_t> frame_t::frame_to_page_map_region() const {
-		return vaddr_t{.address = this->number()*constants::frame_size + constants::page_offset_start};
+		return vaddr_t{.address = this->number() * constants::frame_size + constants::page_offset_start};
 	}
 }   // namespace memory
