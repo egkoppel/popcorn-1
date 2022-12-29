@@ -126,12 +126,11 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept tr
 	parse_bootloader(mb);
 
 	auto fb = mb.find_tag<multiboot::tags::Framebuffer>(multiboot::TagType::FRAMEBUFFER).value();
-	//auto cli = mb.find_tag<multiboot::tags::Cli>(multiboot::TagType::CLI).value();
-	auto mmap        = mb.find_tag<multiboot::tags::MemoryMap>(multiboot::TagType::MEMORY_MAP).value();
-	auto sections    = mb.find_tag<multiboot::tags::ElfSections>(multiboot::TagType::ELF_SECTIONS).value();
-	auto boot_module = mb.find_tag<multiboot::tags::BootModule>(multiboot::TagType::BOOT_MODULE).value();
 
-	if (strcmp(boot_module->name(), "initramfs") != 0) panic("No initramfs found");
+	auto sections = mb.find_tag<multiboot::tags::ElfSections>(multiboot::TagType::ELF_SECTIONS).value();
+	/*TODO
+	 * auto boot_module = mb.find_tag<multiboot::tags::BootModule>(multiboot::TagType::BOOT_MODULE).value();
+     * if (strcmp(boot_module->name(), "initramfs") != 0) panic("No initramfs found");*/
 
 	arch::arch_specific_early_init();
 	arch::load_interrupt_handler(arch::InterruptVectors::PAGE_FAULT, false, 0, interrupt_handlers::page_fault);
@@ -139,16 +138,17 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept tr
 	arch::load_interrupt_handler(arch::InterruptVectors::CORE_TIMER, false, 0, [](arch::interrupt_info_t *) noexcept {
 		threads::local_scheduler->irq_fired();
 	});
-	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded IDT\n");
 
-	printf("[    ] Initialising memory\n");
+	LOG(Log::DEBUG, "Finished architecture init");
 
+	LOG(Log::DEBUG, "Initialising memory");
 	auto kernel_max = 0_pa;
 	auto kernel_min = 0xffff'ffff'ffff'ffff_pa;
 	for (auto& i : *sections) {
 		if ((i.type() != decltype(i.type())::SHT_NULL)
 		    && (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_ALLOC) != 0) {
-			//i.print();
+			stdserial << i;
+			stdout << i;
 
 			auto name            = i.name(*sections);
 			auto is_ap_bootstrap = strncmp(name, ".ap_bootstrap", 13) == 0;
@@ -159,26 +159,23 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept tr
 			if (i.end() - offset > kernel_max) kernel_max = i.end() - offset;
 		}
 	}
-	printf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Kernel executable: %lp -> %lp\n", kernel_min, kernel_max);
+	LOG(Log::DEBUG, "Kernel executable: %lp -> %lp", kernel_min, kernel_max);
 
 	uint64_t available_ram = 0;
 	uint64_t total_ram     = 0;
-	for (auto& i : *mmap) {
-		if (i.get_type() == multiboot::tags::MemoryMap::Type::AVAILABLE) {
-			available_ram += i.get_size();
-
-			if (i.get_end_address().address > total_ram) total_ram = i.get_end_address().address;
-		}
-	}
-	printf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Detected %d MiB of available memory (%d MiB total):\n",
-	       available_ram / (1024 * 1024),
-	       total_ram / (1024 * 1024));
-
+	auto mmap              = mb.find_tag<multiboot::tags::MemoryMap>(multiboot::TagType::MEMORY_MAP).value();
 	for (auto& entry : *mmap) {
-		printf("\t%lp - %lp (%s)\n",
-		       entry.get_start_address(),
-		       entry.get_end_address(),
-		       entry.get_type() == multiboot::tags::MemoryMap::Type::AVAILABLE ? "AVAILABLE" : "RESERVED");
+		if (entry.get_type() == multiboot::tags::MemoryMap::Type::AVAILABLE) {
+			available_ram += entry.get_size();
+
+			if (entry.get_end_address().address > total_ram) total_ram = entry.get_end_address().address;
+
+			LOG(Log::DEBUG,
+			    "\t%lp - %lp (%s)",
+			    entry.get_start_address(),
+			    entry.get_end_address(),
+			    entry.get_type() == multiboot::tags::MemoryMap::Type::AVAILABLE ? "AVAILABLE" : "RESERVED");
+		}
 	}
 
 	LOG(Log::DEBUG,
@@ -214,17 +211,17 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept tr
 			     phys_frame < aligned<paddr_t>::aligned_up(i.end() - offset);
 			     phys_frame++) {
 				using enum memory::paging::PageTableFlags;
-				paging::PageTableFlags flags;
+				auto flags = static_cast<paging::PageTableFlags>(0);
 				if (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_WRITE) flags = flags | WRITEABLE;
 				if (is_userspace || USER_ACCESS_FROM_KERNEL) flags = flags | USER;
 				flags = flags | GLOBAL;
 				if (!(i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_EXECINSTR))
 					flags = flags | NO_EXECUTE;
 
-				fprintf(stdserial,
-				        "Kexe - Mapping %p -> %p\n",
-				        phys_frame.address + memory::constants::kexe_start,
-				        phys_frame.address);
+				LOG(Log::TRACE,
+				    "Kexe - Mapping %p -> %p",
+				    phys_frame.address + memory::constants::kexe_start,
+				    phys_frame.address);
 				new_p4_table.map_page_to(vaddr_t{.address = phys_frame.address.address + memory::constants::kexe_start},
 				                         phys_frame.frame(),
 				                         flags);
