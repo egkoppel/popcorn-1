@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <cstring>
 #include <exception>
+#include <log.hpp>
 #include <optional>
 #include <type_traits>
 #include <utility/virtual_object.hpp>
@@ -330,11 +331,15 @@ namespace memory::paging {
 		}
 
 		std::optional<PageTable<Level - 1> *> child_table() noexcept {
+			LOG(Log::TRACE, "Request child table - data: %llb", this->data);
+
 			if (static_cast<bool>(this->get_flags() & PageTableFlags::PRESENT)) {
 				return static_cast<PageTable<Level - 1> *>(this->pointed_frame()->frame_to_page_map_region().address);
 			} else return std::nullopt;
 		}
 		std::optional<const PageTable<Level - 1> *> child_table() const noexcept {
+			LOG(Log::TRACE, "Request child table - data: %llb", this->data);
+
 			if (static_cast<bool>(this->get_flags() & PageTableFlags::PRESENT)) {
 				return static_cast<const PageTable<Level - 1> *>(
 						this->pointed_frame()->frame_to_page_map_region().address);
