@@ -65,10 +65,40 @@ namespace memory {
 
 		template<class _u = T>
 		_u& operator*()
-			requires(!std::is_void_v<_u>);
+			requires(!std::is_void_v<_u>)
+		{
+			return *static_cast<_u *>((*this->virtual_region.begin()).address + this->offset);
+		}
 		template<class _u = T>
 		_u *operator->()
-			requires(!std::is_void_v<_u>);
+			requires(!std::is_void_v<_u>)
+		{
+			return static_cast<_u *>((*this->virtual_region.begin()).address + this->offset);
+		}
+		template<class _u = T>
+		_u& operator[](std::size_t offset2)
+			requires(!std::is_void_v<_u>)
+		{
+			return static_cast<_u *>((*this->virtual_region.begin()).address + this->offset)[offset2];
+		}
+		template<class _u = T>
+		const _u& operator*() const
+			requires(!std::is_void_v<_u>)
+		{
+			return *static_cast<_u *>((*this->virtual_region.begin()).address + this->offset);
+		}
+		template<class _u = T>
+		const _u *operator->() const
+			requires(!std::is_void_v<_u>)
+		{
+			return static_cast<_u *>((*this->virtual_region.begin()).address + this->offset);
+		}
+		template<class _u = T>
+		const _u& operator[](std::size_t offset2) const
+			requires(!std::is_void_v<_u>)
+		{
+			return static_cast<_u *>((*this->virtual_region.begin()).address + this->offset)[offset2];
+		}
 
 		template<class U>
 		explicit operator MemoryMap<U, VAllocator>()
