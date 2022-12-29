@@ -329,6 +329,10 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept tr
 	Log::set_screen_log_level(Log::OFF);
 	new_p4_table.make_active();
 
+	auto framebuffer_flags = paging::PageTableFlags::WRITEABLE | memory::paging::PageTableFlags::NO_EXECUTE
+	                         | memory::paging::PageTableFlags::IMPL_CACHE_DISABLE
+	                         | memory::paging::PageTableFlags::IMPL_CACHE_WRITETHROUGH
+	                         | memory::paging::PageTableFlags::GLOBAL;
 	MemoryMap<u8> framebuffer_mapping{fb->begin(), fb->size(), framebuffer_flags, null_allocator, paging::kas};
 
 	FRAMEBUFFER = reinterpret_cast<char *>(framebuffer_mapping.operator->());
