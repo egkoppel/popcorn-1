@@ -1,6 +1,5 @@
 build/
 /_*
-!/kernel/stlport/_*
 .vscode
-kernel/src/rust/target
 doomgeneric
+cmake-*
