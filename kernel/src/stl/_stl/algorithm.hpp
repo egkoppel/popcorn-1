@@ -18,9 +18,9 @@
 HUGOS_STL_BEGIN_NAMESPACE
 
 template<class T> void swap(T& a, T& b) noexcept(noexcept(T(std::move(b)))) {
-	T tmp = std::move(b);
-	b     = std::move(a);
-	a     = std::move(tmp);
+	T tmp(std::move(b));
+	b = std::move(a);
+	a = std::move(tmp);
 }
 
 HUGOS_STL_END_NAMESPACE
