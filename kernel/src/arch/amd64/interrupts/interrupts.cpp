@@ -12,10 +12,8 @@
 #include "idt.hpp"
 
 #include <arch/interrupts.hpp>
-#include <typeinfo>
 
 namespace arch {
-
 	namespace {
 		namespace PIC_IRQ {
 			enum PIC_IRQ {
@@ -67,19 +65,128 @@ namespace arch {
 		}
 	}   // namespace
 
+#define GS_SWAP
+
+#define SYSCALL_ENTRY_ASM                                                                                              \
+	GS_SWAP                                                                                                            \
+	__asm__ volatile("pushq %rax");                                                                                    \
+	__asm__ volatile("pushq %rcx");                                                                                    \
+	__asm__ volatile("pushq %rdx");                                                                                    \
+	__asm__ volatile("pushq %rsi");                                                                                    \
+	__asm__ volatile("pushq %rdi");                                                                                    \
+	__asm__ volatile("pushq %r8");                                                                                     \
+	__asm__ volatile("pushq %r9");                                                                                     \
+	__asm__ volatile("pushq %r10");                                                                                    \
+	__asm__ volatile("pushq %r11");                                                                                    \
+	__asm__ volatile("movq %rsp, %rdi");                                                                               \
+	__asm__ volatile("addq $72, %rdi");                                                                                \
+	__asm__ volatile("movq %rbp, %rsi");
+
+#define SYSCALL_EXIT_ASM                                                                                               \
+	__asm__ volatile("popq %r11");                                                                                     \
+	__asm__ volatile("popq %r10");                                                                                     \
+	__asm__ volatile("popq %r9");                                                                                      \
+	__asm__ volatile("popq %r8");                                                                                      \
+	__asm__ volatile("popq %rdi");                                                                                     \
+	__asm__ volatile("popq %rsi");                                                                                     \
+	__asm__ volatile("popq %rdx");                                                                                     \
+	__asm__ volatile("popq %rcx");                                                                                     \
+	__asm__ volatile("popq %rax");                                                                                     \
+	GS_SWAP                                                                                                            \
+	__asm__ volatile("iretq");
+
+#define SYSCALL_EXIT_ASM_ERRCODE                                                                                       \
+	__asm__ volatile("popq %r11");                                                                                     \
+	__asm__ volatile("popq %r10");                                                                                     \
+	__asm__ volatile("popq %r9");                                                                                      \
+	__asm__ volatile("popq %r8");                                                                                      \
+	__asm__ volatile("popq %rdi");                                                                                     \
+	__asm__ volatile("popq %rsi");                                                                                     \
+	__asm__ volatile("popq %rdx");                                                                                     \
+	__asm__ volatile("popq %rcx");                                                                                     \
+	__asm__ volatile("popq %rax");                                                                                     \
+	__asm__ volatile("add $8, %rsp");                                                                                  \
+	GS_SWAP                                                                                                            \
+	__asm__ volatile("iretq");
+
+#define N0_RETURN_NO_ERROR_CODE(name, body)                                                                            \
+	void name##_inner(exception_stack_frame_t *frame, uint64_t old_base_ptr) { body }                                  \
+	extern "C" __attribute__((naked)) void name() {                                                                    \
+		__asm__ volatile("movq %rsp, %rdi");                                                                           \
+		__asm__ volatile("movq %rbp, %rsi");                                                                           \
+		__asm__ volatile("call %P0" : : "i"(name##_inner));                                                            \
+		cli();                                                                                                         \
+		hlt();                                                                                                         \
+	}
+
+#define RETURN_ERROR_CODE(name, body)                                                                                  \
+	void name##_inner(exception_stack_frame_error_t *frame, uint64_t old_base_ptr) { body }                            \
+	extern "C" __attribute__((naked)) void name() {                                                                    \
+		SYSCALL_ENTRY_ASM                                                                                              \
+		__asm__ volatile("call %P0" : : "i"(name##_inner));                                                            \
+		SYSCALL_EXIT_ASM_ERRCODE                                                                                       \
+	}
+
+#define RETURN_NO_ERROR_CODE(name, body)                                                                               \
+	void name##_inner(exception_stack_frame_t *frame, uint64_t old_base_ptr) { body }                                  \
+	extern "C" __attribute__((naked)) void name() {                                                                    \
+		SYSCALL_ENTRY_ASM                                                                                              \
+		__asm__ volatile("call %P0" : : "i"(name##_inner));                                                            \
+		SYSCALL_EXIT_ASM                                                                                               \
+	}
+
+	struct __attribute__((packed)) exception_stack_frame_error_t {
+		u64 error_code;
+		u64 ip;
+		u64 cs;
+		u64 flags;
+		u64 sp;
+		u64 ss;
+	};
+
+	struct __attribute__((packed)) exception_stack_frame_t {
+		u64 ip;
+		u64 cs;
+		u64 flags;
+		u64 sp;
+		u64 ss;
+	};
+
+	interrupt_handler_t handlers[48];
+
+	RETURN_ERROR_CODE(page_fault, {
+		({
+			interrupt_info_t info{.error_code             = frame->error_code,
+			                      .ip                     = frame->ip,
+			                      .sp                     = frame->sp,
+			                      .page_fault_memory_addr = 0,
+			                      .flags                  = frame->flags};
+			__asm__ volatile("mov %%cr2, %0" : "=r"(info.page_fault_memory_addr));
+			(handlers[vector_to_idt_index(InterruptVectors::PAGE_FAULT)])(&info);
+		});
+	})
+
 	void load_interrupt_handler(InterruptVectors vector,
 	                            bool user_callable,
 	                            uint8_t stack_idx,
 	                            interrupt_handler_t handler) {
-		amd64::interrupt_descriptor_table.add_entry(
-				vector_to_idt_index(vector),
-				user_callable ? 3 : 0,
-				reinterpret_cast<void (*)()>(
-						handler) /* FIXME: this won't work - need to save regs and set up interrupt info struct */,
-				stack_idx);
-	}
+		handlers[vector_to_idt_index(vector)] = handler;
 
-	// pics.acknowledge_irq(PIC_IRQ::TIMER);
+		void (*handler_wrapper)() = nullptr;
+
+		switch (vector) {
+			case InterruptVectors::PAGE_FAULT: handler_wrapper = page_fault; break;
+			case InterruptVectors::CORE_TIMER: [[fallthrough]];
+			case InterruptVectors::GLOBAL_TIMER: [[fallthrough]];
+			case InterruptVectors::DOUBLE_FAULT: [[fallthrough]];
+			case InterruptVectors::LAST: return;
+		}
+
+		amd64::interrupt_descriptor_table.add_entry(vector_to_idt_index(vector),
+		                                            user_callable ? 3 : 0,
+		                                            handler_wrapper,
+		                                            stack_idx);
+	}
 
 	memory::KStack<> backup_stacks[8];
 
@@ -88,88 +195,4 @@ namespace arch {
 		backup_stacks[stack_idx] = std::move(stack);
 		amd64::task_state_segment.add_stack(stack_idx, backup_stacks[stack_idx]);
 	}
-
-	/*
-struct [[gnu::packed]] exception_stack_frame_error {
-	uint64_t error_code;
-	uint64_t ip;
-	uint64_t cs;
-	uint64_t flags;
-	uint64_t sp;
-	uint64_t ss;
-};
-
-struct [[gnu::packed]] exception_stack_frame {
-	uint64_t ip;
-	uint64_t cs;
-	uint64_t flags;
-	uint64_t sp;
-	uint64_t ss;
-};
-
-#define N0_RETURN_ERROR_CODE(name, body) \
-    void name ## _inner(exception_stack_frame_error *frame, uint64_t old_base_ptr) { body; cli(); hlt(); } \
-    extern "C" [[gnu::naked]] void name() { \
-        __asm__ volatile("movq %rsp, %rdi"); \
-        __asm__ volatile("movq %rbp, %rsi"); \
-        __asm__ volatile("call %P0" : : "i"(name ## _inner)); \
-    }
-
-#define GS_SWAP \
-    __asm__ volatile("cmpb $0x08, 0x8(%rsp); je 1f; swapgs; 1:");
-
-#define SYSCALL_ENTRY_ASM \
-    GS_SWAP               \
-    __asm__ volatile("pushq %rax"); \
-    __asm__ volatile("pushq %rcx"); \
-    __asm__ volatile("pushq %rdx"); \
-    __asm__ volatile("pushq %rsi"); \
-    __asm__ volatile("pushq %rdi"); \
-    __asm__ volatile("pushq %r8"); \
-    __asm__ volatile("pushq %r9"); \
-    __asm__ volatile("pushq %r10"); \
-    __asm__ volatile("pushq %r11"); \
-    __asm__ volatile("movq %rsp, %rdi"); \
-    __asm__ volatile("addq $72, %rdi"); \
-    __asm__ volatile("movq %rbp, %rsi");
-
-#define SYSCALL_EXIT_ASM \
-    __asm__ volatile("popq %r11"); \
-    __asm__ volatile("popq %r10"); \
-    __asm__ volatile("popq %r9"); \
-    __asm__ volatile("popq %r8"); \
-    __asm__ volatile("popq %rdi"); \
-    __asm__ volatile("popq %rsi"); \
-    __asm__ volatile("popq %rdx"); \
-    __asm__ volatile("popq %rcx"); \
-    __asm__ volatile("popq %rax"); \
-    GS_SWAP              \
-    __asm__ volatile("iretq");
-
-#define N0_RETURN_NO_ERROR_CODE(name, body) \
-        void name ## _inner(exception_stack_frame *frame, uint64_t old_base_ptr) { body } \
-    extern "C" [[gnu::naked]] void name() { \
-        __asm__ volatile("movq %rsp, %rdi"); \
-        __asm__ volatile("movq %rbp, %rsi"); \
-        __asm__ volatile("call %P0" : : "i"(name ## _inner)); \
-        cli();                              \
-        hlt();                                    \
-    }
-
-#define RETURN_ERROR_CODE(name, body) \
-    void name ## _inner(exception_stack_frame_error *frame, uint64_t old_base_ptr) { body } \
-    extern "C" [[gnu::naked]] void name() { \
-        SYSCALL_ENTRY_ASM \
-        __asm__ volatile("call %P0" : : "i"(name ## _inner)); \
-        SYSCALL_EXIT_ASM \
-    }
-
-#define RETURN_NO_ERROR_CODE(name, body) \
-    void name ## _inner(exception_stack_frame *frame, uint64_t old_base_ptr) { body } \
-    extern "C" [[gnu::naked]] void name() { \
-        SYSCALL_ENTRY_ASM \
-        __asm__ volatile("call %P0" : : "i"(name ## _inner)); \
-        SYSCALL_EXIT_ASM \
-    }
- */
 }   // namespace arch
