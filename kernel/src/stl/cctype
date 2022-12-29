@@ -1,6 +1,6 @@
 
 /*
- * Copyright (c) 2022 Eliyahu Gluschove-Koppel.
+ * Copyright (c) 2022 Eliyahu Gluschove-Koppel and Oliver Hiorns.
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -11,5 +11,28 @@
 
 #ifndef HUGOS_KERNEL_SRC_STL_CCTYPE_
 #define HUGOS_KERNEL_SRC_STL_CCTYPE_
+
+#include <ctype.h>
+
+// clang-format off
+#include "_stl/prelude.hpp"
+HUGOS_STL_BEGIN_NAMESPACE
+using ::islower;
+using ::isupper;
+using ::isdigit;
+using ::isalpha;
+using ::isalnum;
+using ::isblank;
+using ::iscntrl;
+using ::isprint;
+using ::isgraph;
+using ::ispunct;
+using ::isspace;
+using ::isxdigit;
+using ::tolower;
+using ::toupper;
+HUGOS_STL_END_NAMESPACE
+#include "_stl/epilog.hpp"
+// clang-format on
 
 #endif   //HUGOS_KERNEL_SRC_STL_CCTYPE_

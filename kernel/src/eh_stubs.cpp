@@ -12,6 +12,4 @@ extern "C" {
 	int sched_yield() { return 0; }
 
 	int dladdr(void *, void *) { return 0; }
-
-	int isdigit(int ch) { return ch >= '0' && ch <= '9' ? 1 : 0; }
 }
