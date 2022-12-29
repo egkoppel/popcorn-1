@@ -42,8 +42,8 @@ namespace memory {
 	// Starts at the 1M mark
 	inline frame_t *const mem_map = reinterpret_cast<frame_t *>(constants::mem_map_start) - 256;
 
-	struct vaddr_t : mixin::unary_post_ops<vaddr_t>,
-					 mixin::binary_ops<vaddr_t, usize> {
+	struct [[gnu::packed]] vaddr_t : mixin::unary_post_ops<vaddr_t>,
+									 mixin::binary_ops<vaddr_t, usize> {
 		using difference_type = usize;
 
 		usize address;
@@ -88,8 +88,8 @@ namespace memory {
 		return lhs.address <=> rhs.address;
 	}
 
-	struct paddr_t : mixin::unary_post_ops<paddr_t>,
-					 mixin::binary_ops<paddr_t, usize> {
+	struct [[gnu::packed]] paddr_t : mixin::unary_post_ops<paddr_t>,
+									 mixin::binary_ops<paddr_t, usize> {
 		using difference_type = usize;
 		usize address;
 
@@ -130,12 +130,12 @@ namespace memory {
 		return {.address = this->address - constants::page_offset_start};
 	}
 
-	struct paddr32_t {
+	struct [[gnu::packed]] paddr32_t {
 		u32 address;
 		constexpr explicit(false) operator paddr_t() const noexcept { return {.address = this->address}; }
 	};
 
-	struct vaddr32_t {
+	struct [[gnu::packed]] vaddr32_t {
 		u32 address;
 		constexpr explicit(false) operator vaddr_t() const noexcept { return {.address = this->address}; }
 	};
@@ -250,13 +250,13 @@ namespace memory {
 		constexpr frame_t *frame() noexcept
 			requires(alignment == constants::frame_size)
 		{
-			return &mem_map[this->address.address / constants::frame_size];
+			return mem_map + (this->address.address / constants::frame_size);
 		}
 
 		constexpr const frame_t *frame() const noexcept
 			requires(alignment == constants::frame_size)
 		{
-			return &mem_map[this->address / constants::frame_size];
+			return mem_map + (this->address.address / constants::frame_size);
 		}
 
 		paddr_t address;
