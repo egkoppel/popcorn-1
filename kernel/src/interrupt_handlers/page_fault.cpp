@@ -12,13 +12,38 @@
 
 #include <arch/hal.hpp>
 
-[[noreturn]] void interrupt_handlers::page_fault(arch::interrupt_info_t *interrupt_info) noexcept {
-	fprintf(stdserial, "Page fault!\n");
-	fprintf(stdserial, "Error code: %d\n", interrupt_info->error_code);
-	fprintf(stdserial, "IP: %lp\n", interrupt_info->ip);
-	fprintf(stdserial, "Flags: 0x%08x\n", interrupt_info->flags);
-	fprintf(stdserial, "SP: %lp\n", interrupt_info->sp);
-	fprintf(stdserial, "Attempted access to: %lp\n", interrupt_info->page_fault_memory_addr);
+void interrupt_handlers::page_fault(arch::interrupt_info_t *interrupt_info) noexcept {
+	LOG(Log::INFO,
+	    "Page fault!\n"
+	    "Error code %d\n"
+	    "IP: %lp\n"
+	    "Flags: 0x%08x\n"
+	    "SP: %lp\n"
+	    "Attempted access to: %lp",
+	    interrupt_info->error_code,
+	    interrupt_info->ip,
+	    interrupt_info->flags,
+	    interrupt_info->sp,
+	    interrupt_info->page_fault_memory_addr);
+
+	if ((interrupt_info->flags & 1 << 0) == 0) {
+		// Caused by non-present page
+		// Check for CoW/lazy alloc
+		if (interrupt_info->page_fault_memory_addr >= memory::constants::mem_map_start
+		    && interrupt_info->page_fault_memory_addr < memory::constants::mem_map_end) {
+			// Within mem_map region => lazy alloc
+			LOG(Log::DEBUG, "Allocating new mem_map area to cover %lp", interrupt_info->page_fault_memory_addr);
+			auto addr =
+					memory::aligned<memory::vaddr_t>::aligned_down({.address = interrupt_info->page_fault_memory_addr});
+			auto frame = allocators.general().allocate();
+			auto flags = memory::paging::PageTableFlags::WRITEABLE | memory::paging::PageTableFlags::NO_EXECUTE
+			             | memory::paging::PageTableFlags::GLOBAL;
+			memory::paging::kas.map_page_to(addr, frame, flags);
+			return;
+		}
+	}
+
+	LOG(Log::CRITICAL, "Unable to resolve page fault");
 
 	while (true) hal::nop();
 }

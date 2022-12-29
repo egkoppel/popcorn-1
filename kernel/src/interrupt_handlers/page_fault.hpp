@@ -15,7 +15,7 @@
 #include <arch/interrupts.hpp>
 
 namespace interrupt_handlers {
-	[[noreturn]] void page_fault(arch::interrupt_info_t *) noexcept;
+	void page_fault(arch::interrupt_info_t *) noexcept;
 }
 
 #endif   //HUGOS_PAGE_FAULT_HPP
