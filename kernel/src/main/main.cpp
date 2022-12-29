@@ -347,22 +347,17 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept tr
 	memcpy(oem_str_buf, &rsdp_tag->oem_id, 6);
 	LOG(Log::INFO, "OEM is %s\n", oem_str_buf);
 
-	fprintf(stdout, "[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Reloaded page tables\n");
-
-	printf("[    ] Initialising memory bitmap\n");
-	auto memory_bitmap_start  = static_cast<uint64_t *>(memory_bitmap_address);
-	auto memory_bitmap_end    = ADD_BYTES(memory_bitmap_start, bitmap_needed_bytes);
-	auto main_frame_allocator = memory::physical_allocators::BitmapAllocator::from(
-			Frame::from_address(0x100000_pa),
-			dynamic_cast<memory::physical_allocators::MonotonicAllocator&>(allocators.general()),
-			memory_bitmap_start,
-			memory_bitmap_end);
-	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised memory bitmap\n");
+	LOG(Log::DEBUG, "Initialise memory bitmap");
+	uint64_t bitmap_needed_bytes = IDIV_ROUND_UP(total_ram / 0x1000, 8);
+	auto main_frame_allocator    = memory::physical_allocators::BitmapAllocator<general_allocator_t>::from(
+            0x100000_pa,
+            bitmap_needed_bytes,
+            std::move(kernel_monotonic_frame_allocator),
+            general_allocator_t{});
 
 	init_sbrk();
 
-	allocators.general_frame_allocator_ =
-			std::unique_ptr(new physical_allocators::BitmapAllocator(std::move(main_frame_allocator)));
+	allocators.general_frame_allocator_ = new physical_allocators::BitmapAllocator(std::move(main_frame_allocator));
 
 	KStack double_fault_stack = KStack::new_stack(Page::size * 2, kernel_virt_allocator, allocators.general());
 	arch::load_backup_stack(1, std::move(double_fault_stack));
