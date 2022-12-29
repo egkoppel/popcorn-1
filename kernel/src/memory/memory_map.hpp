@@ -104,7 +104,8 @@ namespace memory {
 		explicit operator MemoryMap<U, VAllocator>()
 			requires(std::is_convertible_v<T *, U *>);
 
-		void expand(usize new_size);
+		void resize_to(std::size_t new_size);
+		std::size_t size() { return this->virtual_region.size(); }
 
 		/**
 		 * Maps an area of virtual address space to a set of physical backing frames
