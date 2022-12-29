@@ -19,6 +19,7 @@
 #include <arch/interrupts.hpp>
 #include <interrupt_handlers/double_fault.hpp>
 #include <interrupt_handlers/page_fault.hpp>
+#include <log.hpp>
 #include <memory/memory_map.hpp>
 #include <memory/paging.hpp>
 #include <memory/physical_allocators/bitmap_allocator.hpp>
