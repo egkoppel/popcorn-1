@@ -28,6 +28,7 @@
 #include <memory/paging.hpp>
 #include <memory/physical_allocators/bitmap_allocator.hpp>
 #include <memory/physical_allocators/monotonic_allocator.hpp>
+#include <memory/physical_allocators/null_allocator.hpp>
 #include <memory/stack.hpp>
 #include <memory/types.hpp>
 #include <memory/virtual_allocators/monotonic_allocator.hpp>
@@ -67,6 +68,29 @@ memory::paddr_t real_initial_mem_map_start{
 
 using namespace memory;
 
+void parse_cli_args(const multiboot::Data& multiboot) {
+	auto cli = multiboot.find_tag<multiboot::tags::Cli>(multiboot::TagType::CLI);
+
+	const char *cli_data = "";
+	if (cli) { cli_data = cli.value()->args(); }
+
+	LOG(Log::INFO, "Received CLI args: %s", cli_data);
+
+	const char log_level_str[] = "log_level=";
+	const char *log_level_ptr  = strstr(cli_data, log_level_str);
+	if (log_level_ptr) {
+		auto log_level = strtol(log_level_ptr + sizeof(log_level_str) - 1, nullptr, 10);
+		Log::set_log_level(static_cast<Log::level_t>(log_level));
+		LOG(Log::DEBUG, "Set log level to %d", log_level);
+		LOG(Log::TRACE, "%s", log_level_ptr + sizeof(log_level_str) - 1);
+	}
+}
+
+void parse_bootloader(const multiboot::Data& multiboot) {
+	auto bootloader = multiboot.find_tag<multiboot::tags::Bootloader>(multiboot::TagType::BOOTLOADER_NAME);
+	if (bootloader) { LOG(Log::INFO, "Booted by %s", bootloader->name()); }
+}
+
 /**
  * @brief Kernel main entrypoint
  * @param multiboot_magic The multiboot2 magic number
@@ -81,22 +105,25 @@ using namespace memory;
  * Expected paging state:
  *  - Kernel mapped to higher half starting at `memory::constants::kexe_start`
  *  - First gigabyte of physical memory contiguously mapped starting at `memory::constants::page_offset_start`
+ *  - 4M of memory mapped starting at `memory::constants::mem_map_start` - MUST NOT OVERLAP WITH ANY OTHER KERNEL CONSTRUCTS
  */
 extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept try {
+	Log::set_log_level(Log::WARNING);
+	Log::set_screen_log_level(Log::INFO);
+
 	if (multiboot_magic == 0x36d76289) {
-		printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Multiboot magic: 0x%x (correct)\n", multiboot_magic);
+		LOG(Log::INFO, "Multiboot magic: 0x36d76289 (correct)");
 	} else {
-		printf("[" TERMCOLOR_RED "FAIL" TERMCOLOR_RESET "] Multiboot magic: 0x%x (incorrect)\n", multiboot_magic);
+		LOG(Log::WARNING, "Multiboot magic: 0x%x (incorrect)", multiboot_magic);
 	}
 
 	// FIXME: why the flip does this not work
 	paddr_t _a        = multiboot_addr;
 	decltype(auto) mb = *static_cast<const multiboot::Data *>(_a.virtualise());
+	LOG(Log::DEBUG, "Multiboot info struct loaded at %lp", _a);
 
-	auto bootloader = mb.find_tag<multiboot::tags::Bootloader>(multiboot::TagType::BOOTLOADER_NAME);
-	//auto cli_ = mb.find_tag<multiboot::tags::Cli>(multiboot::TagType::CLI);
-
-	if (bootloader) printf("[" TERMCOLOR_CYAN "INFO" TERMCOLOR_RESET "] Booted by %s\n", bootloader->name());
+	parse_cli_args(mb);
+	parse_bootloader(mb);
 
 	auto fb = mb.find_tag<multiboot::tags::Framebuffer>(multiboot::TagType::FRAMEBUFFER).value();
 	//auto cli = mb.find_tag<multiboot::tags::Cli>(multiboot::TagType::CLI).value();
