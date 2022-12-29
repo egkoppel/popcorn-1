@@ -499,8 +499,11 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept tr
 
 	__asm__ volatile("xor %%rbp, %%rbp; mov %%rax, %%rsp; ret;" : : "a"(new_stack_ptr));*/
 #endif
-	throw "Unreachable code";
+	__builtin_unreachable();
 } catch (std::exception& e) {
-	printf(TERMCOLOR_MAGENTA "Exception hit kmain: " TERMCOLOR_RESET "%s\n", e.what());
+	LOG(Log::CRITICAL, "Exception hit kmain: %s\n", e.what());
+	throw;
+} catch (char *c) {
+	LOG(Log::CRITICAL, "Exception hit kmain: %s\n", c);
 	throw;
 }
