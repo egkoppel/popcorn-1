@@ -20,8 +20,6 @@ namespace multiboot::tags {
 	class [[gnu::packed]] ElfSections : public Tag {
 	public:
 		class [[gnu::packed]] Entry {
-			//friend std::ostream& operator<< (std::ostream&, const Entry&);
-
 		public:
 			enum class Type : uint32_t {
 				SHT_NULL,
@@ -80,6 +78,16 @@ namespace multiboot::tags {
 			inline uint64_t flags() const { return this->_flags; }
 			char *name(ElfSections& sections) {
 				return static_cast<char *>(sections.find_strtab()->start().virtualise() + this->name_index);
+			}
+
+			friend FILE *operator<<(FILE *f, const multiboot::tags::ElfSections::Entry& entry) {
+				fprintf(f,
+				        "ElfSection { PhysAddr=%lp, VirtAddr=%lp, Size=%llu, Flags=0x%llx }\n",
+				        (entry.addr.address > 0xFFFFFFFF80000000 ? entry.addr - 0xFFFFFFFF80000000 : entry.addr),
+				        entry.addr,
+				        entry.size,
+				        entry.flags());
+				return f;
 			}
 		};
 
