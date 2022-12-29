@@ -13,6 +13,7 @@
 
 #include <cassert>
 #include <cstdio>
+#include <log.hpp>
 #include <main/main.hpp>
 
 using namespace memory;
@@ -28,11 +29,11 @@ extern "C" void *sbrk(intptr_t increment) noexcept try {
 	vaddr_t ret                = current_break;
 	intptr_t rounded_increment = IDIV_ROUND_UP(increment, constants::frame_size);
 	aligned<vaddr_t> new_break = current_break + rounded_increment;
-	fprintf(stdserial, "sbrk old: %p, new: %p\n", ret, new_break);
+	LOG(Log::DEBUG, "sbrk old: %p, new: %p", ret, new_break);
 
 	if (current_break < new_break) {
 		if (!(new_break.address.address < constants::kernel_heap_end)) return (void *)-1;
-		auto backing_frames = allocators.general().allocate(rounded_increment);
+		auto backing_frames = allocators.general().allocate(rounded_increment * constants::frame_size);
 
 		for (aligned<vaddr_t> page_to_map = current_break; page_to_map < new_break; page_to_map++, backing_frames++) {
 			using enum paging::PageTableFlags;
@@ -47,6 +48,8 @@ extern "C" void *sbrk(intptr_t increment) noexcept try {
 		}
 	}
 	current_break = new_break;
+
+	LOG(Log::DEBUG, "Heap adjusted");
 
 	return (void *)ret;
 } catch (std::bad_alloc&) { return (void *)-1; }

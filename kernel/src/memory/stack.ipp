@@ -21,16 +21,14 @@ namespace memory {
 	KStack<VAllocator>::KStack(usize stack_size, IPhysicalAllocator& pallocator, VAllocator&& vallocator) :
 		backing_region{stack_size, pallocator},
 		virtual_region{stack_size + constants::frame_size, std::forward<VAllocator>(vallocator)} {
-		std::fprintf(std::stdserial, "Allocating new stack of size %llx\n", stack_size);
-
 		using enum paging::PageTableFlags;
 		auto flags = WRITEABLE | NO_EXECUTE;
 
-		std::fprintf(std::stdserial,
-		             "Creating new stack: %p -> %p - Guard at %p\n",
-		             this->virtual_region.begin() + constants::frame_size,
-		             this->virtual_region.end(),
-		             this->virtual_region.begin());
+		LOG(Log::DEBUG,
+		    "Creating new stack: %p -> %p - Guard at %p",
+		    *this->virtual_region.begin() + 1,
+		    *this->virtual_region.end(),
+		    *this->virtual_region.begin());
 
 		for (auto&& [frame, page] : iter::zip(this->backing_region, iter::skip<1>(this->virtual_region))) {
 			paging::kas.map_page_to(page, frame, flags);
@@ -41,7 +39,7 @@ namespace memory {
 	}
 
 	template<class VAllocator> KStack<VAllocator>::~KStack() {
-		std::fprintf(stdserial, "Stack (%p -> %p) dropped\n", this->bottom(), this->top());
+		LOG(Log::DEBUG, "Stack (%p -> %p) dropped", this->bottom(), this->top());
 
 		for (auto page : this->virtual_region) { paging::kas.unmap_page(page); }
 

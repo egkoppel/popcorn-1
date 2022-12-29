@@ -11,7 +11,8 @@
 #include "pic.hpp"
 
 #include "port.hpp"
-#include <type_traits>
+
+#include <log.hpp>
 
 namespace arch::amd64 {
 
@@ -44,8 +45,8 @@ namespace arch::amd64 {
 		uint8_t master_mask = this->master.read_mask();
 		uint8_t slave_mask  = this->slave.read_mask();
 
-		printf("Master mask: %b\n", master_mask);
-		printf("Slave mask: %b\n", slave_mask);
+		LOG(Log::TRACE, "Master mask: %b", master_mask);
+		LOG(Log::TRACE, "Slave mask: %b", slave_mask);
 
 		// Start init sequence
 		this->master.send_command(commands::INIT);
