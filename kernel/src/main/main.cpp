@@ -235,23 +235,9 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept tr
 			vaddr_t{.address = memory::constants::kernel_page_allocator_start},
 			vaddr_t{.address = memory::constants::kernel_page_allocator_end});
 
-	while (true) __asm__ volatile("nop");
-#if 0
-	fprintf(stdserial, "Map framebuffer\n");
-	memory::paging::PageTableEntry::flags_t framebuffer_flags = 0;
-	framebuffer_flags |= memory::paging::PageTableEntry::flags::WRITEABLE;
-	framebuffer_flags |= memory::paging::PageTableEntry::flags::GLOBAL;
-	framebuffer_flags |= memory::paging::PageTableEntry::flags::NO_EXECUTE;
-	framebuffer_flags |= memory::paging::PageTableEntry::flags::IMPL_CACHE_DISABLE;
-	framebuffer_flags |= memory::paging::PageTableEntry::flags::IMPL_CACHE_WRITETHROUGH;
-	if (USER_ACCESS_FROM_KERNEL) framebuffer_flags |= memory::paging::PageTableEntry::flags::USER;
+	allocators.general_virtual_allocator_ = &kernel_virt_allocator;
 
-	VirtualAddress framebuffer_address = MemoryMapper::new_address_map(fb->begin(),
-	                                                                   fb->size(),
-	                                                                   framebuffer_flags,
-	                                                                   kernel_virt_allocator,
-	                                                                   allocators.general(),
-	                                                                   new_p4_table);
+	memory::physical_allocators::NullAllocator null_allocator{};
 
 	/*fprintf(stdserial, "Map multiboot\n");
 	memory::paging::PageTableEntry::flags_t multiboot_flags = 0;
@@ -277,37 +263,51 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept tr
 	                                                                 allocators.general(),
 	                                                                 new_p4_table);*/
 
-	fprintf(stdserial, "Map bitmap\n");
-	uint64_t bitmap_needed_bytes = IDIV_ROUND_UP(total_ram / 0x1000, 8);
+	LOG(Log::DEBUG, "Map all the memory");
+	auto all_mem_flags = paging::PageTableFlags::WRITEABLE | memory::paging::PageTableFlags::GLOBAL
+	                     | memory::paging::PageTableFlags::NO_EXECUTE;
+	if (USER_ACCESS_FROM_KERNEL) all_mem_flags = all_mem_flags | memory::paging::PageTableFlags::USER;
 
-	printf("[    ] Allocating %u bytes for memory bitmap\n", bitmap_needed_bytes);
-	memory::paging::PageTableEntry::flags_t bitmap_flags = 0;
-	bitmap_flags |= memory::paging::PageTableEntry::flags::WRITEABLE;
-	bitmap_flags |= memory::paging::PageTableEntry::flags::GLOBAL;
-	bitmap_flags |= memory::paging::PageTableEntry::flags::NO_EXECUTE;
-	if (USER_ACCESS_FROM_KERNEL) bitmap_flags |= memory::paging::PageTableEntry::flags::USER;
+	/*for (auto f = 0_palign; f.address.address < total_ram; f++) {
+		new_p4_table.map_page_to(vaddr_t{.address = f.address.address + memory::constants::page_offset_start},
+		                         f.frame(),
+		                         all_mem_flags);
+	}*/
+	for (auto& entry : *mmap) {
+		if (entry.get_type() == multiboot::tags::MemoryMap::Type::AVAILABLE) {
+			auto start = aligned<paddr_t>::aligned_down(entry.get_start_address());
+			auto end   = aligned<paddr_t>::aligned_up(entry.get_end_address());
 
-	VirtualAddress memory_bitmap_address = MemoryMapper::new_anonymous_map(bitmap_needed_bytes,
-	                                                                       bitmap_flags,
-	                                                                       kernel_virt_allocator,
-	                                                                       allocators.general(),
-	                                                                       allocators.general(),
-	                                                                       new_p4_table)
-	                                               .begin();
+			LOG(Log::DEBUG, "(%lp -> %lp)", start, end);
 
-	fprintf(stdserial, "Map all the memory\n");
-	memory::paging::PageTableEntry::flags_t all_mem_flags = 0;
-	all_mem_flags |= memory::paging::PageTableEntry::flags::WRITEABLE;
-	all_mem_flags |= memory::paging::PageTableEntry::flags::GLOBAL;
-	all_mem_flags |= memory::paging::PageTableEntry::flags::NO_EXECUTE;
-	if (USER_ACCESS_FROM_KERNEL) all_mem_flags |= memory::paging::PageTableEntry::flags::USER;
+			auto count_total = (end.address.address - start.address.address) / constants::frame_size;
+			auto one_percent = count_total / 50;
+			usize i          = 0;
 
-	for (Frame f = Frame::from_address(0_pa); f.begin().address() < total_ram; f++) {
-		new_p4_table.map_page_to(
-				Page::from_address(VirtualAddress(f.begin().address() + memory::constants::page_offset_start)),
-				f,
-				all_mem_flags,
-				allocators.general());
+			Log::off();
+			for (auto f = start; f < end; f++) {
+				new_p4_table.map_page_to(vaddr_t{.address = f.address.address + memory::constants::page_offset_start},
+				                         f.frame(),
+				                         all_mem_flags);
+
+				if (++i % one_percent == 0) {
+					Log::on();
+					LOG(Log::DEBUG, "%d%%", i / one_percent);
+					Log::off();
+				}
+			}
+			Log::on();
+		}
+	}
+
+	LOG(Log::DEBUG, "Map early mem_map region");
+	auto mem_map_flags = paging::PageTableFlags::WRITEABLE | memory::paging::PageTableFlags::GLOBAL
+	                     | memory::paging::PageTableFlags::NO_EXECUTE;
+	if (USER_ACCESS_FROM_KERNEL) mem_map_flags = mem_map_flags | memory::paging::PageTableFlags::USER;
+	aligned<vaddr_t> page = vaddr_t{.address = constants::mem_map_start};
+	for (aligned<paddr_t> frame = real_initial_mem_map_start; frame < real_initial_mem_map_start + 0x400000;
+	     page++, frame++) {
+		new_p4_table.map_page_to(page, frame.frame(), mem_map_flags);
 	}
 
 	// ******************************* END PAGE TABLE REMAPPING *******************************
