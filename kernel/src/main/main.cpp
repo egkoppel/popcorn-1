@@ -359,8 +359,12 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept tr
 
 	allocators.general_frame_allocator_ = new physical_allocators::BitmapAllocator(std::move(main_frame_allocator));
 
-	KStack double_fault_stack = KStack::new_stack(Page::size * 2, kernel_virt_allocator, allocators.general());
+	LOG(Log::DEBUG, "Creating extra stacks");
+
+	KStack<> double_fault_stack{constants::frame_size /* * 2*/};   // TODO: Fix once bitmap allocator can allocate more
 	arch::load_backup_stack(1, std::move(double_fault_stack));
+
+	LOG(Log::DEBUG, "Loaded double fault stack");
 
 	/*uint8_t index = global_descriptor_table.add_tss_entry(
 			gdt::tss_entry(reinterpret_cast<uint64_t>(&task_state_segment), sizeof(tss::TSS), 0));
@@ -368,10 +372,8 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept tr
 	tss::TSS::load(index);*/
 	//printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded TSS\n");
 
-	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised memory\n");
-	vm_map_init();
-
-	while (true) hal::halt();
+	while (true) __asm__ volatile("nop");
+#if 0
 
 	printf("[    ] Initialising multitasking\n");
 	auto ktask =
