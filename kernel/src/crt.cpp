@@ -8,29 +8,31 @@
  * limitations under the License.
  */
 
-#include <stdint.h>
-#include <stdio.h>
+#include <cstdint>
+#include <cstdio>
+#include <exception>
+#include <log.hpp>
 #include <stdlib.h>
 #include <termcolor.h>
 
-void *__dso_handle = 0;
-void __cxa_finalize(void *dso);
+extern "C" void *__dso_handle = nullptr;
+extern "C" void __cxa_finalize(void *dso);
 
-typedef void (*ctor_func)(void);
+typedef void (*ctor_func)();
 
-extern ctor_func start_ctors;
-extern ctor_func end_ctors;
-extern ctor_func init_array_start;
-extern ctor_func init_array_end;
+extern "C" ctor_func start_ctors;
+extern "C" ctor_func end_ctors;
+extern "C" ctor_func init_array_start;
+extern "C" ctor_func init_array_end;
 
-void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr);
+extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr);
 
-_Noreturn void __cxa_init(uint32_t multiboot_magic, uint32_t multiboot_addr) {
+extern "C" [[noreturn]] void __cxa_init(uint32_t multiboot_magic, uint32_t multiboot_addr) noexcept try {
 	printf("[    ] Running ctors\n\tstart: %lp\n\t  end: %lp\n", &start_ctors, &end_ctors);
 	ctor_func *i = &start_ctors;
 	while (i < &end_ctors) {
 		//printf("Calling constructor at %lp\n", i);
-		if (*i != NULL) (*i)();
+		if (*i != nullptr) (*i)();
 		i++;
 	}
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Ran ctors\n");
@@ -39,17 +41,30 @@ _Noreturn void __cxa_init(uint32_t multiboot_magic, uint32_t multiboot_addr) {
 	i = &init_array_start;
 	while (i < &init_array_end) {
 		//printf("Calling constructor at 0x%x\n", i);
-		if (*i != NULL) (*i)();
+		if (*i != nullptr) (*i)();
 		i++;
 	}
 	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Done running elements of init array\n");
 
 	kmain(multiboot_magic, multiboot_addr);
 
-	__cxa_finalize(NULL);
+	__cxa_finalize(nullptr);
 
-	while (1) __asm__ volatile("");
+	__builtin_unreachable();
+} catch (std::exception& e) {
+	LOG(Log::CRITICAL, "Exception unhandled: %s", e.what());
+	abort();
+	__builtin_unreachable();
+} catch (const char *c) {
+	LOG(Log::CRITICAL, "Exception unhandled: %s", c);
+	abort();
+	__builtin_unreachable();
+} catch (...) {
+	LOG(Log::CRITICAL, "Unknown exception unhandled");
+	abort();
+	__builtin_unreachable();
 }
+
 #define ATEXIT_COUNT 128
 
 typedef struct {
@@ -66,15 +81,15 @@ static struct atexit_handler {
 	void *p;
 	void *d;
 	struct atexit_handler *next;
-} * head;
+} *head;
 
-int __cxa_atexit(void (*f)(void *), void *objptr, void *dso) {
+extern "C" int __cxa_atexit(void (*f)(void *), void *objptr, void *dso) {
 	if (atexit_used >= ATEXIT_COUNT) return -1;
 	atexit_funcs[atexit_used++] = (atexit_func_entry_t){.destructor_func = f, .obj_ptr = objptr, .dso_handle = dso};
 	return 0;
 }
 
-void __cxa_finalize(void *dso) {
+extern "C" void __cxa_finalize(void *dso) {
 	for (int i = ATEXIT_COUNT - 1; i >= 0; --i) {
 		if (dso == NULL || atexit_funcs[i].dso_handle == dso) {
 			if (atexit_funcs[i].destructor_func != NULL) atexit_funcs[i].destructor_func(atexit_funcs[i].obj_ptr);

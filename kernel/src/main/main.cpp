@@ -504,10 +504,4 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept tr
 	__asm__ volatile("xor %%rbp, %%rbp; mov %%rax, %%rsp; ret;" : : "a"(new_stack_ptr));*/
 #endif
 	__builtin_unreachable();
-} catch (std::exception& e) {
-	LOG(Log::CRITICAL, "Exception hit kmain: %s\n", e.what());
-	throw;
-} catch (char *c) {
-	LOG(Log::CRITICAL, "Exception hit kmain: %s\n", c);
-	throw;
 }
