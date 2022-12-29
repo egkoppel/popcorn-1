@@ -60,7 +60,8 @@ namespace memory {
 		MemoryMap(const MemoryMap&) = delete;
 		~MemoryMap();
 
-		MemoryMap& operator=(MemoryMap&&);
+		MemoryMap(MemoryMap&&);
+		MemoryMap& operator=(MemoryMap&&) = delete;
 
 		template<class _u = T>
 		_u& operator*()
@@ -125,6 +126,10 @@ namespace memory {
 		PhysicalRegion backing_region;
 		VirtualRegion<VAllocator> virtual_region;
 		paging::AddressSpaceBase *address_space;
+		std::size_t offset = 0;
+
+		std::size_t constexpr calculate_total_size(paddr_t start, std::size_t requested_size);
+		std::size_t constexpr calculate_offset(paddr_t start);
 	};
 }   // namespace memory
 
