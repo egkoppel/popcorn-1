@@ -15,15 +15,17 @@
 
 namespace memory {
 	class IPhysicalAllocator;
-}
+	class IVirtualAllocator;
+}   // namespace memory
 
 struct kernel_allocators_t {
-	std::unique_ptr<memory::IPhysicalAllocator> general_frame_allocator_ = nullptr;
-	std::unique_ptr<memory::IPhysicalAllocator> dma_frame_allocator_     = nullptr;
-	//std::unique_ptr<memory::IVirtualAllocator> kernel
+	memory::IPhysicalAllocator *general_frame_allocator_  = nullptr;
+	memory::IPhysicalAllocator *dma_frame_allocator_      = nullptr;
+	memory::IVirtualAllocator *general_virtual_allocator_ = nullptr;
 
 	constexpr memory::IPhysicalAllocator& general() const noexcept { return *this->general_frame_allocator_; }
 	constexpr memory::IPhysicalAllocator& dma() const noexcept { return *this->dma_frame_allocator_; }
+	constexpr memory::IVirtualAllocator& general_virtual() const noexcept { return *this->general_virtual_allocator_; }
 };
 extern kernel_allocators_t allocators;
 

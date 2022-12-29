@@ -10,3 +10,14 @@
  */
 
 #include "virtual_region.hpp"
+
+#include "virtual_allocator.hpp"
+
+#include <main/main.hpp>
+
+namespace memory {
+	aligned<vaddr_t> general_allocator_t::allocate(u64 size) { return allocators.general_virtual().allocate(size); }
+	void general_allocator_t::deallocate(aligned<vaddr_t> start, u64 size) noexcept {
+		allocators.general_virtual().deallocate(start, size);
+	}
+}   // namespace memory
