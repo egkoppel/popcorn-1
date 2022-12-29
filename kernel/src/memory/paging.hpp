@@ -414,6 +414,7 @@ namespace memory::paging {
 		void map_page_to(aligned<vaddr_t> page, const frame_t *frame, PageTableFlags flags);
 		bool unmap_page(aligned<vaddr_t> page);
 		int print_to(FILE *f) { return this->l4_table->print_to(f, 0); }
+		void make_active();
 
 	protected:
 		PageTable<4> *l4_table;          //!< Pointer to the level 4 page table for this address space

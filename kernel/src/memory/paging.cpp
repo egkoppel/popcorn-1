@@ -183,6 +183,13 @@ namespace memory::paging {
 		return true;
 	}
 
+	void AddressSpaceBase::make_active() {
+		vaddr_t virt_addr{.address = reinterpret_cast<usize>(this->l4_table)};
+		usize phys_addr = virt_addr.devirtualise().address;
+		LOG(Log::DEBUG, "Switch page table to %lp", phys_addr);
+		__asm__ volatile("mov %0, %%cr3" ::"r"(phys_addr) : "memory");
+	}
+
 	alignas(alignof(KernelAddressSpace)) u8 kas_[sizeof(KernelAddressSpace)];
 	KernelAddressSpace& kas = reinterpret_cast<KernelAddressSpace&>(kas_);
 
