@@ -18,9 +18,11 @@ namespace multiboot::tags {
 	class [[gnu::packed]] Bootloader : public Tag {
 	private:
 		char str;
+
 	public:
+		Bootloader(const Bootloader&) = delete;
 		inline const char *name() { return &this->str; }
 	};
-}
+}   // namespace multiboot::tags
 
-#endif //HUGOS_BOOTLOADER_HPP
+#endif   //HUGOS_BOOTLOADER_HPP

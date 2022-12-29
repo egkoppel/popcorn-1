@@ -52,6 +52,8 @@ namespace multiboot {
 		memory::vaddr_t tags_begin() const { return this->begin() + sizeof(*this); }
 
 	public:
+		Data(const Data&) = delete;
+
 		template<class T> std::optional<T *> find_tag(TagType type) const {
 			auto current_tag = static_cast<Tag *>(this->tags_begin());
 			while (current_tag < static_cast<Tag *>(this->end())) {

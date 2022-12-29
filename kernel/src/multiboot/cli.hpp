@@ -18,9 +18,11 @@ namespace multiboot::tags {
 	class [[gnu::packed]] Cli : public Tag {
 	private:
 		char str;
+
 	public:
+		Cli(const Cli&) = delete;
 		inline const char *args() { return &this->str; }
 	};
-}
+}   // namespace multiboot::tags
 
-#endif //HUGOS_CLI_HPP
+#endif   //HUGOS_CLI_HPP

@@ -12,8 +12,9 @@
 #ifndef HUGOS_MEMORY_MAP_HPP
 #define HUGOS_MEMORY_MAP_HPP
 
-#include <memory/types.hpp>
 #include "multiboot.hpp"
+
+#include <memory/types.hpp>
 
 namespace multiboot::tags {
 	class [[gnu::packed]] MemoryMap : public Tag {
@@ -42,6 +43,8 @@ namespace multiboot::tags {
 		Entry first_entry;
 
 	public:
+		MemoryMap(const MemoryMap&) = delete;
+
 		inline Entry *begin() { return &this->first_entry; }
 		inline Entry *end() { return reinterpret_cast<Entry *>(ADD_BYTES(this, this->size)); }
 	};

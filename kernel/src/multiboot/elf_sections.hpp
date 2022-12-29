@@ -87,13 +87,13 @@ namespace multiboot::tags {
 		uint32_t entry_count;
 		uint32_t entry_size;
 		uint32_t string_table;
-		Entry first_entry;
+		Entry sections[];
 
 	public:
-		inline Entry *begin() { return &this->first_entry; }
-		inline Entry *end() {
-			return reinterpret_cast<Entry *>(ADD_BYTES(&this->first_entry, this->entry_count * this->entry_size));
-		}
+		ElfSections(const ElfSections& other) = delete;
+
+		inline Entry *begin() { return &this->sections[0]; }
+		inline Entry *end() { return &this->sections[this->entry_count]; }
 		Entry *find_strtab() {
 			uint32_t i = 0;
 			for (auto& section : *this) {
@@ -107,13 +107,5 @@ namespace multiboot::tags {
 
 uint64_t operator+(multiboot::tags::ElfSections::Entry::Flags lhs) { return static_cast<uint64_t>(lhs); }
 
-/*std::ostream& operator<< (std::ostream& stream, const multiboot::tags::ElfSections::Entry& entry) {
-	stream << "ElfSection { PhysAddr=" << (entry.addr.a > 0xFFFF800000000000 ? entry.addr.a-0xFFFF800000000000 : entry.addr.a)
-	       << ", VirtAddr=" << entry.addr.a
-		   << ", Size=" << entry.size
-		   << ", Flags=0x" << std::hex << entry.flags << std::dec
-		   << "}";
-	return stream;
-}*/
 
 #endif   //HUGOS_ELF_SECTIONS_HPP

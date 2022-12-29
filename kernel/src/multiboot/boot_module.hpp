@@ -22,6 +22,8 @@ namespace multiboot::tags {
 		char str;
 
 	public:
+		BootModule(const BootModule&) = delete;
+
 		inline const char *name() { return &this->str; }
 		inline memory::paddr_t begin() const { return this->module_start; }
 		inline memory::paddr_t end() const { return this->module_end; }
