@@ -14,11 +14,16 @@
 #include <arch/hal.hpp>
 
 [[noreturn]] void interrupt_handlers::double_fault(arch::interrupt_info_t *interrupt_info) noexcept {
-	fprintf(stdserial, "Double fault!\n");
-	fprintf(stdserial, "Error code: %d\n", interrupt_info->error_code);
-	fprintf(stdserial, "IP: %lp\n", interrupt_info->ip);
-	fprintf(stdserial, "Flags: 0x%08x\n", interrupt_info->flags);
-	fprintf(stdserial, "SP: %lp\n", interrupt_info->sp);
+	LOG(Log::CRITICAL,
+	    "Double fault!\n"
+	    "Error code %d\n"
+	    "IP: %lp\n"
+	    "Flags: 0x%08x\n"
+	    "SP: %lp",
+	    interrupt_info->error_code,
+	    interrupt_info->ip,
+	    interrupt_info->flags,
+	    interrupt_info->sp);
 
 	/*if (interrupt_info->page_fault_memory_addr >= reinterpret_cast<uint64_t>(&level4_page_table) &&
 	    cr2 < reinterpret_cast<uint64_t>(&level4_page_table) + 0x1000) {
