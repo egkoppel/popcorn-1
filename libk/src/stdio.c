@@ -134,7 +134,7 @@ void fputc(unsigned char c, FILE *stream) {
 	} else if (stream->fd == stderr->fd) {
 		putchar(c);
 	} else if (stream->fd == stdserial->fd) {
-		write_serial(c);
+		write_serial1(c);
 	} else if (stream->fd == _stdstrbuf.fd) {
 		*stdio_strbuf++ = c;
 	} else {

@@ -42,6 +42,7 @@
 #include <multiboot/multiboot.hpp>
 #include <multiboot/rsdp.hpp>
 #include <panic.h>
+#include <serial.h>
 #include <smp/core_local.hpp>
 #include <termcolor.h>
 #include <threading/task.hpp>
@@ -107,9 +108,13 @@ void parse_bootloader(const multiboot::Data& multiboot) {
  *  - First gigabyte of physical memory contiguously mapped starting at `memory::constants::page_offset_start`
  *  - 4M of memory mapped starting at `memory::constants::mem_map_start` - MUST NOT OVERLAP WITH ANY OTHER KERNEL CONSTRUCTS
  */
-extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept try {
+extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	Log::set_log_level(Log::WARNING);
 	Log::set_screen_log_level(Log::INFO);
+
+	try {
+		serial1 = {SerialPort{0x3f8}};
+	} catch (SerialPort::SerialPortError&) { LOG(Log::WARNING, "Serial port failed test"); }
 
 	if (multiboot_magic == 0x36d76289) {
 		LOG(Log::INFO, "Multiboot magic: 0x36d76289 (correct)");
