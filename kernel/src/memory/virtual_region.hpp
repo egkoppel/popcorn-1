@@ -19,6 +19,7 @@
 #include <popcorn_prelude.h>
 #include <utility/iter_wrapper.hpp>
 #include <utility/step_by.hpp>
+#include <utils.h>
 
 namespace memory {
 	class IVirtualAllocator;
@@ -35,13 +36,23 @@ namespace memory {
 		using const_iterator = iter::iter_wrapper<aligned<vaddr_t>>;
 
 		explicit VirtualRegion(Allocator allocator = Allocator()) : start{{.address = 0}}, allocation_page_count{0} {}
-		explicit VirtualRegion(usize allocation_size, Allocator allocator = Allocator());
+		explicit VirtualRegion(usize allocation_size, Allocator allocator = Allocator()) :
+			start{allocator.allocate(allocation_size)},
+			allocation_page_count{IDIV_ROUND_UP(allocation_size, constants::frame_size)} {}
 		VirtualRegion(const VirtualRegion&) noexcept = delete;
-		explicit VirtualRegion(VirtualRegion&& other) noexcept : VirtualRegion() { std::swap(*this, other); }
-		~VirtualRegion() { throw "Unimplemented"; }
+		explicit VirtualRegion(VirtualRegion&& other) noexcept :
+			start(other.start),
+			allocation_page_count(other.allocation_page_count) {
+			other.allocation_page_count = 0;
+		}
+		~VirtualRegion() { __builtin_unreachable(); }
 
 		VirtualRegion& operator=(const VirtualRegion&) noexcept = delete;
-		VirtualRegion& operator=(VirtualRegion&& other) noexcept { std::swap(*this, other); }
+		VirtualRegion& operator=(VirtualRegion&& other) noexcept {
+			std::swap(this->start, other.start);
+			std::swap(this->allocation_page_count, other.allocation_page_count);
+			return *this;
+		}
 
 		iterator begin() { return iter::iter_wrapper(this->start); }
 		iterator end() { return iter::iter_wrapper(this->start + this->allocation_page_count); }
@@ -49,6 +60,8 @@ namespace memory {
 		const_iterator cend() const { return iter::iter_wrapper(this->start + this->allocation_page_count); }
 		const_iterator begin() const { return this->cbegin(); }
 		const_iterator end() const { return this->cend(); }
+
+		std::size_t size() { return this->allocation_page_count * constants::frame_size; }
 
 	private:
 		aligned<vaddr_t> start;
