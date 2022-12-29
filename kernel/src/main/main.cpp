@@ -319,17 +319,21 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept tr
 	 * __asm__ volatile("mov %0, %%cr3" : : "r"(new_p4_table));
 	 */
 	fprintf(stdserial, "************\n");
-	new_p4_table.print_to(stdserial);
-	paging::AddressSpace old_p4_table = new_p4_table.make_active();
-	FRAMEBUFFER                       = static_cast<char *>(framebuffer_address);
 
-	auto rdsp_version = 0;
-	auto rsdp_tag_    = mb->find_tag<multiboot::tags::Rsdp>(multiboot::TagType::RSDT_V1);
-	if (!rsdp_tag_) {
-		rsdp_tag_    = mb->find_tag<multiboot::tags::Rsdp>(multiboot::TagType::RSDT_V2);
-		rdsp_version = 2;
-	} else rdsp_version = 1;
-	auto rsdp_tag = rsdp_tag_.value();
+	auto old_p4_table = get_current_page_table_addr();
+	vaddr_t old_p4_table_page{.address = old_p4_table.address + constants::kexe_start};
+	LOG(Log::INFO, "Creating stack guard page at %lp", old_p4_table_page);
+	auto _ = new_p4_table.unmap_page(old_p4_table_page);
+	LOG(Log::INFO, "Created? %i", _);
+
+	Log::set_screen_log_level(Log::OFF);
+	new_p4_table.make_active();
+
+	MemoryMap<u8> framebuffer_mapping{fb->begin(), fb->size(), framebuffer_flags, null_allocator, paging::kas};
+
+	FRAMEBUFFER = reinterpret_cast<char *>(framebuffer_mapping.operator->());
+	Log::set_screen_log_level(Log::INFO);
+	LOG(Log::WARNING, "hello???");
 
 	fprintf(stdserial, "Found rdsp version %d\n", rdsp_version);
 	if (strncmp(reinterpret_cast<const char *>(&rsdp_tag->signature), "RSD PTR ", 8) != 0) {
