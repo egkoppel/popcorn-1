@@ -192,6 +192,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept tr
 	                                                                                        mb.begin().devirtualise(),
 	                                                                                        mb.end().devirtualise(),
 	                                                                                        mmap);
+	allocators.general_frame_allocator_   = &kernel_monotonic_frame_allocator;
 
 	// ******************************* BEGIN PAGE TABLE REMAPPING *******************************
 	auto& new_p4_table = paging::init_kas(kernel_monotonic_frame_allocator);
@@ -199,7 +200,8 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept tr
 	// Map the kernel with section flags
 	for (auto& i : *sections) {
 		if ((i.type() != multiboot::tags::ElfSections::Entry::Type::SHT_NULL)
-		    && (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_ALLOC) != 0) {
+		    && (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_ALLOC) != 0
+		    && (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_TLS) == 0) {
 			auto name         = i.name(*sections);
 			auto is_userspace = strncmp(name, ".userspace", 10) == 0;
 
