@@ -40,12 +40,15 @@ namespace memory {
 			allocation_size(allocation_size) {}
 		PhysicalRegion(const PhysicalRegion&, shallow_copy_t = shallow_copy) noexcept;
 		PhysicalRegion(const PhysicalRegion&, deep_copy_t);
-		PhysicalRegion(PhysicalRegion&& other) noexcept : PhysicalRegion() { std::swap(*this, other); }
+		PhysicalRegion(PhysicalRegion&& other) noexcept : start(other.start), allocation_size(other.allocation_size) {
+			other.start = nullptr;
+		}
 		~PhysicalRegion();
 
 		PhysicalRegion& operator=(const PhysicalRegion&) noexcept;
 		PhysicalRegion& operator=(PhysicalRegion&& other) noexcept {
-			std::swap(*this, other);
+			std::swap(this->start, other.start);
+			std::swap(this->allocation_size, other.allocation_size);
 			return *this;
 		}
 
