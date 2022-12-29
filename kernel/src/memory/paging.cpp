@@ -130,8 +130,16 @@ namespace memory::paging {
 		LOG(Log::TRACE, "l1 entry data %llb", this->data);
 	}
 
-	frame_t *PageTableEntryImpl::pointed_frame() noexcept { throw "Unimplemented"; }
-	const frame_t *PageTableEntryImpl::pointed_frame() const noexcept { throw "Unimplemented"; }
+	frame_t *PageTableEntryImpl::pointed_frame() noexcept {
+		return const_cast<frame_t *>(const_cast<const PageTableEntryImpl *>(this)->pointed_frame());
+	}
+	const frame_t *PageTableEntryImpl::pointed_frame() const noexcept {
+		auto frame_addr =
+				this->data & static_cast<std::underlying_type_t<PageTableFlags>>(PageTableFlags::IMPL_ADDR_BITS);
+		auto frame_num = frame_addr / constants::frame_size;
+		LOG(Log::TRACE, "pfn: %d", frame_num);
+		return &mem_map[frame_num];
+	}
 	PageTableFlags PageTableEntryImpl::get_flags() const noexcept {
 		return static_cast<PageTableFlags>(this->data) & PageTableFlags::IMPL_FLAG_BITS;
 	}
