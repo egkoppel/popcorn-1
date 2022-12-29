@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2022 Eliyahu Gluschove-Koppel.
  *
@@ -8,4 +9,11 @@
  * limitations under the License.
  */
 
-signed int foo(unsigned int a) { return __builtin_bit_cast(signed int, a); }
+#ifndef HUGOS_LIBK_INCLUDE_SYS_TYPES_H
+#define HUGOS_LIBK_INCLUDE_SYS_TYPES_H
+
+#include <stdint.h>
+
+typedef int64_t ssize_t;
+
+#endif   //HUGOS_LIBK_INCLUDE_SYS_TYPES_H
