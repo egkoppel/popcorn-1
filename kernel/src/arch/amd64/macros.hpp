@@ -8,14 +8,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #ifndef HUGOS_MACROS_HPP
 #define HUGOS_MACROS_HPP
 
-#include <stdint.h>
+#include <cstdint>
+#include <memory/types.hpp>
 
 extern inline void wrsmr(uint32_t reg, uint64_t val) {
 	__asm__ volatile("wrmsr" : : "d"((val) >> 32), "a"(val & 0xFFFFFFFF), "c"(reg));
 }
 
-#endif //HUGOS_MACROS_HPP
+extern inline memory::paddr_t get_current_page_table_addr() {
+	usize ret;
+	__asm__ volatile("mov %%cr3, %0" : "=r"(ret));
+	return {.address = ret};
+}
+
+#endif   //HUGOS_MACROS_HPP
