@@ -86,7 +86,7 @@ __attribute__((section(".userspace.text"))) long strtol(const char *str, char **
 	else if (base == 0)
 		base = 10;
 
-	long output;
+	long output = 0;
 	while (true) {
 		if (*str == '\0') break;
 		int val;
@@ -103,6 +103,7 @@ __attribute__((section(".userspace.text"))) long strtol(const char *str, char **
 		str++;
 	}
 	if (endptr != NULL) *endptr = (char *)str;
+	if (negative) output *= -1;
 	return output;
 }
 
