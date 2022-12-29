@@ -29,18 +29,24 @@ namespace memory {
 		                IPhysicalAllocator& pallocator = allocators.general(),
 		                VAllocator&& vallocator        = VAllocator());
 		KStack(const KStack&) = delete;
-		KStack(KStack&& rhs) noexcept : KStack() { std::swap(*this, rhs); }
+		KStack(KStack&& other) noexcept :
+			backing_region(std::move(other.backing_region)),
+			virtual_region(std::move(other.virtual_region)) {
+			other.backing_region = PhysicalRegion{};
+			other.virtual_region = VirtualRegion<VAllocator>{};
+		}
 		~KStack();
 
 		KStack& operator=(const KStack&) = delete;
-		KStack& operator=(KStack&& rhs) noexcept {
-			std::swap(*this, rhs);
+		KStack& operator=(KStack&& other) noexcept {
+			std::swap(this->backing_region, other.backing_region);
+			std::swap(this->virtual_region, other.virtual_region);
 			return *this;
 		}
 
 		usize size() const noexcept { return this->backing_region.size(); }
 
-		using iterator = typename VirtualRegion<VAllocator>::iterator;
+		using iterator       = typename VirtualRegion<VAllocator>::iterator;
 		using const_iterator = typename VirtualRegion<VAllocator>::const_iterator;
 
 		iterator top() noexcept { return this->virtual_region.end(); }
