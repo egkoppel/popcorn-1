@@ -24,8 +24,10 @@ using ::stdout;
 using ::stderr;
 using ::stdserial;
 using ::fprintf;
+using ::vfprintf;
 using ::fscanf;
 using ::printf;
+using ::vprintf;
 using ::scanf;
 
 HUGOS_STL_END_NAMESPACE

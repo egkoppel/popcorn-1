@@ -13,10 +13,14 @@
 #include <acpi/acpi.hpp>
 #include <acpi/apic.hpp>
 #include <acpi/lapic.hpp>
+#include <arch/amd64/macros.hpp>
 #include <arch/constants.hpp>
 #include <arch/hal.hpp>
 #include <arch/initialisation.hpp>
 #include <arch/interrupts.hpp>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
 #include <interrupt_handlers/double_fault.hpp>
 #include <interrupt_handlers/page_fault.hpp>
 #include <log.hpp>
@@ -38,9 +42,6 @@
 #include <multiboot/rsdp.hpp>
 #include <panic.h>
 #include <smp/core_local.hpp>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
 #include <termcolor.h>
 #include <threading/task.hpp>
 #include <tuple>
