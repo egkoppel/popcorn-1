@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <concepts>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <exception>
 #include <log.hpp>
@@ -341,12 +342,22 @@ namespace memory::paging {
 			LOG(Log::TRACE, "Request child table - data: %llb", this->data);
 
 			if (static_cast<bool>(this->get_flags() & PageTableFlags::PRESENT)) {
-				return static_cast<const PageTable<Level - 1> *>(
-						this->pointed_frame()->frame_to_page_map_region().address);
+				return static_cast<PageTable<Level - 1> *>(this->pointed_frame()->frame_to_page_map_region().address);
 			} else return std::nullopt;
 		}
 		PageTable<Level - 1> *child_table_or_create(IPhysicalAllocator *allocator) {
-			return this->child_table().value_or(new (allocator) PageTable<Level - 1>{});
+			return this->child_table()
+			        .or_else([=] {
+						LOG(Log::TRACE, "Allocate new page level");
+
+						auto new_pt = new (allocator) PageTable<Level - 1>{};
+						auto new_pt_frame =
+								aligned<paddr_t>{vaddr_t{.address = reinterpret_cast<usize>(new_pt)}.devirtualise()};
+						this->set_pointed_frame(new_pt_frame.frame());
+						this->set_flags(PageTableFlags::PRESENT | PageTableFlags::WRITEABLE | PageTableFlags::USER);
+						return new_pt;
+					})
+			        .value();
 		}
 	};
 
