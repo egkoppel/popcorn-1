@@ -88,8 +88,8 @@ public:
 	iterator find(const Key& key);
 	const_iterator find(const Key& key) const;
 
-	std::pair<iterator, bool> insert(const value_type& value) { throw "Unimplemented"; }
-	std::pair<iterator, bool> insert(value_type&& value) { throw "Unimplemented"; }
+	std::pair<iterator, bool> insert(const value_type& value) { __builtin_unreachable(); }
+	std::pair<iterator, bool> insert(value_type&& value) { __builtin_unreachable(); }
 	template<class P>
 	std::pair<iterator, bool> insert(P&& value)
 		requires(std::is_constructible<value_type, P &&>::value);
