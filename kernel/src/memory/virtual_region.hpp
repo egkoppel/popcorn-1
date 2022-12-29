@@ -35,37 +35,48 @@ namespace memory {
 		using iterator       = iter::iter_wrapper<aligned<vaddr_t>>;
 		using const_iterator = iter::iter_wrapper<aligned<vaddr_t>>;
 
-		explicit VirtualRegion(Allocator allocator = Allocator()) : start{{.address = 0}}, allocation_page_count{0} {}
+		explicit VirtualRegion(Allocator allocator = Allocator()) :
+			start{{.address = 0}},
+			allocation_size{0},
+			allocator{allocator} {}
 		explicit VirtualRegion(usize allocation_size, Allocator allocator = Allocator()) :
 			start{allocator.allocate(allocation_size)},
-			allocation_page_count{IDIV_ROUND_UP(allocation_size, constants::frame_size)} {}
+			allocation_size{allocation_size},
+			allocator{allocator} {}
 		VirtualRegion(const VirtualRegion&) noexcept = delete;
 		explicit VirtualRegion(VirtualRegion&& other) noexcept :
 			start(other.start),
-			allocation_page_count(other.allocation_page_count) {
-			other.allocation_page_count = 0;
+			allocation_size(other.allocation_size) {
+			other.allocation_size = 0;
 		}
-		~VirtualRegion() { __builtin_unreachable(); }
+		~VirtualRegion() {
+			if (this->allocation_size != 0) { this->allocator.deallocate(this->start, this->allocation_size); }
+		}
 
 		VirtualRegion& operator=(const VirtualRegion&) noexcept = delete;
 		VirtualRegion& operator=(VirtualRegion&& other) noexcept {
 			std::swap(this->start, other.start);
-			std::swap(this->allocation_page_count, other.allocation_page_count);
+			std::swap(this->allocation_size, other.allocation_size);
 			return *this;
 		}
 
 		iterator begin() { return iter::iter_wrapper(this->start); }
-		iterator end() { return iter::iter_wrapper(this->start + this->allocation_page_count); }
+		iterator end() {
+			return iter::iter_wrapper(this->start + IDIV_ROUND_UP(allocation_size, constants::frame_size));
+		}
 		const_iterator cbegin() const { return iter::iter_wrapper(this->start); }
-		const_iterator cend() const { return iter::iter_wrapper(this->start + this->allocation_page_count); }
+		const_iterator cend() const {
+			return iter::iter_wrapper(this->start + IDIV_ROUND_UP(allocation_size, constants::frame_size));
+		}
 		const_iterator begin() const { return this->cbegin(); }
 		const_iterator end() const { return this->cend(); }
 
-		std::size_t size() { return this->allocation_page_count * constants::frame_size; }
+		std::size_t size() { return this->allocation_size; }
 
 	private:
 		aligned<vaddr_t> start;
-		usize allocation_page_count;
+		usize allocation_size;
+		[[no_unique_address]] Allocator allocator;
 	};
 }   // namespace memory
 
