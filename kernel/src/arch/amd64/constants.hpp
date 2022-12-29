@@ -15,6 +15,7 @@
 namespace memory::constants {
 	inline constexpr auto userspace_end               = 0x0000'8000'0000'0000;
 	inline constexpr auto mem_map_start               = 0xffff'8000'0000'0000;
+	inline constexpr auto mem_map_end                 = 0xffff'8100'0000'0000;
 	inline constexpr auto page_offset_start           = 0xffff'9000'0000'0000;
 	inline constexpr auto page_offset_end             = 0xffff'd000'0000'0000;
 	inline constexpr auto kernel_page_allocator_start = 0xffff'd000'0000'0000;
