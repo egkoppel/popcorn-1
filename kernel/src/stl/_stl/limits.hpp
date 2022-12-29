@@ -44,13 +44,13 @@ template<> struct numeric_limits<unsigned long int> {
 };
 
 template<> struct numeric_limits<long long int> {
-	static constexpr long int min() noexcept { return LONG_LONG_MIN; }
-	static constexpr long int max() noexcept { return LONG_LONG_MAX; }
+	static constexpr long int min() noexcept { return LLONG_MIN; }
+	static constexpr long int max() noexcept { return LLONG_MAX; }
 };
 
 template<> struct numeric_limits<unsigned long long int> {
 	static constexpr unsigned long long int min() noexcept { return 0; }
-	static constexpr unsigned long long int max() noexcept { return ULONG_LONG_MAX; }
+	static constexpr unsigned long long int max() noexcept { return ULLONG_MAX; }
 };
 
 HUGOS_STL_END_NAMESPACE
