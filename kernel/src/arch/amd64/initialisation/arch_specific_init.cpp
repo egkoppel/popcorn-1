@@ -11,6 +11,7 @@
 #include "../interrupts/syscall.hpp"
 #include "gdt.hpp"
 #include "tss.hpp"
+#include "../interrupts/idt.hpp"
 
 #include <arch/initialisation.hpp>
 
@@ -25,6 +26,8 @@ namespace arch {
 		global_descriptor_table.add_system_entry(GDT::SystemEntry::new_tss(&task_state_segment),
 		                                         GDT::SystemEntryType::TSS);
 		global_descriptor_table.load();
+
+		interrupt_descriptor_table.load();
 
 		syscall_register_init();
 
