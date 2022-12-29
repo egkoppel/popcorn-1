@@ -335,18 +335,17 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) noexcept tr
 	Log::set_screen_log_level(Log::INFO);
 	LOG(Log::WARNING, "hello???");
 
-	fprintf(stdserial, "Found rdsp version %d\n", rdsp_version);
+	auto rsdp_tag = mb.find_tag<multiboot::tags::Rsdp>(multiboot::TagType::RSDT_V1)
+	                        .or_else([&] { return mb.find_tag<multiboot::tags::Rsdp>(multiboot::TagType::RSDT_V2); })
+	                        .value();
+
 	if (strncmp(reinterpret_cast<const char *>(&rsdp_tag->signature), "RSD PTR ", 8) != 0) {
 		panic("RSDP signature wrong");
 	}
 
 	char oem_str_buf[7] = {0};
 	memcpy(oem_str_buf, &rsdp_tag->oem_id, 6);
-	fprintf(stdserial, "OEM is %s\n", oem_str_buf);
-
-	// TODO: Fix this
-	/*fprintf(stdserial, "Creating stack guard page at %lp\n", old_p4_table_page);
-	unmap_page_no_free(old_p4_table_page);*/
+	LOG(Log::INFO, "OEM is %s\n", oem_str_buf);
 
 	fprintf(stdout, "[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Reloaded page tables\n");
 
