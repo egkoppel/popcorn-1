@@ -30,6 +30,7 @@
 
 #include <concepts>
 #include <exception>
+#include <new>
 #include <utility>
 
 HUGOS_STL_BEGIN_NAMESPACE
@@ -189,12 +190,18 @@ public:
 		return *this;
 	}
 
-	template<class U = T>
-	constexpr optional& operator=(optional<U>&& other) = delete; /*{
-		std::swap(this->is_some, other.is_some);
+	template<class U = T> constexpr optional& operator=(optional<U>&& other) {
+		if (this->is_some) this->inner.~T();
+		this->is_some = other.is_some;
+
+		if (other.is_some) {
+			new (&this->inner) T(std::move(other.value()));
+			other.inner.~T();
+			other.is_some = false;
+		}
 
 		return *this;
-	}*/
+	}
 
 	constexpr optional& operator=(nullopt_t) {
 		if (this->is_some) this->inner.~T();
