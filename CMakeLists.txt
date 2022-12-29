@@ -38,7 +38,7 @@ FetchContent_Declare(
         libcxxrt
         GIT_REPOSITORY https://github.com/libcxxrt/libcxxrt.git
         GIT_TAG a0f7f5c139a7daf71de0de201b6c405d852b1dc1
-        PATCH_COMMAND patch < ${SRCROOT}/cmake/libcxxrt.patch
+        PATCH_COMMAND patch -p1 < ${SRCROOT}/cmake/libcxxrt.patch
 )
 
 add_compile_definitions(LIBCXXRT_WEAK_LOCKS)
