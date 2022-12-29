@@ -137,7 +137,7 @@ namespace memory::paging {
 	}
 	void PageTableEntryImpl::set_flags(PageTableFlags flags) noexcept {
 		this->data = (this->data & static_cast<std::underlying_type_t<PageTableFlags>>(PageTableFlags::IMPL_ADDR_BITS))
-		             | static_cast<std::underlying_type_t<PageTableFlags>>(flags | PageTableFlags::IMPL_FLAG_BITS);
+		             | static_cast<std::underlying_type_t<PageTableFlags>>(flags & PageTableFlags::IMPL_FLAG_BITS);
 	}
 
 	void AddressSpaceBase::map_page_to(aligned<vaddr_t> page, const frame_t *frame, PageTableFlags flags) {
