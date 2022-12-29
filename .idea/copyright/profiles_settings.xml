@@ -1,5 +1,5 @@
 <component name="CopyrightManager">
-  <settings default="eliyahu">
+  <settings>
     <LanguageOptions name="ObjectiveC">
       <option name="block" value="false" />
       <option name="prefixLines" value="false" />
