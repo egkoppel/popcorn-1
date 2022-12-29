@@ -40,6 +40,17 @@ namespace memory {
 		 * @note @p size should be determined deterministically as the same value will be used to deallocate
 		 */
 		frame_t *allocate(u64 size = memory::constants::frame_size);
+
+		/**
+		 * Allocates at least enough frames to cover the requested size starting at the requested address
+		 * @param at The address to start at
+		 * @param size Amount to allocate
+		 * @return Reference into `mem_map` to the first allocated frame
+		 * @throws std::bad_alloc Memory allocation error
+		 * @note @p size should be determined deterministically as the same value will be used to deallocate
+		 */
+		frame_t *allocate(aligned<paddr_t> at, u64 size = memory::constants::frame_size);
+
 		/**
 		 *
 		 * @param start Reference into `mem_map` to the frame returned by a call to allocate()
@@ -53,6 +64,11 @@ namespace memory {
 		 * @return
 		 */
 		virtual frame_t *allocate_(u64) = 0;
+		/**
+		 * other bob 2
+		 * @return
+		 */
+		virtual frame_t *allocate_at_(aligned<paddr_t>, u64) { throw std::bad_alloc(); }
 		/**
 		 * bob
 		 */
