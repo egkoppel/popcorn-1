@@ -149,6 +149,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	LOG(Log::DEBUG, "Initialising memory");
 	auto kernel_max = 0_pa;
 	auto kernel_min = 0xffff'ffff'ffff'ffff_pa;
+	usize tls_size  = 0;
 	for (auto& i : *sections) {
 		if ((i.type() != decltype(i.type())::SHT_NULL)
 		    && (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_ALLOC) != 0) {
@@ -162,9 +163,14 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 
 			if (i.start() - offset < kernel_min) kernel_min = i.start() - offset;
 			if (i.end() - offset > kernel_max) kernel_max = i.end() - offset;
+
+			if (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_TLS) {
+				tls_size = i.end().address - i.start().address;
+			}
 		}
 	}
 	LOG(Log::DEBUG, "Kernel executable: %lp -> %lp", kernel_min, kernel_max);
+	LOG(Log::DEBUG, "TLS size: %llu", tls_size);
 
 	uint64_t available_ram = 0;
 	uint64_t total_ram     = 0;
@@ -380,6 +386,9 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	printf("TSS index at %u\n", index);
 	tss::TSS::load(index);*/
 	//printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded TSS\n");
+
+	create_core_local_data(tls_size);
+
 
 	while (true) __asm__ volatile("nop");
 #if 0

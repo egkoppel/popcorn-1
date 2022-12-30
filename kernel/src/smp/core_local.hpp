@@ -11,28 +11,8 @@
 #ifndef HUGOS_CORE_LOCAL_HPP
 #define HUGOS_CORE_LOCAL_HPP
 
-#include "threading/scheduler.hpp"
+#include <popcorn_prelude.h>
 
-#include <stdatomic.h>
-#include <vector>
-
-/*extern "C" struct core_local {
-public:
-	core_local *self = this;
-	uint64_t idx     = atomic_fetch_add(&next_idx, 1);
-	threads::ILocalScheduler& scheduler;
-
-	static atomic_uint_fast64_t next_idx;
-
-	core_local(threads::ILocalScheduler& scheduler);
-};
-
-extern std::vector<core_local *> core_local_data;
-
-inline core_local *get_local_data() {
-	core_local *ptr;
-	__asm__ volatile("mov %%gs:0, %0" : "=r"(ptr));
-	return ptr;
-}*/
+void create_core_local_data(usize size);
 
 #endif   //HUGOS_CORE_LOCAL_HPP
