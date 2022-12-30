@@ -14,7 +14,6 @@
 
 #include "memory/types.hpp"
 #include "multiboot.hpp"
-//#include <iostream>
 
 namespace multiboot::tags {
 	class [[gnu::packed]] ElfSections : public Tag {
@@ -62,12 +61,12 @@ namespace multiboot::tags {
 			uint32_t _type;
 			uint64_t _flags;
 			memory::paddr_t addr;
-			uint64_t offset;
+			[[maybe_unused]] uint64_t offset;
 			uint64_t size;
-			uint32_t link;
+			[[maybe_unused]] uint32_t link;
 			uint32_t info;
-			uint64_t align;
-			uint64_t entry_size;
+			[[maybe_unused]] uint64_t align;
+			[[maybe_unused]] uint64_t entry_size;
 
 		public:
 			bool operator<=>(const Entry&) const = default;

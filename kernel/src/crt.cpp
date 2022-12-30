@@ -73,15 +73,8 @@ typedef struct {
 	void *dso_handle;
 } atexit_func_entry_t;
 
-atexit_func_entry_t atexit_funcs[ATEXIT_COUNT] = {0};
+atexit_func_entry_t atexit_funcs[ATEXIT_COUNT] = {{nullptr}};
 unsigned int atexit_used                       = 0;
-
-static struct atexit_handler {
-	void (*f)(void *);
-	void *p;
-	void *d;
-	struct atexit_handler *next;
-} *head;
 
 extern "C" int __cxa_atexit(void (*f)(void *), void *objptr, void *dso) {
 	if (atexit_used >= ATEXIT_COUNT) return -1;
@@ -91,9 +84,9 @@ extern "C" int __cxa_atexit(void (*f)(void *), void *objptr, void *dso) {
 
 extern "C" void __cxa_finalize(void *dso) {
 	for (int i = ATEXIT_COUNT - 1; i >= 0; --i) {
-		if (dso == NULL || atexit_funcs[i].dso_handle == dso) {
-			if (atexit_funcs[i].destructor_func != NULL) atexit_funcs[i].destructor_func(atexit_funcs[i].obj_ptr);
-			atexit_funcs[i].destructor_func = NULL;
+		if (dso == nullptr || atexit_funcs[i].dso_handle == dso) {
+			if (atexit_funcs[i].destructor_func != nullptr) atexit_funcs[i].destructor_func(atexit_funcs[i].obj_ptr);
+			atexit_funcs[i].destructor_func = nullptr;
 		}
 	}
 }

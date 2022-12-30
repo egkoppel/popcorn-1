@@ -418,6 +418,7 @@ namespace memory::paging {
 			allocator{allocator} {}
 
 		AddressSpaceBase(const AddressSpaceBase&) = delete;
+		AddressSpaceBase(AddressSpaceBase&&);
 
 		/*~AddressSpaceBase() {
 			if (atomic_fetch_sub(this->ref_count, 1) == 1) {
@@ -444,7 +445,11 @@ namespace memory::paging {
 		 */
 		explicit AddressSpace(IPhysicalAllocator& allocator = allocators.general()) :
 			AddressSpaceBase(new(&allocator) PageTable<4>, &allocator),
-			ref_count(new atomic_uint_fast64_t(1)) {}
+			ref_count(new atomic_uint_fast64_t(1)) {
+			// TODO: copy higher half from KAS into new address space
+		}
+		
+		AddressSpace(AddressSpace&&);
 
 		~AddressSpace() {
 			if (atomic_fetch_sub(this->ref_count, 1) == 1) {
@@ -491,7 +496,7 @@ namespace memory::paging {
 		return kas;
 	}
 
-	/*struct AddressSpace /*: public PageTable<page_table_root_level> {
+	/*struct AddressSpace : public PageTable<page_table_root_level> {
 	private:
 		std::optional<PhysicalAddress> l4_table;
 		IPhysicalAllocator *page_table_allocator;
@@ -512,7 +517,7 @@ namespace memory::paging {
 		// TODO: Think about this
 		~AddressSpace() {
 			fprintf(stdserial, "dropped page table at %lp\n", *this->l4_table);
-			/*this->page_table_allocator->deallocate({Frame::from_address(this->l4_table)});
+			this->page_table_allocator->deallocate({Frame::from_address(this->l4_table)});
 		}
 
 		static PageTableRoot new_table(IPhysicalAllocator& page_table_allocator);

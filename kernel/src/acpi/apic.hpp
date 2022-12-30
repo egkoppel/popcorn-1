@@ -42,7 +42,7 @@ namespace acpi {
 		uint8_t apic_id;
 
 	private:
-		uint8_t _reserved;
+		[[maybe_unused]] uint8_t _reserved;
 
 	public:
 		uint32_t io_apic_addr;
