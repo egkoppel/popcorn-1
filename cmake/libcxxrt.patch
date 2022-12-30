@@ -15,3 +15,16 @@ index 8e9881b..ec0d965 100644
                        OUTPUT_NAME "cxxrt"
                       )
  
+diff --git a/src/dwarf_eh.h b/src/dwarf_eh.h
+index da86846..a0e19ef 100644
+--- a/src/dwarf_eh.h
++++ b/src/dwarf_eh.h
+@@ -197,7 +197,7 @@ static int64_t read_uleb128(dw_eh_ptr_t *data)
+  * to by *data.  Updates *data to point to the next byte after the end of the
+  * variable-length value.
+  */
+-static int64_t read_sleb128(dw_eh_ptr_t *data)
++__attribute__((no_sanitize("undefined"))) static int64_t read_sleb128(dw_eh_ptr_t *data)
+ {
+ 	int bits;
+ 	// Read as if it's signed
