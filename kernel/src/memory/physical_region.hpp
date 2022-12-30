@@ -47,8 +47,9 @@ namespace memory {
 
 		PhysicalRegion& operator=(const PhysicalRegion&) noexcept;
 		PhysicalRegion& operator=(PhysicalRegion&& other) noexcept {
-			std::swap(this->start, other.start);
-			std::swap(this->allocation_size, other.allocation_size);
+			using std::swap;
+			swap(this->start, other.start);
+			swap(this->allocation_size, other.allocation_size);
 			return *this;
 		}
 

@@ -39,8 +39,9 @@ namespace memory {
 
 		KStack& operator=(const KStack&) = delete;
 		KStack& operator=(KStack&& other) noexcept {
-			std::swap(this->backing_region, other.backing_region);
-			std::swap(this->virtual_region, other.virtual_region);
+			using std::swap;
+			swap(this->backing_region, other.backing_region);
+			swap(this->virtual_region, other.virtual_region);
 			return *this;
 		}
 
