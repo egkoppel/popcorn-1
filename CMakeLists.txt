@@ -34,11 +34,14 @@ set(SRCROOT ${PROJECT_SOURCE_DIR})
 
 include(FetchContent)
 
+Set(FETCHCONTENT_QUIET FALSE)
 FetchContent_Declare(
         libcxxrt
         GIT_REPOSITORY https://github.com/libcxxrt/libcxxrt.git
         GIT_TAG a0f7f5c139a7daf71de0de201b6c405d852b1dc1
-        PATCH_COMMAND patch -p1 < ${SRCROOT}/cmake/libcxxrt.patch
+        GIT_SHALLOW TRUE
+        GIT_PROGRESS TRUE
+        PATCH_COMMAND git apply --ignore-space-change --ignore-whitespace ${SRCROOT}/cmake/libcxxrt.patch
 )
 
 add_compile_definitions(LIBCXXRT_WEAK_LOCKS)

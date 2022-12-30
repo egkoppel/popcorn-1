@@ -1,11 +1,6 @@
 set(SRCROOT ${SRCROOT}/src)
 
-set(CMAKE_RANLIB ${CROSS_RANLIB})
-set(CMAKE_AR ${CROSS_AR})
-
 add_library(hugos_core_kernel STATIC)
-
-target_sources(hugos_core_kernel PRIVATE "${SRCROOT}/../cmake/generators/task_hpp_gen_nasm_includes.cpp")
 
 add_subdirectory(${SRCROOT}/arch)
 
