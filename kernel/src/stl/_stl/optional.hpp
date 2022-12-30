@@ -208,6 +208,15 @@ public:
 		this->is_some = false;
 		return *this;
 	}
+
+	template<class U = T>
+	constexpr optional& operator=(U&& value)
+		requires(!std::is_same_v<std::remove_cv_t<U>, optional<T>> && std::is_constructible_v<T, U>)
+	{
+		if (this->is_some) this->inner = std::forward<U>(value);
+		else new (&this->inner) T(std::forward<U>(value));
+		return *this;
+	}
 };
 
 template<class T> class [[clang::trivial_abi]] optional<T *> {
