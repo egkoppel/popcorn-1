@@ -215,6 +215,7 @@ public:
 	{
 		if (this->is_some) this->inner = std::forward<U>(value);
 		else new (&this->inner) T(std::forward<U>(value));
+		this->is_some = true;
 		return *this;
 	}
 };
