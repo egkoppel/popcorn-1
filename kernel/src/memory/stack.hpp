@@ -29,6 +29,7 @@ namespace memory {
 		                IPhysicalAllocator& pallocator = allocators.general(),
 		                VAllocator&& vallocator        = VAllocator());
 		KStack(const KStack&) = delete;
+		KStack(const KStack&, deep_copy_t);
 		KStack(KStack&& other) noexcept :
 			backing_region(std::move(other.backing_region)),
 			virtual_region(std::move(other.virtual_region)) {
