@@ -109,14 +109,22 @@ namespace arch {
 	GS_SWAP                                                                                                            \
 	__asm__ volatile("iretq");
 
-#define N0_RETURN_NO_ERROR_CODE(name, body)                                                                            \
+#define NO_RETURN_NO_ERROR_CODE(name, body)                                                                            \
 	void name##_inner(exception_stack_frame_t *frame, uint64_t old_base_ptr) { body }                                  \
 	extern "C" __attribute__((naked)) void name() {                                                                    \
 		__asm__ volatile("movq %rsp, %rdi");                                                                           \
 		__asm__ volatile("movq %rbp, %rsi");                                                                           \
 		__asm__ volatile("call %P0" : : "i"(name##_inner));                                                            \
-		cli();                                                                                                         \
-		hlt();                                                                                                         \
+		__asm__ volatile("cli; hlt;");                                                                                 \
+	}
+
+#define NO_RETURN_ERROR_CODE(name, body)                                                                               \
+	void name##_inner(exception_stack_frame_error_t *frame, uint64_t old_base_ptr) { body }                            \
+	extern "C" __attribute__((naked)) void name() {                                                                    \
+		__asm__ volatile("movq %rsp, %rdi");                                                                           \
+		__asm__ volatile("movq %rbp, %rsi");                                                                           \
+		__asm__ volatile("call %P0" : : "i"(name##_inner));                                                            \
+		__asm__ volatile("cli; hlt;");                                                                                 \
 	}
 
 #define RETURN_ERROR_CODE(name, body)                                                                                  \
@@ -166,6 +174,17 @@ namespace arch {
 		});
 	})
 
+	NO_RETURN_ERROR_CODE(double_fault, {
+		({
+			interrupt_info_t info{.error_code             = frame->error_code,
+			                      .ip                     = frame->ip,
+			                      .sp                     = frame->sp,
+			                      .page_fault_memory_addr = 0,
+			                      .flags                  = frame->flags};
+			(handlers[vector_to_idt_index(InterruptVectors::DOUBLE_FAULT)])(&info);
+		});
+	})
+
 	void load_interrupt_handler(InterruptVectors vector,
 	                            bool user_callable,
 	                            uint8_t stack_idx,
@@ -176,9 +195,9 @@ namespace arch {
 
 		switch (vector) {
 			case InterruptVectors::PAGE_FAULT: handler_wrapper = page_fault; break;
+			case InterruptVectors::DOUBLE_FAULT: handler_wrapper = double_fault; break;
 			case InterruptVectors::CORE_TIMER: [[fallthrough]];
 			case InterruptVectors::GLOBAL_TIMER: [[fallthrough]];
-			case InterruptVectors::DOUBLE_FAULT: [[fallthrough]];
 			case InterruptVectors::LAST: return;
 		}
 
