@@ -31,7 +31,7 @@ namespace memory {
 		using const_iterator = iter::iter_wrapper<const frame_t *>;
 
 		PhysicalRegion() noexcept = default;
-		PhysicalRegion(usize allocation_size, IPhysicalAllocator& allocator = allocators.general());
+		explicit PhysicalRegion(usize allocation_size, IPhysicalAllocator& allocator = allocators.general());
 		PhysicalRegion(aligned<paddr_t> at,
 		               usize allocation_size,
 		               IPhysicalAllocator& allocator = allocators.general());
