@@ -26,7 +26,7 @@ namespace Log {
 		switch (level) {
 			case OFF: return "";
 			case CRITICAL: return "CRITICAL";
-			case WARNING: return "WARNING";
+			case WARNING: return "WARN";
 			case INFO: return "INFO";
 			case DEBUG: return "DEBUG";
 			case TRACE: return "TRACE";
@@ -63,13 +63,6 @@ namespace Log {
 		va_start(format_args, func_name);
 		va_copy(format_args2, format_args);
 
-		if (level <= current_screen_level) {
-			std::fprintf(stdout, "[%s%s" TERMCOLOR_RESET "] ", level_to_color(level), level_to_prefix(level));
-			std::vfprintf(stdout, message, format_args2);
-			va_end(format_args2);
-			std::fprintf(stdout, "\n");
-		}
-
 		std::fprintf(stdserial,
 		             "[%llu] [%s] - [%s:%s:%u] - ",
 		             time,
@@ -80,5 +73,12 @@ namespace Log {
 		std::vfprintf(stdserial, message, format_args);
 		va_end(format_args);
 		std::fprintf(stdserial, "\n");
+
+		if (level <= current_screen_level) {
+			std::fprintf(stdout, "[%s%s" TERMCOLOR_RESET "] ", level_to_color(level), level_to_prefix(level));
+			std::vfprintf(stdout, message, format_args2);
+			std::fprintf(stdout, "\n");
+		}
+		va_end(format_args2);
 	}
 }   // namespace Log
