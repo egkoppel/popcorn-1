@@ -8,6 +8,7 @@
  * limitations under the License.
  */
 
+#include <log.hpp>
 #include <optional>
 #include <serial.h>
 #include <stdint.h>
@@ -33,6 +34,7 @@ SerialPort::SerialPort(uint16_t port) :
 	if (this->data.read() != 0xAE) { throw SerialPortError{}; }
 
 	this->modem_contol.write(0x0F);   // Turn off loopback, enable IRQs
+	LOG(Log::INFO, "Serial port enabled");
 }
 
 int SerialPort::is_transmit_empty() const noexcept { return this->line_status.read() & 0x20; }
