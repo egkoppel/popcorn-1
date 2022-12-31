@@ -346,7 +346,9 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	                         | memory::paging::PageTableFlags::GLOBAL;
 	MemoryMap<u8> framebuffer_mapping{fb->begin(), fb->size(), framebuffer_flags, null_allocator, paging::kas};
 
-	FRAMEBUFFER = reinterpret_cast<char *>(framebuffer_mapping.operator->());
+	MemoryMap<char> framebuffer_mapping{fb->begin(), fb->size(), framebuffer_flags, null_allocator, paging::kas};
+
+	FRAMEBUFFER = framebuffer_mapping.operator->();
 	Log::set_screen_log_level(Log::INFO);
 	LOG(Log::WARNING, "hello???");
 
