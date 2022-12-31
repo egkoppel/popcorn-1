@@ -21,12 +21,17 @@ namespace multiboot::tags {
 		uint8_t checksum;
 		char oem_id[6];
 		uint8_t revision;
-		uint32_t rsdt_addr;
+		memory::paddr32_t rsdt_addr_;
 		uint32_t length;
-		uint64_t xsdt_addr;
+		memory::paddr_t xsdt_addr_;
 		uint8_t extended_checksum;
 		uint8_t _reserved[3];
-	};
-}
 
-#endif //HUGOS_RSDP_HPP
+		memory::paddr_t rsdt_addr() const {
+			if (this->revision == 0) return this->rsdt_addr_;
+			else return this->xsdt_addr_;
+		}
+	};
+}   // namespace multiboot::tags
+
+#endif   //HUGOS_RSDP_HPP
