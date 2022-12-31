@@ -21,6 +21,38 @@
 #include <utils.h>
 
 namespace memory {
+	namespace detail {
+		template<class VAllocator = general_allocator_t> class MemoryMapBase {
+		protected:
+			/**
+			 * Creates an anonymous memory mapping
+		 	 * @param byte_count
+		 	 * @param flags
+		 	 * @param page_allocator
+		 	 * @param in
+		 	 */
+			MemoryMapBase(PhysicalRegion&& backing_region,
+			              paging::PageTableFlags flags,
+			              IPhysicalAllocator& page_allocator,
+			              paging::AddressSpaceBase& in = threads::local_scheduler->get_current_task()->address_space(),
+			              VAllocator allocator         = VAllocator());
+			MemoryMapBase(const MemoryMapBase&) = delete;
+			MemoryMapBase(MemoryMapBase&&) noexcept;
+			~MemoryMapBase();
+
+			MemoryMapBase& operator=(MemoryMapBase&&) noexcept;
+
+		public:
+			void resize_to(std::size_t new_size);
+			std::size_t size() { return this->virtual_region.size(); }
+
+		protected:
+			PhysicalRegion backing_region;
+			VirtualRegion<VAllocator> virtual_region;
+			paging::AddressSpaceBase *address_space;
+		};
+	}   // namespace detail
+
 	/**
 	 * @brief A mapping between virtual and physical memory
 	 * @tparam VAllocator The virtual allocator to use
@@ -28,8 +60,12 @@ namespace memory {
 	 *
 	 * A MemoryMap represents a RAII-based map between virtual and physical memory space, and should usually be treated similarly to a pointer by specifying the type of \p T.
 	 */
-	template<class T = void, class VAllocator = general_allocator_t> class MemoryMap {
+	template<class T = void, class VAllocator = general_allocator_t>
+	class MemoryMap : public detail::MemoryMapBase<VAllocator> {
 	public:
+		using detail::MemoryMapBase<VAllocator>::size;
+		using detail::MemoryMapBase<VAllocator>::resize_to;
+
 		/**
 		 * Creates an anonymous memory mapping
 		 * @param byte_count
@@ -58,109 +94,44 @@ namespace memory {
 		          paging::AddressSpaceBase& in = threads::local_scheduler->get_current_task()->address_space(),
 		          VAllocator allocator         = VAllocator());
 		MemoryMap(const MemoryMap&) = delete;
-		~MemoryMap();
 
-		MemoryMap(MemoryMap&&);
-		MemoryMap& operator=(MemoryMap&&) = delete;
+		MemoryMap(MemoryMap&&) noexcept;
+		MemoryMap& operator=(MemoryMap&&) noexcept;
 
-		template<class _u = T>
-		_u& operator*()
-			requires(!std::is_void_v<_u>)
-		{
-			return *static_cast<_u *>((*this->virtual_region.begin()).address + this->offset);
-		}
-		template<class _u = T>
-		_u *operator->()
-			requires(!std::is_void_v<_u>)
-		{
-			return static_cast<_u *>((*this->virtual_region.begin()).address + this->offset);
-		}
-		template<class _u = T>
-		_u& operator[](std::size_t offset2)
-			requires(!std::is_void_v<_u>)
-		{
-			return static_cast<_u *>((*this->virtual_region.begin()).address + this->offset)[offset2];
-		}
-		template<class _u = T>
-		const _u& operator*() const
-			requires(!std::is_void_v<_u>)
-		{
-			return *static_cast<_u *>((*this->virtual_region.begin()).address + this->offset);
-		}
-		template<class _u = T>
-		const _u *operator->() const
-			requires(!std::is_void_v<_u>)
-		{
-			return static_cast<_u *>((*this->virtual_region.begin()).address + this->offset);
-		}
-		template<class _u = T>
-		const _u& operator[](std::size_t offset2) const
-			requires(!std::is_void_v<_u>)
-		{
-			return static_cast<_u *>((*this->virtual_region.begin()).address + this->offset)[offset2];
-		}
+		T& operator*() { return *this->data; }
+		T *operator->() { return this->data; }
+		T& operator[](std::size_t offset) { return this->data[offset]; }
+		const T& operator*() const { return *this->data; }
+		const T *operator->() const { return this->data; }
+		const T& operator[](std::size_t offset) const { return this->data[offset]; }
 
-		template<class U>
-		explicit operator MemoryMap<U, VAllocator>()
-			requires(std::is_convertible_v<T *, U *>);
-
-		void resize_to(std::size_t new_size);
-		std::size_t size() { return this->virtual_region.size(); }
-
-		/**
-		 * Maps an area of virtual address space to a set of physical backing frames
-		 * @param frames The backing frames to use
-		 * @param flags The flags to map the area with
-		 * @param page_allocator Allocator to allocate the virtual address area from
-		 * @param page_table_allocator Allocator to allocate any necessary page tables from
-		 * @return Beginning of the virtual region
-		 * @attention Expects the \p frames to be already allocated
-		 */
-		/*static Page new_map(FrameVector frames,
-		                    paging::PageTableEntry::flags_t flags,
-		                    IVirtualAllocator& page_allocator,
-		                    IPhysicalAllocator& page_table_allocator,
-		                    paging::AddressSpace& in = *paging::current_page_table);*/
-
-		/**
-		 * Creates a new virtual address space area with at least \p byte_length size
-		 * @param byte_length The minimum size of the area to create
-		 * @param flags The flags to map the area with
-		 * @param page_allocator Allocator to allocate the virtual address area from
-		 * @param frame_allocator Allocator to allocate any physical frames from
-		 * @param page_table_allocator Allocator to allocate any necessary page tables from
-		 * @return Beginning of the virtual region
-		 */
-		/*static Page new_anonymous_map(uint64_t byte_length,
-		                              paging::PageTableEntry::flags_t flags,
-		                              IVirtualAllocator& page_allocator,
-		                              IPhysicalAllocator& frame_allocator,
-		                              IPhysicalAllocator& page_table_allocator,
-		                              paging::AddressSpace& in = *paging::current_page_table);*/
-
-		/**
-		 * Wrapper around new_map()
-		 * Maps an area of virtual address space to the contiguous memory area specified by \p start and \p byte_length
-		 * @param start The beginning of the physical memory area
-		 * @param byte_length The size of the area to map
-		 * @return Beginning of the virtual region
-		 * @attention Expects the physical area to be already allocated
-		 */
-		/*static VirtualAddress new_address_map(PhysicalAddress start,
-		                                      uint64_t byte_length,
-		                                      paging::PageTableEntry::flags_t flags,
-		                                      IVirtualAllocator& page_allocator,
-		                                      IPhysicalAllocator& page_table_allocator,
-		                                      paging::AddressSpace& in = *paging::current_page_table);*/
+		template<class Tp, class U, class VAllocatorp>
+			requires(requires { static_cast<Tp *>((U *)nullptr); })
+		friend MemoryMap<Tp, VAllocatorp> static_pointer_cast(MemoryMap<U, VAllocatorp>&& r);
+		template<class Tp, class U, class VAllocatorp>
+			requires(requires { dynamic_cast<Tp *>((U *)nullptr); })
+		friend MemoryMap<Tp, VAllocatorp> dynamic_pointer_cast(MemoryMap<U, VAllocatorp>&& r);
+		template<class Tp, class U, class VAllocatorp>
+			requires(requires { const_cast<Tp *>((U *)nullptr); })
+		friend MemoryMap<Tp, VAllocatorp> const_pointer_cast(MemoryMap<U, VAllocatorp>&& r);
+		template<class Tp, class U, class VAllocatorp>
+			requires(requires { reinterpret_cast<Tp *>((U *)nullptr); })
+		friend MemoryMap<Tp, VAllocatorp> reinterpret_pointer_cast(MemoryMap<U, VAllocatorp>&& r);
 
 	private:
-		PhysicalRegion backing_region;
-		VirtualRegion<VAllocator> virtual_region;
-		paging::AddressSpaceBase *address_space;
-		std::size_t offset = 0;
+		MemoryMap(detail::MemoryMapBase<VAllocator>&&, T *data) noexcept;
+		T *data;
 
 		std::size_t constexpr calculate_total_size(paddr_t start, std::size_t requested_size);
 		std::size_t constexpr calculate_offset(paddr_t start);
+	};
+
+	template<class VAllocator> class MemoryMap<void, VAllocator> : public detail::MemoryMapBase<VAllocator> {
+	public:
+		using detail::MemoryMapBase<VAllocator>::MemoryMapBase;
+		using detail::MemoryMapBase<VAllocator>::size;
+		using detail::MemoryMapBase<VAllocator>::resize_to;
+		using detail::MemoryMapBase<VAllocator>::operator=;
 	};
 }   // namespace memory
 
