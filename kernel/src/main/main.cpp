@@ -109,11 +109,11 @@ void parse_bootloader(const multiboot::Data& multiboot) {
  *  - 4M of memory mapped starting at `memory::constants::mem_map_start` - MUST NOT OVERLAP WITH ANY OTHER KERNEL CONSTRUCTS
  */
 extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
-	Log::set_log_level(Log::WARNING);
+	Log::set_log_level(Log::INFO);
 	Log::set_screen_log_level(Log::INFO);
 
 	try {
-		serial1 = {SerialPort{0x3f8}};
+		serial1 = SerialPort{0x3f8};
 	} catch (SerialPort::SerialPortError&) { LOG(Log::WARNING, "Serial port failed test"); }
 
 	if (multiboot_magic == 0x36d76289) {
