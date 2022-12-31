@@ -41,7 +41,7 @@ FetchContent_Declare(
         GIT_TAG a0f7f5c139a7daf71de0de201b6c405d852b1dc1
         GIT_SHALLOW TRUE
         GIT_PROGRESS TRUE
-        PATCH_COMMAND git apply --ignore-space-change --ignore-whitespace ${SRCROOT}/cmake/libcxxrt.patch
+        PATCH_COMMAND git reset --hard && git apply --ignore-space-change --ignore-whitespace ${SRCROOT}/cmake/libcxxrt.patch
 )
 
 add_compile_definitions(LIBCXXRT_WEAK_LOCKS)
