@@ -26,29 +26,26 @@ namespace threads {
 		static atomic_uint_fast64_t next_pid;
 
 		memory::KStack<> stack;
-		memory::paging::AddressSpace page_table;
+		memory::paging::AddressSpace address_space_;
 		memory::vaddr_t stack_ptr;
-		uint64_t pid = atomic_fetch_add(&next_pid, 1);
-		State state  = State::RUNNING;
+		uint64_t pid              = atomic_fetch_add(&next_pid, 1);
+		State state               = State::RUNNING;
 
-		Task(memory::IPhysicalAllocator& stack_frame_allocator, memory::IPhysicalAllocator& page_table_allocator); /* :
-			stack{2 * memory::constants::frame_size, stack_frame_allocator},
-			page_table{page_table_allocator} {}*/
+		explicit Task(memory::KStack<>&& stack);
 
 	public:
-		static std::unique_ptr<Task> new_task(memory::IPhysicalAllocator& stack_frame_allocator,
-		                                      memory::IPhysicalAllocator& page_table_allocator) {
-			return std::unique_ptr(new Task(stack_frame_allocator, page_table_allocator));
-		}
+		Task()            = delete;
+		Task(const Task&) = delete;
+		Task(const Task& other, deep_copy_t) : stack(other.stack, deep_copy) {}
+		Task(Task&&) = default;
+		~Task()      = default;
 
-		static std::unique_ptr<Task> init_multitasking(memory::KStack<>&& current_stack) {
-			return std::unique_ptr<Task>(nullptr);
-		}
+		static std::unique_ptr<Task> initialise(memory::KStack<>&& current_stack);
 
 		inline void set_state(State state) { this->state = state; }
 		inline State get_state() const { return this->state; }
-		inline memory::paging::AddressSpace& address_space() { return this->page_table; }
-		inline const memory::paging::AddressSpace& address_space() const { return this->page_table; }
+		inline memory::paging::AddressSpace& address_space() { return this->address_space_; }
+		inline const memory::paging::AddressSpace& address_space() const { return this->address_space_; }
 	};
 }   // namespace threads
 

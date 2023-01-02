@@ -10,3 +10,13 @@
  */
 
 #include "task.hpp"
+
+namespace threads {
+	atomic_uint_fast64_t Task::next_pid = 1;
+
+	Task::Task(memory::KStack<>&& stack) : stack(std::move(stack)), address_space_(), stack_ptr(0_va) {}
+
+	std::unique_ptr<Task> Task::initialise(memory::KStack<>&& current_stack) {
+		return std::unique_ptr<Task>(new Task{std::move(current_stack)});
+	}
+}   // namespace threads
