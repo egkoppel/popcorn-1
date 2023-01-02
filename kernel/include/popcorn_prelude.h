@@ -19,11 +19,23 @@ typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
+typedef unsigned _BitInt(128) u128;
+#if BITINT_256_SUPPORT
+typedef unsigned _BitInt(256) u256;
+#else
+	#define u256 static_assert(false, "u256 not supported by this compiler")
+#endif
 
 typedef int8_t i8;
 typedef int16_t i16;
 typedef int32_t i32;
 typedef int64_t i64;
+typedef signed _BitInt(128) i128;
+#if BITINT_256_SUPPORT
+typedef signed _BitInt(256) i256;
+#else
+	#define i256 static_assert(false, "u256 not supported by this compiler")
+#endif
 
 typedef size_t usize;
 
