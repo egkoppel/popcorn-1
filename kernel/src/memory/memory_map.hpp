@@ -24,6 +24,7 @@ namespace memory {
 	namespace detail {
 		template<class VAllocator = general_allocator_t> class MemoryMapBase {
 		protected:
+			MemoryMapBase() = default;
 			/**
 			 * Creates an anonymous memory mapping
 		 	 * @param byte_count
@@ -49,7 +50,7 @@ namespace memory {
 		protected:
 			PhysicalRegion backing_region;
 			VirtualRegion<VAllocator> virtual_region;
-			paging::AddressSpaceBase *address_space;
+			paging::AddressSpaceBase *address_space = nullptr;
 		};
 	}   // namespace detail
 
@@ -65,6 +66,8 @@ namespace memory {
 	public:
 		using detail::MemoryMapBase<VAllocator>::size;
 		using detail::MemoryMapBase<VAllocator>::resize_to;
+
+		MemoryMap() = default;
 
 		/**
 		 * Creates an anonymous memory mapping
@@ -120,7 +123,7 @@ namespace memory {
 
 	private:
 		MemoryMap(detail::MemoryMapBase<VAllocator>&&, T *data) noexcept;
-		T *data;
+		T *data = nullptr;
 
 		std::size_t constexpr calculate_total_size(paddr_t start, std::size_t requested_size);
 		std::size_t constexpr calculate_offset(paddr_t start);
