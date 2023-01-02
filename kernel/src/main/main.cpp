@@ -11,8 +11,8 @@
 #include "main.hpp"
 
 #include <acpi/acpi.hpp>
-#include <acpi/apic.hpp>
 #include <acpi/lapic.hpp>
+#include <acpi/sdts/apic.hpp>
 #include <arch/amd64/macros.hpp>
 #include <arch/constants.hpp>
 #include <arch/hal.hpp>
@@ -106,7 +106,8 @@ void parse_bootloader(const multiboot::Data& multiboot) {
  * Expected paging state:
  *  - Kernel mapped to higher half starting at `memory::constants::kexe_start`
  *  - First gigabyte of physical memory contiguously mapped starting at `memory::constants::page_offset_start`
- *  - 4M of memory mapped starting at `memory::constants::mem_map_start` - MUST NOT OVERLAP WITH ANY OTHER KERNEL CONSTRUCTS
+ *  - 4M of memory mapped starting at `memory::constants::mem_map_start` - MUST NOT OVERLAP WITH ANY OTHER KERNEL
+ * CONSTRUCTS
  */
 extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	Log::set_log_level(Log::INFO);
@@ -135,7 +136,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	auto sections = mb.find_tag<multiboot::tags::ElfSections>(multiboot::TagType::ELF_SECTIONS).value();
 	/*TODO
 	 * auto boot_module = mb.find_tag<multiboot::tags::BootModule>(multiboot::TagType::BOOT_MODULE).value();
-     * if (strcmp(boot_module->name(), "initramfs") != 0) panic("No initramfs found");*/
+	 * if (strcmp(boot_module->name(), "initramfs") != 0) panic("No initramfs found");*/
 
 	arch::arch_specific_early_init();
 	arch::load_interrupt_handler(arch::InterruptVectors::PAGE_FAULT, false, 0, interrupt_handlers::page_fault);
@@ -242,9 +243,9 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 		}
 	}
 
-	auto kernel_virt_allocator = memory::virtual_allocators::MonotonicAllocator(
-			vaddr_t{.address = memory::constants::kernel_page_allocator_start},
-			vaddr_t{.address = memory::constants::kernel_page_allocator_end});
+	auto kernel_virt_allocator = memory::virtual_allocators::
+			MonotonicAllocator(vaddr_t{.address = memory::constants::kernel_page_allocator_start},
+	                           vaddr_t{.address = memory::constants::kernel_page_allocator_end});
 
 	allocators.general_virtual_allocator_ = &kernel_virt_allocator;
 
@@ -280,9 +281,9 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	if (USER_ACCESS_FROM_KERNEL) all_mem_flags = all_mem_flags | memory::paging::PageTableFlags::USER;
 
 	/*for (auto f = 0_palign; f.address.address < total_ram; f++) {
-		new_p4_table.map_page_to(vaddr_t{.address = f.address.address + memory::constants::page_offset_start},
-		                         f.frame(),
-		                         all_mem_flags);
+	    new_p4_table.map_page_to(vaddr_t{.address = f.address.address + memory::constants::page_offset_start},
+	                             f.frame(),
+	                             all_mem_flags);
 	}*/
 	for (auto& entry : *mmap) {
 		if (entry.get_type() == multiboot::tags::MemoryMap::Type::AVAILABLE) {
@@ -326,7 +327,8 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	/* TODO: Check if needs address offset like old code
 	 * PhysicalAddress old_p4_table_frame;
 	 * __asm__ volatile("mov %%cr3, %0" : "=r"(old_p4_table_frame));
-	 * Page old_p4_table_page = Page::from_address(static_cast<VirtualAddress>(old_p4_table_frame + 0xFFFF800000000000));
+	 * Page old_p4_table_page = Page::from_address(static_cast<VirtualAddress>(old_p4_table_frame +
+	 * 0xFFFF800000000000));
 	 * __asm__ volatile("mov %0, %%cr3" : : "r"(new_p4_table));
 	 */
 	fprintf(stdserial, "************\n");
@@ -344,7 +346,6 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	                         | memory::paging::PageTableFlags::IMPL_CACHE_DISABLE
 	                         | memory::paging::PageTableFlags::IMPL_CACHE_WRITETHROUGH
 	                         | memory::paging::PageTableFlags::GLOBAL;
-	MemoryMap<u8> framebuffer_mapping{fb->begin(), fb->size(), framebuffer_flags, null_allocator, paging::kas};
 
 	MemoryMap<char> framebuffer_mapping{fb->begin(), fb->size(), framebuffer_flags, null_allocator, paging::kas};
 
@@ -366,11 +367,11 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 
 	LOG(Log::DEBUG, "Initialise memory bitmap");
 	uint64_t bitmap_needed_bytes = IDIV_ROUND_UP(total_ram / 0x1000, 8);
-	auto main_frame_allocator    = memory::physical_allocators::BitmapAllocator<general_allocator_t>::from(
-            0x100000_pa,
-            bitmap_needed_bytes,
-            std::move(kernel_monotonic_frame_allocator),
-            general_allocator_t{});
+	auto main_frame_allocator    = physical_allocators::BitmapAllocator<
+            general_allocator_t>::from(0x100000_pa,
+                                       bitmap_needed_bytes,
+                                       std::move(kernel_monotonic_frame_allocator),
+                                       general_allocator_t{});
 
 	init_sbrk();
 
@@ -384,35 +385,42 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	LOG(Log::DEBUG, "Loaded double fault stack");
 
 	/*uint8_t index = global_descriptor_table.add_tss_entry(
-			gdt::tss_entry(reinterpret_cast<uint64_t>(&task_state_segment), sizeof(tss::TSS), 0));
+	        gdt::tss_entry(reinterpret_cast<uint64_t>(&task_state_segment), sizeof(tss::TSS), 0));
 	printf("TSS index at %u\n", index);
 	tss::TSS::load(index);*/
-	//printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded TSS\n");
+	// printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded TSS\n");
 
 	create_core_local_data(tls_size);
 
+	LOG(Log::DEBUG, "Initialising scheduler");
+	auto ktask = threads::Task::initialise(KStack<>{old_p4_table_page, 8 * constants::frame_size});
+
+	LOG(Log::DEBUG, "Locating AP processors");
+
+	auto acpi_context = acpi::parse_acpi_tables<general_allocator_t>(rsdp_tag->rsdt_addr(), null_allocator);
+
+	if (acpi_context.madt) {
+		LOG(Log::DEBUG, "Located MADT");
+
+		auto [cpus]                           = acpi_context.parse_cpu_info(null_allocator);
+		Cpu::lapic->spurious_interrupt_vector = 0x1FF;
+		for (auto&& cpu : cpus) {
+			if (cpu.id() == Cpu::lapic->id) {
+				/* Processor running this check will always be the BSP
+				 * => current processor's ID == BSP's ID */
+				LOG(Log::INFO, "Processor %u is BSP", cpu.id());
+				local_cpu = &cpu;
+			} else {
+				LOG(Log::INFO, "Booting processor %u", cpu.id());
+				cpu.boot();
+			}
+		}
+	} else {
+		LOG(Log::WARNING, "No MADT found");
+	}
 
 	while (true) __asm__ volatile("nop");
 #if 0
-
-	printf("[    ] Initialising multitasking\n");
-	auto ktask =
-			nullptr; /*threads::Task::init_multitasking(old_p4_table_page + 0x1000, old_p4_table_page + 8 * 0x1000);*/
-	printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Initialised multitasking\n");
-
-	printf("[    ] Finding cores\n");
-	memory::paging::PageTableEntry::flags_t rsdt_flags = 0;
-
-	auto rsdt = acpi::RootSystemDescriptionTableReader(
-			*static_cast<acpi::RootSystemDescriptionTable *>(MemoryMapper::new_address_map(
-					PhysicalAddress(rdsp_version == 2 ? rsdp_tag->xsdt_addr : rsdp_tag->rsdt_addr),
-					Page::size,
-					rsdt_flags,
-					kernel_virt_allocator,
-					allocators.general())));
-
-	auto madt = (acpi::Madt *)rsdt.find_sdt("APIC", kernel_virt_allocator, allocators.general()).value();
-	fprintf(stdserial, "Found APIC at %p, with entries:\n", madt);
 
 	PhysicalAddress lapic_addr = madt->lapic();
 	uint8_t processor_ids[256] = {0};
