@@ -6,12 +6,14 @@ AlignConsecutiveMacros: AcrossEmptyLines
 AlignOperands: Align
 AlignEscapedNewlines: Right
 AlignTrailingComments: true
+#  Kind: Always
+#  OverEmptyLines: 1
 AllowAllArgumentsOnNextLine: false
 AllowAllConstructorInitializersOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortBlocksOnASingleLine: Always
 AllowShortCaseLabelsOnASingleLine: true
-AllowShortFunctionsOnASingleLine: All
+AllowShortFunctionsOnASingleLine: Inline
 AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 AlwaysBreakBeforeMultilineStrings: true
 AllowShortLambdasOnASingleLine: All
@@ -26,7 +28,10 @@ BraceWrapping:
   AfterCaseLabel: false
   AfterClass: false
   AfterControlStatement: Never
+  BeforeWhile: false
   AfterEnum: false
+  AfterExternBlock: false
+  AfterStruct: false
   AfterFunction: false
   AfterNamespace: false
   AfterUnion: false
@@ -34,60 +39,89 @@ BraceWrapping:
   BeforeElse: false
   IndentBraces: false
   SplitEmptyFunction: false
-  SplitEmptyRecord: true
-BreakBeforeBinaryOperators: NonAssignment
+  SplitEmptyRecord: false
+BreakBeforeBinaryOperators: All
 BreakBeforeTernaryOperators: false
-BreakConstructorInitializers: AfterColon
+BreakConstructorInitializers: BeforeColon
 BreakInheritanceList: AfterComma
 BinPackArguments: false
 BinPackParameters: false
+BreakStringLiterals: true
 BitFieldColonSpacing: Both
 BreakBeforeConceptDeclarations: Never
-# BreakBeforeInlineASMColon: OnlyMultiline
+#BreakBeforeInlineASMColon: OnlyMultiline
 ColumnLimit: 120
 CompactNamespaces: false
 ContinuationIndentWidth: 8
-EmptyLineBeforeAccessModifier: Always
+EmptyLineBeforeAccessModifier: LogicalBlock
 EmptyLineAfterAccessModifier: Never
 FixNamespaceComments: true
 IndentCaseLabels: true
+IndentCaseBlocks: false
 IndentPPDirectives: BeforeHash
 IncludeBlocks: Regroup
+IncludeIsMainSourceRegex: (\.ipp)$
 IndentWidth: 4
-IndentExternBlock: Indent
+IndentRequiresClause: true
+RequiresClausePosition: WithPreceding
+#RequiresExpressionIndentation: OuterScope
+IndentAccessModifiers: false
+IndentExternBlock: NoIndent
 LambdaBodyIndentation: Signature
 IndentGotoLabels: false
 KeepEmptyLinesAtTheStartOfBlocks: false
 MaxEmptyLinesToKeep: 2
+MacroBlockBegin: "BEGIN(.+)?_NAMESPACE"
+MacroBlockEnd: "END(.+)?_NAMESPACE"
 NamespaceIndentation: All
 ObjCSpaceAfterProperty: false
 ObjCSpaceBeforeProtocolList: true
 PointerAlignment: Right
 PackConstructorInitializers: CurrentLine
 QualifierAlignment: Custom
-QualifierOrder: [ 'static', 'inline', 'const', 'volatile', 'type' ]
-ReflowComments: false
+QualifierOrder: [ 'static', 'inline', 'constexpr', 'const', 'volatile', 'type', 'restrict' ]
+ReflowComments: true
 ReferenceAlignment: Left
 SpaceAfterCStyleCast: false
 SpaceAfterLogicalNot: false
 SpaceAfterTemplateKeyword: false
+SpaceAroundPointerQualifiers: Default
 SpaceBeforeAssignmentOperators: true
 SpaceBeforeCpp11BracedList: false
+SpaceBeforeCaseColon: false
+
+Cpp11BracedListStyle: true
 SpaceBeforeCtorInitializerColon: true
 SpaceBeforeInheritanceColon: true
 SpaceBeforeParens: ControlStatementsExceptControlMacros
+SpaceBeforeSquareBrackets: false
 SpaceBeforeRangeBasedForLoopColon: true
 SpaceInEmptyParentheses: false
+SpaceInEmptyBlock: false
 SpacesBeforeTrailingComments: 3
 SpacesInAngles: false
 SpacesInCStyleCastParentheses: false
+SpacesInConditionalStatement: false
 SpacesInContainerLiterals: true
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
 SortIncludes: CaseInsensitive
 SortUsingDeclarations: true
+SeparateDefinitionBlocks: Leave
 SpacesInLineCommentPrefix:
   Minimum: 1
   Maximum: -1
 TabWidth: 4
 UseTab: AlignWithSpaces
+PenaltyBreakComment: 1
+PenaltyBreakBeforeFirstCallParameter: 10
+PenaltyExcessCharacter: 175
+PenaltyBreakString: 100
+PenaltyBreakAssignment: 150
+PenaltyBreakFirstLessLess: 200
+PenaltyBreakTemplateDeclaration: 300
+PenaltyReturnTypeOnItsOwnLine: 400
+PenaltyBreakOpenParenthesis: 500
+ShortNamespaceLines: 2
+Standard: Latest
+UseCRLF: false
