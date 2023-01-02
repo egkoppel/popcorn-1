@@ -19,7 +19,7 @@
 namespace arch::amd64 {
 	template<uint8_t E> class [[gnu::packed]] IDT {
 	public:
-		class [[gnu::packed, gnu::aligned(8)]] Entry {
+		class [[gnu::packed]] alignas(8) Entry {
 		private:
 			uint16_t pointer_low      = 0;
 			uint16_t segment_selector = 0;

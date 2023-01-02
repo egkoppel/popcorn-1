@@ -17,7 +17,7 @@
 #include <cstdint>
 
 namespace arch::amd64 {
-	class [[gnu::packed, gnu::aligned(8)]] GDT {
+	class [[gnu::packed]] alignas(8) GDT {
 	public:
 		class SystemEntry;
 
