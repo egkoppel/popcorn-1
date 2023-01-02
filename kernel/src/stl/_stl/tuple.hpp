@@ -62,7 +62,9 @@ namespace detail {
 
 template<class... Types> class tuple;
 
-template<class... Types> tuple<typename std::decay<Types>::type...> make_tuple(Types&&...args) { return {args...}; }
+template<class... Types> tuple<typename std::decay<Types>::type...> make_tuple(Types&&...args) {
+	return {std::forward<Types>(args)...};
+}
 
 template<class...> struct tuple_size;
 template<class... Types> struct tuple_size<tuple<Types...>> : std::integral_constant<size_t, sizeof...(Types)> {};
