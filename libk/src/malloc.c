@@ -112,12 +112,12 @@ void *malloc(size_t size) {
 }
 
 static void *malloc_in_space(Header *free_space, size_t size) {
-	const bool size_is_aligned =
-			(size % MALLOC_ALIGNMENT
-	         == 0);   // can't do inside assert because we get formatter errors because of the % char
-	assert_msg(
-			size_is_aligned,
-			"malloc_in_space only allocates aligned-sized spaces");   // should only be called by functions which have already calculated aligned size
+	const bool size_is_aligned = (size % MALLOC_ALIGNMENT == 0);   // can't do inside assert because we get formatter
+	                                                               // errors because of the % char
+	assert_msg(size_is_aligned, "malloc_in_space only allocates aligned-sized spaces");   // should only be called by
+	                                                                                      // functions which have
+	                                                                                      // already calculated aligned
+	                                                                                      // size
 
 	assert_msg(free_space->pad == HEADER_PADDING, "Corrupted header in list of free spaces");
 	assert_msg(free_space->size <= (intptr_t)heap_end - (intptr_t)heap_start - sizeof(Header) - sizeof(Footer),
@@ -157,8 +157,7 @@ static void *malloc_in_space(Header *free_space, size_t size) {
 				assert(free_space->prev_free->pad == HEADER_PADDING);
 			}
 		} else {
-			*new_free_space =
-					(Header){extend - sizeof(Header) - sizeof(Footer), free_space, NULL, true, HEADER_PADDING};
+			*new_free_space = (Header){extend - sizeof(Header) - sizeof(Footer), free_space, NULL, true, HEADER_PADDING};
 			*new_footer = (Footer){new_free_space, FOOTER_PADDING};
 
 			free_space->next_free = new_free_space;
@@ -172,12 +171,11 @@ static void *malloc_in_space(Header *free_space, size_t size) {
 	assert(free_space->is_free);
 	assert(free_space->size >= size);
 
-	bool perfect_size =
-			((free_space->size < sizeof(Header) + sizeof(Footer))
-	         || (size
-	             > free_space->size - sizeof(Header)
-	                       - sizeof(
-								   Footer)));   // "perfect size" if we couldn't fit it in if we split it by creating a new header and footer
+	bool perfect_size = ((free_space->size < sizeof(Header) + sizeof(Footer))
+	                     || (size > free_space->size - sizeof(Header) - sizeof(Footer)));   // "perfect size" if we
+	                                                                                        // couldn't fit it in if we
+	                                                                                        // split it by creating a
+	                                                                                        // new header and footer
 
 	if (perfect_size) {
 		free_space->is_free = false;
@@ -207,8 +205,8 @@ static void *malloc_in_space(Header *free_space, size_t size) {
 		if (free_space->next_free != NULL) free_space->next_free->prev_free = new_header;
 		if (free_space->prev_free != NULL) free_space->prev_free->next_free = new_header;
 		else
-			first_free =
-					new_header;   // if prev_free_space == NULL, free_space == first_free and so first free should now be the moved/new header
+			first_free = new_header;   // if prev_free_space == NULL, free_space == first_free and so first free should
+			                           // now be the moved/new header
 
 		*new_footer = (Footer){free_space, FOOTER_PADDING};
 
@@ -244,7 +242,8 @@ void *realloc(void *ptr, size_t new_size) {
 
 	if ((void *)next_header >= heap_end) {
 		if (new_size <= header->size)
-			goto free_then_malloc;   // shrinking must be handled by free the malloc within the space, but we need to skip the next_header checks
+			goto free_then_malloc;   // shrinking must be handled by free the malloc within the space, but we need to
+			                         // skip the next_header checks
 		// at end of heap, malloc_in_space can handle extending if necessary
 		header->is_free = true;
 		assert(header->next_free == NULL);   // allocated spaces are not in the linked list
@@ -262,8 +261,8 @@ void *realloc(void *ptr, size_t new_size) {
 			first_free->next_free = old_first_free;   // prepend newly created space
 			if (old_first_free != NULL) old_first_free->prev_free = first_free;
 		} else {   // if there isn't any newly created space (meaning it was a perfect fit)
-			assert(first_free
-			       == old_first_free);   // then the prepended space is fully used up and popped, leaving the state of things as they were
+			assert(first_free == old_first_free);   // then the prepended space is fully used up and popped, leaving the
+			                                        // state of things as they were
 		}
 
 		return ptr;
@@ -276,10 +275,9 @@ void *realloc(void *ptr, size_t new_size) {
 		        && (header->size + sizeof(Footer) + sizeof(Header) + next_header->size >= new_size))) {
 free_then_malloc:
 			// can fit extended space, so free merging forward only then malloc_in_space in the created space
-			free_with_options(
-					ptr,
-					ONLY_MERGE_FORWARDS
-							| NO_RETURN_MEMORY);   // also don't return memory, there's no point returning it just to need it again, we can handle that at the end
+			free_with_options(ptr, ONLY_MERGE_FORWARDS | NO_RETURN_MEMORY);   // also don't return memory, there's no
+			                                                                  // point returning it just to need it
+			                                                                  // again, we can handle that at the end
 			malloc_in_space(header, new_size);
 			return_memory();
 			return ptr;
@@ -346,9 +344,8 @@ static void free_with_options(void *ptr, enum free_options options) {
 
 		if (next_header == first_free) {
 			// `header` already in linked list, but we have just removed first_free, so correct it
-			first_free =
-					first_free
-							->next_free;   // may set first_free = NULL if heap is like [freeing free] since we remove the only element in list of free spaces
+			first_free = first_free->next_free;   // may set first_free = NULL if heap is like [freeing free] since we
+			                                      // remove the only element in list of free spaces
 			if (first_free != NULL) first_free->prev_free = NULL;
 		}
 
@@ -407,10 +404,18 @@ static void return_memory() {
 	}
 }
 
-void free(void *ptr) { free_with_options(ptr, NORMAL); }
+void free(void *ptr) {
+	free_with_options(ptr, NORMAL);
+}
 
-Header *__hug_malloc_get_first_free() { return first_free; }
+Header *__hug_malloc_get_first_free() {
+	return first_free;
+}
 
-void __hug_malloc_clear_first_free() { first_free = NULL; }
+void __hug_malloc_clear_first_free() {
+	first_free = NULL;
+}
 
-void __hug_malloc_set_first_malloc() { first_malloc = true; }
+void __hug_malloc_set_first_malloc() {
+	first_malloc = true;
+}
