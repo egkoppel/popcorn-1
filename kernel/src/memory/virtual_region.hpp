@@ -43,6 +43,10 @@ namespace memory {
 			start{allocator.allocate(allocation_size)},
 			allocation_size{allocation_size},
 			allocator{allocator} {}
+		explicit VirtualRegion(aligned<vaddr_t> start, usize allocation_size, Allocator allocator = Allocator()) :
+			start{start},
+			allocation_size{allocation_size},
+			allocator{allocator} {}
 		VirtualRegion(const VirtualRegion&) noexcept = delete;
 		explicit VirtualRegion(VirtualRegion&& other) noexcept :
 			start(other.start),

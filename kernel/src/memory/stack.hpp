@@ -23,11 +23,30 @@ namespace memory {
 	 */
 	template<class VAllocator = general_allocator_t> class KStack {
 	public:
+		/**
+		 * Create a new zero-sized stack
+		 * @param vallocator Virtual allocator to use
+		 */
 		explicit KStack(VAllocator&& vallocator = VAllocator()) :
 			virtual_region{std::forward<VAllocator>(vallocator)} {};
+
+		/**
+		 * Create a new stack
+		 * @param stack_size Number of bytes of stack to allocate
+		 * @param pallocator Physical allocator to use
+		 * @param vallocator Virtual allocator to use
+		 */
 		explicit KStack(usize stack_size,
 		                IPhysicalAllocator& pallocator = allocators.general(),
 		                VAllocator&& vallocator        = VAllocator());
+
+		/**
+		 * Take ownership of an existing stack
+		 * @param guard_page The guard page of the existing stack
+		 * @param stack_size Number of bytes of usable stack space
+		 * @param vallocator Virtual allocator to deallocate with
+		 */
+		KStack(aligned<vaddr_t> guard_page, usize stack_size, VAllocator&& vallocator = VAllocator());
 		KStack(const KStack&) = delete;
 		KStack(const KStack&, deep_copy_t);
 		KStack(KStack&& other) noexcept :

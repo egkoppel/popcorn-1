@@ -38,6 +38,11 @@ namespace memory {
 		// paging::current_page_table->mark_for_no_map(*this->virtual_region.begin(), frame_allocator);   // Guard page
 	}
 
+	template<class VAllocator>
+	KStack<VAllocator>::KStack(aligned<vaddr_t> guard_page, usize stack_size, VAllocator&& vallocator) :
+		virtual_region(guard_page, stack_size + constants::frame_size, std::forward<VAllocator>(vallocator)),
+		backing_region(paging::kas.translate_page(guard_page + 1), stack_size) {}
+
 	template<class VAllocator> KStack<VAllocator>::~KStack() {
 		LOG(Log::DEBUG, "Stack (%p -> %p) dropped", this->bottom(), this->top());
 
