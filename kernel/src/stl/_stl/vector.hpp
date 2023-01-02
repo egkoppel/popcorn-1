@@ -77,6 +77,7 @@ public:
 		buffer_start_(reinterpret_cast<T *>(operator new(count * sizeof(T)))),
 		buffer_end_(buffer_start_ + count),
 		item_count_(0) {}
+	constexpr vector(vector& other);
 	constexpr vector(vector&& other) noexcept {
 		this->buffer_start_ = other.buffer_start_;
 		this->buffer_end_   = other.buffer_end_;
