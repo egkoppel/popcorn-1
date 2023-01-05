@@ -33,8 +33,8 @@ void interrupt_handlers::page_fault(arch::interrupt_info_t *interrupt_info) noex
 		    && interrupt_info->page_fault_memory_addr < memory::constants::mem_map_end) {
 			// Within mem_map region => lazy alloc
 			LOG(Log::DEBUG, "Allocating new mem_map area to cover %lp", interrupt_info->page_fault_memory_addr);
-			auto addr =
-					memory::aligned<memory::vaddr_t>::aligned_down({.address = interrupt_info->page_fault_memory_addr});
+			auto addr  = memory::aligned<memory::vaddr_t>::aligned_down({.address = interrupt_info
+			                                                                                ->page_fault_memory_addr});
 			auto frame = allocators.general().allocate();
 			auto flags = memory::paging::PageTableFlags::WRITEABLE | memory::paging::PageTableFlags::NO_EXECUTE
 			             | memory::paging::PageTableFlags::GLOBAL;

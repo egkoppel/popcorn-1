@@ -74,8 +74,10 @@ namespace iter {
 		std::tuple<Ts...> objects;
 	};
 
-	template<class... IterTs> auto zip(IterTs&&...iters) { return zipper<IterTs...>{std::forward<IterTs>(iters)...}; }
+	template<class... IterTs> auto zip(IterTs&&...iters) {
+		return zipper<IterTs...>{std::forward<IterTs>(iters)...};
+	}
 
 }   // namespace iter
 
-#endif   //POPCORN_KERNEL_SRC_STRUCTURES_ZIP_HPP
+#endif   // POPCORN_KERNEL_SRC_STRUCTURES_ZIP_HPP

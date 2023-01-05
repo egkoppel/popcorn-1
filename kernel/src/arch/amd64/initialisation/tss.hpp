@@ -34,4 +34,4 @@ namespace arch::amd64 {
 	extern TSS task_state_segment;
 }   // namespace arch::amd64
 
-#endif   //HUGOS_TSS_HPP
+#endif   // HUGOS_TSS_HPP

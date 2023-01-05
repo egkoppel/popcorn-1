@@ -37,17 +37,14 @@ void Cpu::send_ipi_internal(u8 destination,
                             ipi::level level,
                             ipi::trigger_mode trigger_mode,
                             ipi::destination destinations) {
-	lapic->error_status = 0;
-	lapic->interrupt_command_register() =
-			(static_cast<u64>(destination) << 56) | ((static_cast<u64>(destinations) & 0b11) << 18)
-			| ((static_cast<u64>(trigger_mode) & 0b1) << 15) | ((static_cast<u64>(level) & 0b1) << 14)
-			| ((static_cast<u64>(destination_mode) & 0b1) << 11) | ((static_cast<u64>(delivery_mode) & 0b111) << 8)
-			| static_cast<u64>(vector);
-	do {
-		__asm__ volatile("pause" ::: "memory");
-	} while (lapic->interrupt_command_register() & (1 << 12));
+	lapic->error_status                 = 0;
+	lapic->interrupt_command_register() = (static_cast<u64>(destination) << 56)
+	                                      | ((static_cast<u64>(destinations) & 0b11) << 18)
+	                                      | ((static_cast<u64>(trigger_mode) & 0b1) << 15)
+	                                      | ((static_cast<u64>(level) & 0b1) << 14)
+	                                      | ((static_cast<u64>(destination_mode) & 0b1) << 11)
+	                                      | ((static_cast<u64>(delivery_mode) & 0b111) << 8) | static_cast<u64>(vector);
+	do { __asm__ volatile("pause" ::: "memory"); } while (lapic->interrupt_command_register() & (1 << 12));
 }
 
-void Cpu::boot() {
-
-}
+void Cpu::boot() {}

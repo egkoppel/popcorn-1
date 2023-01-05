@@ -15,18 +15,25 @@
 #include <log.hpp>
 
 namespace arch::amd64 {
-
 	namespace commands {
 		enum commands { INIT = 0x11, EOI = 0x20, READ_IRR = 0x0B, READ_ISR = 0x0A, MODE_8086 = 0x01 };
 	}
 
-	void Pic::EOI() noexcept { this->send_command(commands::EOI); }
+	void Pic::EOI() noexcept {
+		this->send_command(commands::EOI);
+	}
 
-	uint8_t Pic::read_mask() noexcept { return this->data.read(); }
+	uint8_t Pic::read_mask() noexcept {
+		return this->data.read();
+	}
 
-	void Pic::write_data(uint8_t mask) noexcept { this->data.write(mask); }
+	void Pic::write_data(uint8_t mask) noexcept {
+		this->data.write(mask);
+	}
 
-	void Pic::send_command(uint8_t command) noexcept { this->command.write(command); }
+	void Pic::send_command(uint8_t command) noexcept {
+		this->command.write(command);
+	}
 
 	void ATChainedPIC::acknowledge_irq(uint8_t irq_line) noexcept {
 		if (irq_line >= this->offset1 && irq_line < this->offset1 + 8) {

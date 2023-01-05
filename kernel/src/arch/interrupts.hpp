@@ -42,4 +42,4 @@ namespace arch {
 	void load_backup_stack(uint8_t stack_idx, memory::KStack<>&& stack);
 }   // namespace arch
 
-#endif   //HUGOS_INTERRUPTS_HPP
+#endif   // HUGOS_INTERRUPTS_HPP

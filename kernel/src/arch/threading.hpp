@@ -20,4 +20,4 @@ namespace arch {
 	void switch_to_user_mode();
 }   // namespace arch
 
-#endif   //HUGOS_THREADING_HPP
+#endif   // HUGOS_THREADING_HPP

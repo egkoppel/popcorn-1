@@ -49,4 +49,4 @@ namespace threads {
 	};
 }   // namespace threads
 
-#endif   //HUGOS_KERNEL_SRC_THREADING_TASK_HPP
+#endif   // HUGOS_KERNEL_SRC_THREADING_TASK_HPP

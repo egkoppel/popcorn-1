@@ -24,7 +24,7 @@ using namespace threads::schedulers;
 		this->unlock_scheduler();                                                                                      \
 	}
 
-void RoundRobinNoPriorityPreemptive::acquire_task(Task& new_task, [[maybe_unused]] priority_t recommended_priority) {
+void RoundRobinNoPriorityPreemptive::acquire_task(Task& new_task, priority_t) {
 	SCHED_LOCK({
 		this->ready_to_run_tasks.push_back(&new_task);
 		if (this->ready_to_run_tasks.size() == 1) {

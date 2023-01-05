@@ -30,56 +30,69 @@
 
 HUGOS_STL_BEGIN_NAMESPACE
 
-template<class T> struct remove_reference {
-	typedef T type;
-};
-template<class T> struct remove_reference<T&> {
-	typedef T type;
-};
-template<class T> struct remove_reference<T&&> {
-	typedef T type;
-};
+	template<class T> struct remove_pointer {
+		typedef T type;
+	};
 
-template<class T> struct add_lvalue_reference {
-	typedef T& type;
-};
-template<class T> struct add_lvalue_reference<T&> {
-	typedef T& type;
-};
-template<class T> struct add_lvalue_reference<T&&> {
-	typedef T& type;
-};
+	template<class T> struct remove_pointer<T *> {
+		typedef T type;
+	};
 
-template<class T> struct add_rvalue_reference {
-	typedef T&& type;
-};
-template<class T> struct add_rvalue_reference<T&> {
-	typedef T&& type;
-};
-template<class T> struct add_rvalue_reference<T&&> {
-	typedef T&& type;
-};
+	template<class T> struct remove_pointer<const T *> {
+		typedef T type;
+	};
 
-template<class T> struct remove_pointer {
-	typedef T type;
-};
-template<class T> struct remove_pointer<T *> {
-	typedef T type;
-};
+	template<class T> struct remove_pointer<volatile T *> {
+		typedef T type;
+	};
 
-template<class T> struct add_pointer {
-	typedef typename remove_reference<T>::type *type;
-};
-template<class T> struct add_pointer<T *> {
-	typedef T *type;
-};
+	template<class T> struct remove_pointer<const volatile T *> {
+		typedef T type;
+	};
 
-template<class T> using remove_reference_t     = typename remove_reference<T>::type;
-template<class T> using add_lvalue_reference_t = typename add_lvalue_reference<T>::type;
-template<class T> using add_rvalue_reference_t = typename add_rvalue_reference<T>::type;
-template<class T> using remove_pointer_t       = typename remove_pointer<T>::type;
-template<class T> using add_pointer_t          = typename add_pointer<T>::type;
+	template<class T> struct remove_reference {
+		typedef T type;
+	};
+	template<class T> struct remove_reference<T&> {
+		typedef T type;
+	};
+	template<class T> struct remove_reference<T&&> {
+		typedef T type;
+	};
+
+	template<class T> struct add_lvalue_reference {
+		typedef T& type;
+	};
+	template<class T> struct add_lvalue_reference<T&> {
+		typedef T& type;
+	};
+	template<class T> struct add_lvalue_reference<T&&> {
+		typedef T& type;
+	};
+
+	template<class T> struct add_rvalue_reference {
+		typedef T&& type;
+	};
+	template<class T> struct add_rvalue_reference<T&> {
+		typedef T&& type;
+	};
+	template<class T> struct add_rvalue_reference<T&&> {
+		typedef T&& type;
+	};
+
+	template<class T> struct add_pointer {
+		typedef typename remove_reference<T>::type *type;
+	};
+	template<class T> struct add_pointer<T *> {
+		typedef T *type;
+	};
+
+	template<class T> using remove_pointer_t       = typename remove_pointer<T>::type;
+	template<class T> using remove_reference_t     = typename remove_reference<T>::type;
+	template<class T> using add_lvalue_reference_t = typename add_lvalue_reference<T>::type;
+	template<class T> using add_rvalue_reference_t = typename add_rvalue_reference<T>::type;
+	template<class T> using add_pointer_t          = typename add_pointer<T>::type;
 
 HUGOS_STL_END_NAMESPACE
 
-#endif   //POPCORN_KERNEL_SRC_STL__STL__TYPE_TRAITS_REFERENCE_POINTER_HPP
+#endif   // POPCORN_KERNEL_SRC_STL__STL__TYPE_TRAITS_REFERENCE_POINTER_HPP

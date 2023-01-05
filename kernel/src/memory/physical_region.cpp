@@ -13,23 +13,25 @@
 #include "physical_allocator.hpp"
 
 namespace memory {
-	PhysicalRegion::PhysicalRegion(usize allocation_size, IPhysicalAllocator& allocator) :
-		start(allocator.allocate(allocation_size)),
-		allocation_size(allocation_size) {
+	PhysicalRegion::PhysicalRegion(usize allocation_size, IPhysicalAllocator& allocator)
+		: start(allocator.allocate(allocation_size)),
+		  allocation_size(allocation_size) {
 		this->start->ref_count = 1;
 	}
 
-	PhysicalRegion::PhysicalRegion(aligned<paddr_t> at, usize allocation_size, IPhysicalAllocator& allocator) :
-		start(allocator.allocate(at, allocation_size)),
-		allocation_size(allocation_size) {
+	PhysicalRegion::PhysicalRegion(aligned<paddr_t> at, usize allocation_size, IPhysicalAllocator& allocator)
+		: start(allocator.allocate(at, allocation_size)),
+		  allocation_size(allocation_size) {
 		this->start->ref_count = 1;
 	}
 
-	PhysicalRegion::~PhysicalRegion() { this->decrement_and_drop(); }
+	PhysicalRegion::~PhysicalRegion() {
+		this->decrement_and_drop();
+	}
 
-	PhysicalRegion::PhysicalRegion(const PhysicalRegion& rhs, shallow_copy_t) noexcept :
-		start(rhs.start),
-		allocation_size(rhs.allocation_size) {
+	PhysicalRegion::PhysicalRegion(const PhysicalRegion& rhs, shallow_copy_t) noexcept
+		: start(rhs.start),
+		  allocation_size(rhs.allocation_size) {
 		this->start->ref_count++;
 	}
 
@@ -52,7 +54,9 @@ namespace memory {
 		return ret;
 	}
 
-	usize frame_t::number() const { return (this - mem_map); }
+	usize frame_t::number() const {
+		return (this - mem_map);
+	}
 
 	aligned<vaddr_t> frame_t::frame_to_page_map_region() const {
 		return vaddr_t{.address = this->number() * constants::frame_size + constants::page_offset_start};

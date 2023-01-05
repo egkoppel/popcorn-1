@@ -134,8 +134,8 @@ namespace memory::paging {
 		return const_cast<frame_t *>(const_cast<const PageTableEntryImpl *>(this)->pointed_frame());
 	}
 	const frame_t *PageTableEntryImpl::pointed_frame() const noexcept {
-		auto frame_addr =
-				this->data & static_cast<std::underlying_type_t<PageTableFlags>>(PageTableFlags::IMPL_ADDR_BITS);
+		auto frame_addr = this->data
+		                  & static_cast<std::underlying_type_t<PageTableFlags>>(PageTableFlags::IMPL_ADDR_BITS);
 		auto frame_num = frame_addr / constants::frame_size;
 		LOG(Log::TRACE, "pfn: %d", frame_num);
 		return &mem_map[frame_num];
@@ -151,8 +151,8 @@ namespace memory::paging {
 	void AddressSpaceBase::map_page_to(aligned<vaddr_t> page, const frame_t *frame, PageTableFlags flags) {
 		LOG(Log::DEBUG, "map %llx to pfn %d", page, frame->number());
 
-		auto l1_table = (*(*(*this->l4_table)[page.address.page_table_index<4>()].child_table_or_create(
-				this->allocator))[page.address.page_table_index<3>()]
+		auto l1_table = (*(*(*this->l4_table)[page.address.page_table_index<4>()]
+		                            .child_table_or_create(this->allocator))[page.address.page_table_index<3>()]
 		                          .child_table_or_create(this->allocator))[page.address.page_table_index<2>()]
 		                        .child_table_or_create(this->allocator);
 		decltype(auto) l1_entry = (*l1_table)[page.address.page_table_index<1>()];
@@ -193,7 +193,8 @@ namespace memory::paging {
 	alignas(alignof(KernelAddressSpace)) u8 kas_[sizeof(KernelAddressSpace)];
 	KernelAddressSpace& kas = reinterpret_cast<KernelAddressSpace&>(kas_);
 
-	/*void memory::paging::PageTableRoot::unmap_page(memory::Page, memory::IPhysicalAllocator& page_table_deallocator) {}*/
+	/*void memory::paging::PageTableRoot::unmap_page(memory::Page, memory::IPhysicalAllocator& page_table_deallocator)
+	 * {}*/
 
 	/*AddressSpace AddressSpace::new_table(IPhysicalAllocator& page_table_allocator) {
 	auto fs        = page_table_allocator.allocate(Frame::size);

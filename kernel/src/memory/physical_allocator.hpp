@@ -77,9 +77,9 @@ namespace memory {
 
 	/*class IPhysicalContiguousAllocator : public IPhysicalAllocator {
 	public:
-		virtual FrameRange allocate_at(Frame start, uint64_t byte_length) = 0;
-		virtual FrameRange allocate_contiguous(uint64_t byte_length)      = 0;
+	    virtual FrameRange allocate_at(Frame start, uint64_t byte_length) = 0;
+	    virtual FrameRange allocate_contiguous(uint64_t byte_length)      = 0;
 	};*/
 }   // namespace memory
 
-#endif   //HUGOS_PHYSICAL_ALLOCATOR_HPP
+#endif   // HUGOS_PHYSICAL_ALLOCATOR_HPP

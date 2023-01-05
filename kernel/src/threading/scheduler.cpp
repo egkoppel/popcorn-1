@@ -13,16 +13,16 @@
 namespace threads {
 
 	void ILocalScheduler::block_task(Task::State reason) {
-		this->get_current_task()->set_state(
-				reason);   // Can safely assume get_current_task is valid pointer as block can only be called by current task
+		this->get_current_task()->set_state(reason);   // Can safely assume get_current_task is valid pointer as block
+		                                               // can only be called by current task
 		this->suspend_task();
 	}
 
 	void ILocalScheduler::sleep_until(time_t time_ns) {
 		decltype(auto) global_scheduler = GlobalScheduler::get();
-		global_scheduler.add_to_sleep_queue(
-				*this->get_current_task(),
-				time_ns);   // Can safely assume get_current_task is valid pointer as sleep can only be called by current task
+		global_scheduler.add_to_sleep_queue(*this->get_current_task(), time_ns);   // Can safely assume get_current_task
+		                                                                           // is valid pointer as sleep can only
+		                                                                           // be called by current task
 		this->block_task(Task::State::SLEEPING);
 	}
 

@@ -61,16 +61,20 @@ namespace threads {
 	protected:
 		/**
 		 * @brief Called by the currently running task to suspend execution of itself
-		 * @remark Current implementations should immediately relinquish control of the task and not schedule until `acquire_task()` is called on it, however future revisions may change this behaviour, for example to keep tasks pinned to a specific core
+		 * @remark Current implementations should immediately relinquish control of the task and not schedule until
+		 * `acquire_task()` is called on it, however future revisions may change this behaviour, for example to keep
+		 * tasks pinned to a specific core
 		 */
 		virtual void suspend_task() = 0;
 
 		/**
-		 * @brief Pair of functions for locking and unlocking the local scheduler, eg. to change the state of a task and perform another associated action
+		 * @brief Pair of functions for locking and unlocking the local scheduler, eg. to change the state of a task and
+		 * perform another associated action
 		 * @attention Between a call to lock() and a call to unlock(), the following actions may not take place:
 		 *   - Changes to task state
 		 *   - Task switches
-		 * Upon calling unlock(), any actions that would have happened, eg. a context switch due to a task blocking, should immediately take place
+		 * Upon calling unlock(), any actions that would have happened, eg. a context switch due to a task blocking,
+		 * should immediately take place
 		 */
 		///@{
 		virtual void lock()   = 0;
@@ -81,10 +85,12 @@ namespace threads {
 		virtual ~ILocalScheduler() = default;
 
 		/**
-		 * @brief Causes the local scheduler to acquire the passed task, and optionally schedule it at the @p recommended_priority
+		 * @brief Causes the local scheduler to acquire the passed task, and optionally schedule it at the @p
+		 * recommended_priority
 		 * @note The task to acquire will always be in a `READY_TO_RUN` state
 		 * @param new_task The task to begin scheduling
-		 * @param recommended_priority Recommended priority to schedule the task at, likely based on its priority before being last blocked
+		 * @param recommended_priority Recommended priority to schedule the task at, likely based on its priority before
+		 * being last blocked
 		 */
 		virtual void acquire_task(Task& new_task, priority_t recommended_priority) = 0;
 
@@ -103,7 +109,8 @@ namespace threads {
 		/**
 		 * @brief Pops a task off the execution queue, likely used to balance load between schedulers
 		 * @return Pointer to the popped task - will return nullptr if no available tasks
-		 * @note Should modify scheduler internal state so the task is no longer scheduled by the current scheduler, but should not adjust the state of the task
+		 * @note Should modify scheduler internal state so the task is no longer scheduled by the current scheduler, but
+		 * should not adjust the state of the task
 		 * @attention Should never return the currently running task
 		 */
 		virtual Task *pop_task() = 0;
@@ -120,7 +127,8 @@ namespace threads {
 		virtual void yield() = 0;
 
 		/**
-		 * @brief Called by the currently running task to suspend execution until the global time counter is equal to or greater than a value
+		 * @brief Called by the currently running task to suspend execution until the global time counter is equal to or
+		 * greater than a value
 		 * @param time_ns The point at which to resume execution, in nanoseconds
 		 */
 		void sleep_until(time_t time_ns);
@@ -136,4 +144,4 @@ namespace threads {
 	extern cpu_local ILocalScheduler *local_scheduler;
 }   // namespace threads
 
-#endif   //HUGOS_SCHEDULER_HPP
+#endif   // HUGOS_SCHEDULER_HPP

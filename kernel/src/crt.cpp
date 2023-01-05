@@ -31,7 +31,7 @@ extern "C" [[noreturn]] void __cxa_init(uint32_t multiboot_magic, uint32_t multi
 	printf("[    ] Running ctors\n\tstart: %lp\n\t  end: %lp\n", &start_ctors, &end_ctors);
 	ctor_func *i = &start_ctors;
 	while (i < &end_ctors) {
-		//printf("Calling constructor at %lp\n", i);
+		// printf("Calling constructor at %lp\n", i);
 		if (*i != nullptr) (*i)();
 		i++;
 	}
@@ -40,7 +40,7 @@ extern "C" [[noreturn]] void __cxa_init(uint32_t multiboot_magic, uint32_t multi
 	printf("[    ] Running elements of init array\n\tstart: %lp\n\t  end: %lp\n", &init_array_start, &init_array_end);
 	i = &init_array_start;
 	while (i < &init_array_end) {
-		//printf("Calling constructor at 0x%x\n", i);
+		// printf("Calling constructor at 0x%x\n", i);
 		if (*i != nullptr) (*i)();
 		i++;
 	}
@@ -76,13 +76,17 @@ typedef struct {
 atexit_func_entry_t atexit_funcs[ATEXIT_COUNT] = {{nullptr}};
 unsigned int atexit_used                       = 0;
 
-extern "C" int __cxa_atexit(void (*f)(void *), void *objptr, void *dso) {
+extern "C" int __cxa_atexit(void (*f)(void *), void *objptr, void *dso) noexcept {
 	if (atexit_used >= ATEXIT_COUNT) return -1;
 	atexit_funcs[atexit_used++] = (atexit_func_entry_t){.destructor_func = f, .obj_ptr = objptr, .dso_handle = dso};
 	return 0;
 }
 
-extern "C" void __cxa_finalize(void *dso) {
+extern "C" int __cxa_thread_atexit(void (*f)(void *), void *objptr, void *dso) noexcept {
+	return 0;
+}
+
+extern "C" void __cxa_finalize(void *dso) noexcept {
 	for (int i = ATEXIT_COUNT - 1; i >= 0; --i) {
 		if (dso == nullptr || atexit_funcs[i].dso_handle == dso) {
 			if (atexit_funcs[i].destructor_func != nullptr) atexit_funcs[i].destructor_func(atexit_funcs[i].obj_ptr);

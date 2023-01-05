@@ -34,5 +34,7 @@ namespace arch {
 		return 0;
 	}
 
-	int arch_specific_late_init() { return -1; }
+	int arch_specific_late_init() {
+		return -1;
+	}
 }   // namespace arch

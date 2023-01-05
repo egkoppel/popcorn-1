@@ -18,9 +18,9 @@
 
 namespace memory {
 	template<class VAllocator>
-	KStack<VAllocator>::KStack(usize stack_size, IPhysicalAllocator& pallocator, VAllocator&& vallocator) :
-		backing_region{stack_size, pallocator},
-		virtual_region{stack_size + constants::frame_size, std::forward<VAllocator>(vallocator)} {
+	KStack<VAllocator>::KStack(usize stack_size, IPhysicalAllocator& pallocator, VAllocator&& vallocator)
+		: backing_region{stack_size, pallocator},
+		  virtual_region{stack_size + constants::frame_size, std::forward<VAllocator>(vallocator)} {
 		using enum paging::PageTableFlags;
 		auto flags = WRITEABLE | NO_EXECUTE;
 
