@@ -35,11 +35,15 @@ namespace acpi {
 			                                                                  acpi_flags,
 			                                                                  physical_allocator,
 			                                                                  memory::paging::kas};
-			current.resize_to(current->length);
+
 			char buf[5] = {0};
 			memcpy(buf, current->signature, 4);
-			LOG(Log::DEBUG, "Found SDT with signature %s", buf);
-			if (current->has_signature("APIC")) { data.madt = static_pointer_cast<madt_t>(std::move(current)); }
+			LOG(Log::INFO, "Found SDT with signature %s of length %x", buf, current->length);
+
+			if (current->has_signature("APIC")) {
+				current.resize_to(current->length);
+				data.madt = static_pointer_cast<madt_t>(std::move(current));
+			}
 		}
 
 		return data;
