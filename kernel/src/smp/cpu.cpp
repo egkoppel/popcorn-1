@@ -12,6 +12,7 @@
 #include "cpu.hpp"
 
 memory::MemoryMap<volatile acpi::lapic> Cpu::lapic{};
+cpu_local Cpu *local_cpu = nullptr;
 
 void Cpu::send_ipi(u8 vector,
                    ipi::delivery_mode delivery_mode,
