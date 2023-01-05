@@ -434,6 +434,10 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 				cpu.boot();
 			}
 		}
+		Cpu::send_ipi(Cpu::ipi::SELF, 0x76, Cpu::ipi::FIXED, Cpu::ipi::PHYSICAL, Cpu::ipi::ASSERT, Cpu::ipi::EDGE);
+		Cpu::lapic->eoi();
+		Cpu::lapic->configure_timer(0x78, acpi::lapic::ONE_SHOT, acpi::lapic::DIV1);
+		Cpu::lapic->timer_initial_count = 1340;
 	} else {
 		LOG(Log::WARNING, "No MADT found");
 	}
@@ -441,58 +445,6 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	while (true) __asm__ volatile("nop");
 #if 0
 
-	PhysicalAddress lapic_addr = madt->lapic();
-	uint8_t processor_ids[256] = {0};
-	uint64_t ioapic_addr       = 0;
-	uint64_t core_count        = 0;
-
-	for (auto& madt_entry : *madt) {
-		switch (madt_entry.type()) {
-			case acpi::madt_entry_types::CPU_LAPIC: {
-				auto lapic = (acpi::madt_entry_lapic *)&madt_entry;
-				if (lapic->flags & 1) { processor_ids[core_count++] = lapic->processor_id; }
-				break;
-			}
-			case acpi::madt_entry_types::IO_APIC: {
-				auto ioapic = (acpi::madt_entry_ioapic *)&madt_entry;
-				ioapic_addr = ioapic->io_apic_addr;
-				break;
-			}
-			case acpi::madt_entry_types::LAPIC_ADDR: {
-				auto lapic_addr_entry = (acpi::madt_entry_lapic_addr *)&madt_entry;
-				lapic_addr            = lapic_addr_entry->lapic_addr;
-				break;
-			}
-			default: break;
-		}
-	}
-
-	fprintf(stdserial,
-	        "Found %d cores, IOAPIC addr %p, LAPIC addr %p, processor ids:\n",
-	        core_count,
-	        ioapic_addr,
-	        lapic_addr);
-	for (uint64_t i = 0; i < core_count; i++) fprintf(stdserial, " %d\n", processor_ids[i]);
-	memory::paging::PageTableEntry::flags_t lapic_flags = 0;
-	lapic_flags |= memory::paging::PageTableEntry::flags::WRITEABLE;
-	lapic_flags |= memory::paging::PageTableEntry::flags::IMPL_CACHE_WRITETHROUGH;
-	lapic_flags |= memory::paging::PageTableEntry::flags::IMPL_CACHE_DISABLE;
-	lapic_flags |= memory::paging::PageTableEntry::flags::GLOBAL;
-	lapic_flags |= memory::paging::PageTableEntry::flags::NO_EXECUTE;
-
-	uint32_t msr_low;
-	__asm__ volatile("mov $0x1b, %%rcx; rdmsr;" : "=a"(msr_low)::"rcx", "rdx");
-	fprintf(stdserial, "apic base msr is %b\n", msr_low);
-
-	auto lapic_base = (volatile uint32_t *)
-			MemoryMapper::new_address_map(lapic_addr, 0x3f4, lapic_flags, kernel_virt_allocator, allocators.general());
-
-	fprintf(stdserial, "lapic spiv at %p\n", &lapic_base[lapic_registers::SPURIOUS_INTERRUPT_VECTOR]);
-	lapic_base[lapic_registers::SPURIOUS_INTERRUPT_VECTOR] = 0x1ff;
-
-	uint8_t bsp_core_id;
-	__asm__ volatile("mov $1, %%eax; cpuid; shrl $24, %%ebx;" : "=b"(bsp_core_id) : : "eax", "ecx", "edx");
-	fprintf(stdserial, "BSP id is %d\n", bsp_core_id);
 	fprintf(stdserial, "ap running count is %d\n", *real_ap_running_count);
 
 	for (auto core_id : processor_ids) {
