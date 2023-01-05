@@ -225,4 +225,9 @@ AddressSpace AddressSpace::make_active() {
 	__asm__ volatile("mov %0, %%cr3" : : "r"(this->l4_table));
 	return {old_p4_table_frame};
 }*/
+	AddressSpace::AddressSpace(IPhysicalAllocator& allocator)
+		: AddressSpaceBase(new(&allocator) PageTable<4>, &allocator),
+		  ref_count(new atomic_uint_fast64_t(1)) {
+		for (usize i = 128; i < 512; i++) { (*this->l4_table)[i] = (*kas.l4_table)[i]; }
+	}
 }   // namespace memory::paging

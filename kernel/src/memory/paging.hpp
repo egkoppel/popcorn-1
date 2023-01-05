@@ -475,11 +475,7 @@ namespace memory::paging {
 		/**
 		 * Creates a new, empty address space
 		 */
-		explicit AddressSpace(IPhysicalAllocator& allocator = allocators.general())
-			: AddressSpaceBase(new(&allocator) PageTable<4>, &allocator),
-			  ref_count(new atomic_uint_fast64_t(1)) {
-			// TODO: copy higher half from KAS into new address space
-		}
+		explicit AddressSpace(IPhysicalAllocator& allocator = allocators.general());
 
 		AddressSpace(AddressSpace&&);
 
@@ -517,6 +513,8 @@ namespace memory::paging {
 	};
 
 	class KernelAddressSpace : public AddressSpaceBase {
+		friend class AddressSpace;
+
 	public:
 		KernelAddressSpace(PageTable<4> *l4_table, IPhysicalAllocator& allocator)
 			: AddressSpaceBase(l4_table, &allocator) {}
