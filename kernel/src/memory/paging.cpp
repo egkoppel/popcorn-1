@@ -16,107 +16,108 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <type_traits>
+#include <utility/zip.hpp>
 #include <utils.h>
 
 /*template<size_t Level> struct PageTableEntry {
 private:
-	enum {
-		PRESENT                = 0,
-		WRITEABLE              = 1,
-		USER                   = 2,
-		WRITE_THROUGH          = 3,
-		CACHE_DISABLE          = 4,
-		ACCESSED               = 5,
-		DIRTY                  = 6,
-		PAGE_ATTR_TABLE_LEVEL1 = 7,
-		PAGE_SIZE              = 7,
-		GLOBAL                 = 8,
-		PAGE_ATTR_TABLE        = 12,
-		NX                     = 63
-	};
+    enum {
+        PRESENT                = 0,
+        WRITEABLE              = 1,
+        USER                   = 2,
+        WRITE_THROUGH          = 3,
+        CACHE_DISABLE          = 4,
+        ACCESSED               = 5,
+        DIRTY                  = 6,
+        PAGE_ATTR_TABLE_LEVEL1 = 7,
+        PAGE_SIZE              = 7,
+        GLOBAL                 = 8,
+        PAGE_ATTR_TABLE        = 12,
+        NX                     = 63
+    };
 
-	uint64_t data;
+    uint64_t data;
 
 public:
-	inline bool get_present() const { return this->data & (1 << PRESENT); }
-	inline bool get_writeable() const { return this->data & (1 << WRITEABLE); }
-	inline bool get_user() const { return this->data & (1 << USER); }
-	inline bool get_write_through() const { return this->data & (1 << WRITE_THROUGH); }
-	inline bool get_cache_disable() const { return this->data & (1 << CACHE_DISABLE); }
-	inline bool get_accessed() const { return this->data & (1 << ACCESSED); }
-	inline bool get_dirty() const { return this->data & (1 << DIRTY); }
-	inline bool get_pat() const
-		requires(Level == 1)
-	{
-		return this->data & (1 << PAGE_ATTR_TABLE_LEVEL1);
-	}
-	inline bool get_pat() const
-		requires(Level > 1)
-	{
-		return this->data & (1 << PAGE_ATTR_TABLE);
-	}
-	inline bool get_page_size() const
-		requires(Level == 2 || Level == 3)
-	{
-		return this->data & (1 << PAGE_SIZE);
-	}
-	inline bool get_global() const { return this->data & (1 << GLOBAL); }
-	inline bool get_nx() const { return this->data & (1 << NX); }
-	inline std::optional<uint64_t> get_addr() const { return Some(this->data & 0xFFFFFFFFFF000); };
+    inline bool get_present() const { return this->data & (1 << PRESENT); }
+    inline bool get_writeable() const { return this->data & (1 << WRITEABLE); }
+    inline bool get_user() const { return this->data & (1 << USER); }
+    inline bool get_write_through() const { return this->data & (1 << WRITE_THROUGH); }
+    inline bool get_cache_disable() const { return this->data & (1 << CACHE_DISABLE); }
+    inline bool get_accessed() const { return this->data & (1 << ACCESSED); }
+    inline bool get_dirty() const { return this->data & (1 << DIRTY); }
+    inline bool get_pat() const
+        requires(Level == 1)
+    {
+        return this->data & (1 << PAGE_ATTR_TABLE_LEVEL1);
+    }
+    inline bool get_pat() const
+        requires(Level > 1)
+    {
+        return this->data & (1 << PAGE_ATTR_TABLE);
+    }
+    inline bool get_page_size() const
+        requires(Level == 2 || Level == 3)
+    {
+        return this->data & (1 << PAGE_SIZE);
+    }
+    inline bool get_global() const { return this->data & (1 << GLOBAL); }
+    inline bool get_nx() const { return this->data & (1 << NX); }
+    inline std::optional<uint64_t> get_addr() const { return Some(this->data & 0xFFFFFFFFFF000); };
 
-	inline void set_present(bool val) { this->data = (this->data & ~(1 << PRESENT)) | val << PRESENT; }
-	inline void set_writeable(bool val) { this->data = (this->data & ~(1 << WRITEABLE)) | val << WRITEABLE; }
-	inline void set_user(bool val) { this->data = (this->data & ~(1 << USER)) | val << USER; }
-	inline void set_write_through(bool val) {
-		this->data = (this->data & ~(1 << WRITE_THROUGH)) | val << WRITE_THROUGH;
-	}
-	inline void set_cache_disable(bool val) {
-		this->data = (this->data & ~(1 << CACHE_DISABLE)) | val << CACHE_DISABLE;
-	}
-	inline void set_accessed(bool val) { this->data = (this->data & ~(1 << ACCESSED)) | val << ACCESSED; }
-	inline void set_dirty(bool val) { this->data = (this->data & ~(1 << DIRTY)) | val << DIRTY; }
-	inline void set_pat(bool val)
-		requires(Level == 1)
-	{
-		this->data = (this->data & ~(1 << PAGE_ATTR_TABLE_LEVEL1)) | val << PAGE_ATTR_TABLE_LEVEL1;
-	}
-	inline void set_pat(bool val)
-		requires(Level > 1)
-	{
-		this->data = (this->data & ~(1 << PAGE_ATTR_TABLE)) | val << PAGE_ATTR_TABLE;
-	}
-	inline void set_page_size(bool val)
-		requires(Level == 2 || Level == 3)
-	{
-		this->data = (this->data & ~(1 << PAGE_SIZE)) | val << PAGE_SIZE;
-	}
-	inline void set_global(bool val) { this->data = (this->data & ~(1 << GLOBAL)) | val << GLOBAL; }
-	inline void set_nx(bool val) { this->data = (this->data & ~(1 << NX)) | val << NX; }
-	[[nodiscard]] inline int set_addr(uint64_t val) {
-		if ((val & ~0xFFFFFFFFFF000) != 0) return -1;
-		this->data = (this->data & ~0xFFFFFFFFFF000) | val;
-		return 0;
-	};
+    inline void set_present(bool val) { this->data = (this->data & ~(1 << PRESENT)) | val << PRESENT; }
+    inline void set_writeable(bool val) { this->data = (this->data & ~(1 << WRITEABLE)) | val << WRITEABLE; }
+    inline void set_user(bool val) { this->data = (this->data & ~(1 << USER)) | val << USER; }
+    inline void set_write_through(bool val) {
+        this->data = (this->data & ~(1 << WRITE_THROUGH)) | val << WRITE_THROUGH;
+    }
+    inline void set_cache_disable(bool val) {
+        this->data = (this->data & ~(1 << CACHE_DISABLE)) | val << CACHE_DISABLE;
+    }
+    inline void set_accessed(bool val) { this->data = (this->data & ~(1 << ACCESSED)) | val << ACCESSED; }
+    inline void set_dirty(bool val) { this->data = (this->data & ~(1 << DIRTY)) | val << DIRTY; }
+    inline void set_pat(bool val)
+        requires(Level == 1)
+    {
+        this->data = (this->data & ~(1 << PAGE_ATTR_TABLE_LEVEL1)) | val << PAGE_ATTR_TABLE_LEVEL1;
+    }
+    inline void set_pat(bool val)
+        requires(Level > 1)
+    {
+        this->data = (this->data & ~(1 << PAGE_ATTR_TABLE)) | val << PAGE_ATTR_TABLE;
+    }
+    inline void set_page_size(bool val)
+        requires(Level == 2 || Level == 3)
+    {
+        this->data = (this->data & ~(1 << PAGE_SIZE)) | val << PAGE_SIZE;
+    }
+    inline void set_global(bool val) { this->data = (this->data & ~(1 << GLOBAL)) | val << GLOBAL; }
+    inline void set_nx(bool val) { this->data = (this->data & ~(1 << NX)) | val << NX; }
+    [[nodiscard]] inline int set_addr(uint64_t val) {
+        if ((val & ~0xFFFFFFFFFF000) != 0) return -1;
+        this->data = (this->data & ~0xFFFFFFFFFF000) | val;
+        return 0;
+    };
 
-	inline void clear() { this->data = 0; }
+    inline void clear() { this->data = 0; }
 };
 
 template<size_t Level> struct PageTable {
 private:
-	PageTableEntry<Level> entries[512];
+    PageTableEntry<Level> entries[512];
 
 public:
-	PageTableEntry<Level>& operator[](size_t index) { return this->entries[index]; }
+    PageTableEntry<Level>& operator[](size_t index) { return this->entries[index]; }
 
-	std::optional<PageTable<Level - 1> *> get_child_table(size_t index)
-		requires(Level > 1)
-	{
-		if (this[index].get_present() && !this[index].get_page_size()) {
-			return Some(
-					reinterpret_cast<PageTable<Level - 1> *>((reinterpret_cast<uint64_t>(this) << 9) | (index << 12)));
-		}
-		return std::nullopt;
-	}
+    std::optional<PageTable<Level - 1> *> get_child_table(size_t index)
+        requires(Level > 1)
+    {
+        if (this[index].get_present() && !this[index].get_page_size()) {
+            return Some(
+                    reinterpret_cast<PageTable<Level - 1> *>((reinterpret_cast<uint64_t>(this) << 9) | (index << 12)));
+        }
+        return std::nullopt;
+    }
 };
 
 static_assert(sizeof(PageTable<1>) == 0x1000);*/
@@ -125,7 +126,7 @@ namespace memory::paging {
 	void PageTableEntryImpl::set_pointed_frame(const frame_t *frame) noexcept {
 		LOG(Log::TRACE, "pfn: %d", frame->number());
 		this->data = (this->data & static_cast<std::underlying_type_t<PageTableFlags>>(PageTableFlags::IMPL_FLAG_BITS))
-		             | ((frame->number() * constants::frame_size)
+		             | ((frame->addr())
 		                & static_cast<std::underlying_type_t<PageTableFlags>>(PageTableFlags::IMPL_ADDR_BITS));
 		LOG(Log::TRACE, "l1 entry data %llb", this->data);
 	}

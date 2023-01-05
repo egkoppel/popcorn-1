@@ -59,6 +59,6 @@ namespace memory {
 	}
 
 	aligned<vaddr_t> frame_t::frame_to_page_map_region() const {
-		return vaddr_t{.address = this->number() * constants::frame_size + constants::page_offset_start};
+		return vaddr_t{.address = this->addr() + constants::page_offset_start};
 	}
 }   // namespace memory

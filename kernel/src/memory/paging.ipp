@@ -69,7 +69,7 @@ namespace memory::paging {
 				char_count += fprintf(f,
 				                      "%lp -> %lp, %c%c%c%c\n",
 				                      this_addr,
-				                      entry.pointed_frame()->number() * constants::frame_size,
+				                      entry.pointed_frame()->addr(),
 				                      static_cast<bool>(entry.get_flags() & PageTableFlags::WRITEABLE) ? 'W' : 'R',
 				                      static_cast<bool>(entry.get_flags() & PageTableFlags::USER) ? 'U' : 'S',
 				                      static_cast<bool>(entry.get_flags() & PageTableFlags::GLOBAL) ? 'G' : '-',
