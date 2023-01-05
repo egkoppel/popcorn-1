@@ -45,7 +45,7 @@ namespace acpi {
 		alignas(16) u32 task_priority;
 		alignas(16) const u32 arbitration_priority;
 		alignas(16) const u32 processor_priority;
-		alignas(16) u32 eoi;
+		alignas(16) u32 eoi_;
 		alignas(16) const u32 remote_read;
 		alignas(16) u32 logical_destination;
 		alignas(16) u32 destination_format;
@@ -79,20 +79,53 @@ namespace acpi {
 		alignas(16) u32 cmci;
 		alignas(16) u32 interrupt_command_low;
 		alignas(16) u32 interrupt_command_high;
+		alignas(16) u32 lvt_timer;
+		alignas(16) u32 lvt_thermal_sensor;
+		alignas(16) u32 lvt_perf_monitor;
+		alignas(16) u32 lvt_lint0;
+		alignas(16) u32 lvt_lint1;
+		alignas(16) u32 lvt_error;
+		alignas(16) u32 timer_initial_count;
+		alignas(16) const u32 timer_current_count;
+		const u8 _pad3[64];
+		alignas(16) u32 timer_divide_configuration;
 
 		/* TODO when clang supports it
 		u256 isr() { return ... }
 		u256 tmr() { return ... }
 		u256 irr() { return ... }
 		*/
-		details::u64_split interrupt_command_register() volatile;
+		details::u64_split interrupt_command_register() volatile noexcept {
+			return {this->interrupt_command_low, this->interrupt_command_high};
+		}
+
+		enum timer_mode : unsigned _BitInt(2) { ONE_SHOT = 0, PERIODIC = 1, TSC_DEADLINE = 2 };
+		enum timer_divisor : unsigned _BitInt(4) {
+			DIV1   = 0b1011,
+			DIV2   = 0b0000,
+			DIV4   = 0b0001,
+			DIV8   = 0b0010,
+			DIV16  = 0b0011,
+			DIV32  = 0b1000,
+			DIV64  = 0b1001,
+			DIV128 = 0b1010
+		};
+
+		void configure_timer(u8 vector, timer_mode mode, timer_divisor divisor) volatile noexcept {
+			this->timer_divide_configuration = divisor;
+			this->lvt_timer                  = static_cast<u32>(vector) | (static_cast<u32>(mode) << 17);
+			this->lvt_timer &= ~(1 << 16);   // Unmask the timer
+		}
+
+		void eoi() volatile noexcept { this->eoi_ = 0; }
 	};
+
 	static_assert(offsetof(lapic, id) == 0x020);
 	static_assert(offsetof(lapic, version) == 0x030);
 	static_assert(offsetof(lapic, task_priority) == 0x080);
 	static_assert(offsetof(lapic, arbitration_priority) == 0x090);
 	static_assert(offsetof(lapic, processor_priority) == 0x0A0);
-	static_assert(offsetof(lapic, eoi) == 0x0B0);
+	static_assert(offsetof(lapic, eoi_) == 0x0B0);
 	static_assert(offsetof(lapic, remote_read) == 0x0C0);
 	static_assert(offsetof(lapic, logical_destination) == 0x0D0);
 	static_assert(offsetof(lapic, destination_format) == 0x0E0);
@@ -101,6 +134,7 @@ namespace acpi {
 	static_assert(offsetof(lapic, cmci) == 0x2F0);
 	static_assert(offsetof(lapic, interrupt_command_low) == 0x300);
 	static_assert(offsetof(lapic, interrupt_command_high) == 0x310);
+	static_assert(offsetof(lapic, timer_divide_configuration) == 0x3e0);
 }   // namespace acpi
 
 #endif   // HUGOS_LAPIC_HPP
