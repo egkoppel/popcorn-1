@@ -65,18 +65,9 @@ namespace arch {
 		}
 	};   // namespace
 
-		switch (vector) {
-			case InterruptVectors::PAGE_FAULT: handler_wrapper = page_fault; break;
-			case InterruptVectors::DOUBLE_FAULT: handler_wrapper = double_fault; break;
-			case InterruptVectors::CORE_TIMER: [[fallthrough]];
-			case InterruptVectors::GLOBAL_TIMER: [[fallthrough]];
-			case InterruptVectors::LAST: return;
-		}
-
-		amd64::interrupt_descriptor_table.add_entry(vector_to_idt_index(vector),
-		                                            user_callable ? 3 : 0,
-		                                            handler_wrapper,
-		                                            stack_idx);
+	void set_interrupt_perms(u8 vector, bool user_callable, uint8_t stack_idx) {
+		auto idt_idx = vector;   // vector_to_idt_index(vector);
+		amd64::interrupt_descriptor_table.set_flags(idt_idx, user_callable ? 3 : 0, stack_idx);
 	}
 
 	memory::KStack<> backup_stacks[8];

@@ -11,5 +11,5 @@
 #include "idt.hpp"
 
 namespace arch::amd64 {
-	IDT<48> interrupt_descriptor_table{};
+	constinit IDT<256> interrupt_descriptor_table{};
 }

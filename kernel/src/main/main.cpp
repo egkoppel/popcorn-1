@@ -139,11 +139,13 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	 * if (strcmp(boot_module->name(), "initramfs") != 0) panic("No initramfs found");*/
 
 	arch::arch_specific_early_init();
-	arch::load_interrupt_handler(arch::InterruptVectors::PAGE_FAULT, false, 0, interrupt_handlers::page_fault);
+	arch::set_interrupt_perms(0xE, false, 0);
+	arch::set_interrupt_perms(0x8, false, 1);
+	/*arch::load_interrupt_handler(arch::InterruptVectors::PAGE_FAULT, false, 0, interrupt_handlers::page_fault);
 	arch::load_interrupt_handler(arch::InterruptVectors::DOUBLE_FAULT, false, 1, interrupt_handlers::double_fault);
 	arch::load_interrupt_handler(arch::InterruptVectors::CORE_TIMER, false, 0, [](arch::interrupt_info_t *) noexcept {
-		threads::local_scheduler->irq_fired();
-	});
+	    threads::local_scheduler->irq_fired();
+	});*/
 
 	LOG(Log::DEBUG, "Finished architecture init");
 

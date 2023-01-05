@@ -17,9 +17,11 @@
 #include <cstdint>
 
 namespace arch::amd64 {
-	template<uint8_t E> class [[gnu::packed]] IDT {
+	template<uint16_t E> requires(E <= 256)
+	class [[gnu::packed]] IDT {
 	public:
 		class [[gnu::packed]] alignas(8) Entry {
+			friend class IDT;
 		private:
 			uint16_t pointer_low      = 0;
 			uint16_t segment_selector = 0;
@@ -33,8 +35,8 @@ namespace arch::amd64 {
 			uint32_t _2               = 0;
 
 		public:
-			Entry() noexcept = default;
-			Entry(memory::vaddr_t handler, uint8_t dpl, uint8_t ist_idx) noexcept {
+			constexpr Entry() noexcept = default;
+			constexpr Entry(memory::vaddr_t handler, uint8_t dpl, uint8_t ist_idx) noexcept {
 				this->pointer_low      = (uint16_t)handler.address;
 				this->segment_selector = 0x8;
 				this->ist              = ist_idx;
@@ -57,20 +59,25 @@ namespace arch::amd64 {
 		Entry entries[E];
 
 	public:
-		IDT() noexcept = default;
+		constexpr IDT() noexcept = default;
 
 		void load() noexcept {
 			idt_ptr_t ptr{.size = sizeof(IDT<E>) - 1, .address = reinterpret_cast<uint64_t>(this)};
 			__asm__ volatile("lidt %0" : : "m"(ptr));
 		}
 
-		void add_entry(uint8_t index, uint8_t dpl, void (*handler)(), uint8_t ist = 0) noexcept {
-			assert_msg(E > index, "Index out of bounds");
+		void add_entry(uint8_t index, uint8_t dpl, void (*handler)() noexcept, uint8_t ist = 0) noexcept {
+			assert(E > index);
 			this->entries[index] = Entry{memory::vaddr_t{.address = reinterpret_cast<usize>(handler)}, dpl, ist};
+		}
+
+		constexpr void set_flags(uint8_t index, uint8_t dpl, uint8_t ist) {
+			this->entries[index].dpl = dpl;
+			this->entries[index].ist = ist;
 		}
 	};
 
-	extern IDT<48> interrupt_descriptor_table;
+	extern IDT<256> interrupt_descriptor_table;
 }   // namespace arch::amd64
 
-#endif   //HUGOS_IDT_HPP
+#endif   // HUGOS_IDT_HPP

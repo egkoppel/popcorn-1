@@ -8,16 +8,26 @@
  * limitations under the License.
  */
 
+#include "../interrupts/idt.hpp"
+#include "../interrupts/pic.hpp"
 #include "../interrupts/syscall.hpp"
 #include "gdt.hpp"
 #include "tss.hpp"
-#include "../interrupts/idt.hpp"
 
 #include <arch/initialisation.hpp>
 
 using namespace arch::amd64;
 
 namespace arch {
+	namespace {
+		using interrupt_handler_t = void (*)() noexcept;
+		extern "C" interrupt_handler_t isr_stub_table[];
+
+		void idt_init() {
+			for (std::size_t i = 0; i < 256; ++i) { interrupt_descriptor_table.add_entry(i, 0, isr_stub_table[i]); }
+		}
+	}   // namespace
+
 	int arch_specific_early_init() {
 		global_descriptor_table.add_entry(GDT::Entry::new_code(0, true), GDT::EntryType::KERNEL_CODE);
 		global_descriptor_table.add_entry(GDT::Entry::new_data(0, true), GDT::EntryType::KERNEL_DATA);
@@ -27,6 +37,7 @@ namespace arch {
 		                                         GDT::SystemEntryType::TSS);
 		global_descriptor_table.load();
 
+		idt_init();
 		interrupt_descriptor_table.load();
 
 		syscall_register_init();
