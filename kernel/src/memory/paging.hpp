@@ -454,7 +454,16 @@ namespace memory::paging {
 		bool unmap_page(aligned<vaddr_t> page);
 		int print_to(FILE *f) { return this->l4_table->print_to(f, 0); }
 		void make_active();
-		frame_t *translate_page(aligned<vaddr_t> page) { __builtin_unreachable(); }
+		std::optional<frame_t *> translate_page(aligned<vaddr_t> page);
+		frame_t *l4_table_frame() {
+			return aligned<vaddr_t>{vaddr_t{.address = reinterpret_cast<usize>(this->l4_table)}}
+			        .page_map_region_to_frame();
+		}
+		const frame_t *l4_table_frame() const {
+			LOG(Log::DEBUG, "%lp %lp", this->l4_table, reinterpret_cast<usize>(this->l4_table));
+			auto a = aligned<vaddr_t>{vaddr_t{.address = reinterpret_cast<usize>(this->l4_table)}};
+			return a.page_map_region_to_frame();
+		}
 
 	protected:
 		PageTable<4> *l4_table;          //!< Pointer to the level 4 page table for this address space

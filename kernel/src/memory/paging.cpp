@@ -190,6 +190,20 @@ namespace memory::paging {
 		__asm__ volatile("mov %0, %%cr3" ::"r"(phys_addr) : "memory");
 	}
 
+	std::optional<frame_t *> AddressSpaceBase::translate_page(aligned<vaddr_t> page) {
+		return (*this->l4_table)[page.address.page_table_index<4>()]
+		        .child_table()
+		        .and_then([&](const auto l3_table) {
+					return (*l3_table)[page.address.page_table_index<3>()].child_table();
+				})
+		        .and_then([&](const auto l2_table) {
+					return (*l2_table)[page.address.page_table_index<2>()].child_table();
+				})
+		        .and_then([&](const auto l1_table) {
+					return std::optional{(*l1_table)[page.address.page_table_index<1>()].pointed_frame()};
+				});
+	}
+
 	alignas(alignof(KernelAddressSpace)) u8 kas_[sizeof(KernelAddressSpace)];
 	KernelAddressSpace& kas = reinterpret_cast<KernelAddressSpace&>(kas_);
 
