@@ -7,8 +7,8 @@ if (EXISTS "${PROJECT_BINARY_DIR}/CMakeLists.txt")
     message(FATAL_ERROR "Out of source build is required")
 endif ()
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_C_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_C_STANDARD 23)
 enable_language(ASM_NASM)
 enable_language(C)
 enable_language(CXX)
@@ -48,7 +48,7 @@ add_compile_definitions(LIBCXXRT_WEAK_LOCKS)
 
 if (${CMAKE_CROSSCOMPILING})
     add_compile_definitions(__ELF__ __x86_64__)
-    include_directories(${SRCROOT}/kernel/src/stl ${SRCROOT}/libk/include ${SRCROOT}/kernel/include ${SRCROOT}/kernel/src)
+    include_directories(${SRCROOT}/kernel/src/stl ${SRCROOT}/libk/include ${SRCROOT}/kernel/include ${SRCROOT}/kernel/src ${SRCROOT}/kernel/src/arch/${HUGOS_ARCH})
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${WARNINGS} ${KERNEL_BUILD_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WARNINGS} ${KERNEL_BUILD_FLAGS}")
     set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} ${WARNINGS} ${KERNEL_BUILD_FLAGS}")
@@ -64,7 +64,7 @@ add_custom_command(
         OUTPUT ${PROJECT_BINARY_DIR}/kernel.bin
         OUTPUT ${PROJECT_BINARY_DIR}/convolution.map
         DEPENDS hugos_core_kernel hugos_libk cxxrt-static ${SRCROOT}/kernel/src/linker.ld /Users/Eliyahu/Downloads/libunwind-15.0.5.src/build/lib/libunwind.a
-        COMMAND ${CMAKE_CXX_LINK_EXECUTABLE} --eh-frame-hdr --error-limit=0 -T ${SRCROOT}/kernel/src/linker.ld -o ${PROJECT_BINARY_DIR}/kernel.bin $<TARGET_FILE:hugos_core_kernel> $<TARGET_FILE:hugos_libk> $<TARGET_FILE:cxxrt-static> ${PROJECT_BINARY_DIR}/kernel/src/CMakeFiles/hugos_core_kernel.dir/arch/amd64/bootstrap/header.asm.obj ${PROJECT_BINARY_DIR}/kernel/fonts.o
+        COMMAND ${CMAKE_CXX_LINK_EXECUTABLE} --eh-frame-hdr --error-limit=0 -T ${SRCROOT}/kernel/src/linker.ld -o ${PROJECT_BINARY_DIR}/kernel.bin --whole-archive $<TARGET_FILE:hugos_core_kernel> --no-whole-archive $<TARGET_FILE:hugos_libk> $<TARGET_FILE:cxxrt-static>
         /Users/Eliyahu/Downloads/libunwind-15.0.5.src/build/lib/libunwind.a
         COMMAND ${CMAKE_NM} -C ${PROJECT_BINARY_DIR}/kernel.bin > ${PROJECT_BINARY_DIR}/convolution.map
 )
