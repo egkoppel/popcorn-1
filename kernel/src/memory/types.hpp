@@ -197,7 +197,7 @@ namespace memory {
 			    || this->address.address >= constants::page_offset_end)
 				throw std::runtime_error("vaddr_t outside of page map region - attempted conversion to frame_t*");
 #endif
-			return &mem_map[this->address.address / constants::frame_size];
+			return &mem_map[(this->address.address - constants::page_offset_start) / constants::frame_size];
 		}
 
 		const frame_t *page_map_region_to_frame() const requires(alignment == constants::frame_size)
@@ -207,7 +207,7 @@ namespace memory {
 			    || this->address.address >= constants::page_offset_end)
 				throw std::runtime_error("vaddr_t outside of page map region - attempted conversion to frame_t*");
 #endif
-			return &mem_map[this->address.address / constants::frame_size];
+			return &mem_map[(this->address.address - constants::page_offset_start) / constants::frame_size];
 		}
 
 		vaddr_t address;
