@@ -14,5 +14,6 @@
 #include <popcorn_prelude.h>
 
 void create_core_local_data(usize size);
+extern bool tls_initialised;
 
-#endif   //HUGOS_CORE_LOCAL_HPP
+#endif   // HUGOS_CORE_LOCAL_HPP
