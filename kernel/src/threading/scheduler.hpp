@@ -56,8 +56,12 @@ namespace threads {
 		void unblock_task(Task& task);
 		time_t current_time();
 	};
+	
+	extern "C" void task_startup_scheduler_unlock();
 
 	class ILocalScheduler {
+		friend void ::threads::task_startup_scheduler_unlock();
+
 	protected:
 		/**
 		 * @brief Called by the currently running task to suspend execution of itself
@@ -141,7 +145,7 @@ namespace threads {
 		}
 	};
 
-	extern cpu_local ILocalScheduler *local_scheduler;
+	extern cpu_local std::unique_ptr<ILocalScheduler> local_scheduler;
 }   // namespace threads
 
 #endif   // HUGOS_SCHEDULER_HPP

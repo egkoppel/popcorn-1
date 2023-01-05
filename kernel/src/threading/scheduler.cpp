@@ -30,5 +30,9 @@ namespace threads {
 
 	void GlobalScheduler::irq_fired() {}
 
-	cpu_local ILocalScheduler *local_scheduler;
+	cpu_local std::unique_ptr<ILocalScheduler> local_scheduler;
+
+	void task_startup_scheduler_unlock() {
+		local_scheduler->unlock();
+	}
 }   // namespace threads
