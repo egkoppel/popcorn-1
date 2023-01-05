@@ -31,7 +31,7 @@ namespace arch::amd64 {
 		void add_stack(uint8_t stack_idx, const memory::KStack<>& stack) noexcept;
 	};
 
-	extern TSS task_state_segment;
+	extern "C" TSS task_state_segment;
 }   // namespace arch::amd64
 
 #endif   // HUGOS_TSS_HPP
