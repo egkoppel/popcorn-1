@@ -395,7 +395,24 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	create_core_local_data(tls_size);
 
 	LOG(Log::DEBUG, "Initialising scheduler");
-	auto ktask = threads::Task::initialise(KStack<>{old_p4_table_page, 8 * constants::frame_size});
+	auto ktask    = threads::Task::initialise(KStack<>{old_p4_table_page, 8 * constants::frame_size});
+	auto new_task = std::make_unique<threads::Task>(
+			"test task",
+			[](usize arg) {
+				LOG(Log::INFO, "3");
+				threads::local_scheduler->yield();
+				LOG(Log::INFO, "5");
+				threads::local_scheduler->yield();
+				while (true) __asm__ volatile("nop");
+			},
+			5);
+
+	threads::ILocalScheduler::create_local_scheduler(&*ktask);
+	LOG(Log::INFO, "1");
+	threads::local_scheduler->acquire_task(*new_task, 0);
+	LOG(Log::INFO, "2");
+	threads::local_scheduler->yield();
+	LOG(Log::INFO, "4");
 
 	LOG(Log::DEBUG, "Locating AP processors");
 
