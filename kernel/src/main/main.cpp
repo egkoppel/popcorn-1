@@ -365,7 +365,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 
 	char oem_str_buf[7] = {0};
 	memcpy(oem_str_buf, &rsdp_tag->oem_id, 6);
-	LOG(Log::INFO, "OEM is %s\n", oem_str_buf);
+	LOG(Log::INFO, "OEM is %s", oem_str_buf);
 
 	LOG(Log::DEBUG, "Initialise memory bitmap");
 	uint64_t bitmap_needed_bytes = IDIV_ROUND_UP(total_ram / 0x1000, 8);
