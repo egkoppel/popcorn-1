@@ -35,8 +35,6 @@ namespace threads::schedulers {
 		void task_switch(Task *task);
 		void update_time_used();
 		inline bool is_idle() { return !current_task; }
-		void lock_scheduler();
-		void unlock_scheduler();
 
 		void yield_internal();
 
@@ -46,6 +44,8 @@ namespace threads::schedulers {
 		void unlock() override;
 
 	public:
+		RoundRobinNoPriorityPreemptive(Task *current_task) : current_task(current_task) {}
+
 		void acquire_task(Task& new_task, threads::priority_t recommended_priority) override;
 		Task *get_current_task() override;
 		Task *pop_task() override;

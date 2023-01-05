@@ -19,9 +19,9 @@ using namespace threads::schedulers;
 
 #define SCHED_LOCK(f)                                                                                                  \
 	{                                                                                                                  \
-		this->lock_scheduler();                                                                                        \
+		this->lock();                                                                                                  \
 		{ f }                                                                                                          \
-		this->unlock_scheduler();                                                                                      \
+		this->unlock();                                                                                                \
 	}
 
 void RoundRobinNoPriorityPreemptive::acquire_task(Task& new_task, priority_t) {
@@ -44,12 +44,14 @@ Task *RoundRobinNoPriorityPreemptive::get_current_task() {
 
 Task *RoundRobinNoPriorityPreemptive::pop_task() {
 	Task *ret = nullptr;
-	SCHED_LOCK({
-		if (!this->ready_to_run_tasks.empty()) {
-			ret = this->ready_to_run_tasks.back();
-			this->ready_to_run_tasks.pop_back();
-		}
+	/* TODO
+	 SCHED_LOCK({
+	    if (!this->ready_to_run_tasks.empty()) {
+	        ret = this->ready_to_run_tasks.back();
+	        this->ready_to_run_tasks.pop_back();
+	    }
 	})
+	 */
 	return ret;
 }
 
@@ -83,15 +85,22 @@ void RoundRobinNoPriorityPreemptive::yield_internal() {
 		return;
 	} else {
 		// No tasks at all, go into idle
+		__builtin_unreachable();
 	}
 }
 
-void RoundRobinNoPriorityPreemptive::unlock_scheduler() {
+void RoundRobinNoPriorityPreemptive::unlock() {
 	this->IRQ_disable_counter--;
 	if (this->IRQ_disable_counter == 0) hal::enable_interrupts();
 }
 
-void RoundRobinNoPriorityPreemptive::lock_scheduler() {
+void RoundRobinNoPriorityPreemptive::lock() {
 	hal::disable_interrupts();
 	this->IRQ_disable_counter++;
+}
+
+void RoundRobinNoPriorityPreemptive::task_switch(Task *task) {
+	auto old           = this->current_task;
+	this->current_task = task;
+	arch::task_switch_asm(task, old);
 }
