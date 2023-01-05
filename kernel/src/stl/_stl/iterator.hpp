@@ -15,10 +15,42 @@
 #include <concepts>
 
 HUGOS_STL_BEGIN_NAMESPACE
-template<class C> constexpr auto begin(C& c) -> decltype(c.begin()) { return c.begin(); }
-template<class C> constexpr auto end(C& c) -> decltype(c.end()) { return c.end(); }
-template<class C> constexpr auto rbegin(C& c) -> decltype(c.rbegin()) { return c.rbegin(); }
-template<class C> constexpr auto rend(C& c) -> decltype(c.rend()) { return c.rend(); }
+	template<class C> constexpr auto begin(C & c)->decltype(c.begin()) {
+		return c.begin();
+	}
+	template<class C> constexpr auto end(C & c)->decltype(c.end()) {
+		return c.end();
+	}
+	template<class T, std::size_t N> constexpr T *begin(T(&arr)[N]) {
+		return &arr[0];
+	}
+	template<class T, std::size_t N> constexpr T *end(T(&arr)[N]) {
+		return &arr[N];
+	}
+	template<class C> constexpr auto rbegin(C & c)->decltype(c.rbegin()) {
+		return c.rbegin();
+	}
+	template<class C> constexpr auto rend(C & c)->decltype(c.rend()) {
+		return c.rend();
+	}
+	template<class C> constexpr auto cbegin(const C& c)->decltype(c.begin()) {
+		return c.cbegin();
+	}
+	template<class C> constexpr auto cend(const C& c)->decltype(c.end()) {
+		return c.cend();
+	}
+	template<class T, std::size_t N> constexpr const T *cbegin(const T(&arr)[N]) {
+		return &arr[0];
+	}
+	template<class T, std::size_t N> constexpr const T *cend(const T(&arr)[N]) {
+		return &arr[N];
+	}
+	template<class C> constexpr auto crbegin(const C& c)->decltype(c.rbegin()) {
+		return c.crbegin();
+	}
+	template<class C> constexpr auto crend(const C& c)->decltype(c.rend()) {
+		return c.crend();
+	}
 
 	template<class Iter> class reverse_iterator {
 	public:
