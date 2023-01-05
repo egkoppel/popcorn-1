@@ -1,0 +1,19 @@
+
+#ifndef POPCORN_KERNEL_SRC_STL_ARRAY_
+#define POPCORN_KERNEL_SRC_STL_ARRAY_
+
+#include <cstddef>
+
+// clang-format off
+#include "_stl/prelude.hpp"
+HUGOS_STL_BEGIN_NAMESPACE
+template<class T, std::size_t N> struct array {
+	T arr[N];
+
+	T& operator[](std::size_t idx) { return this->arr[idx]; }
+};
+HUGOS_STL_END_NAMESPACE
+#include "_stl/epilog.hpp"
+// clang-format on
+
+#endif   // POPCORN_KERNEL_SRC_STL_ARRAY_
