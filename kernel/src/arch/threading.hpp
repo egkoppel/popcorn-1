@@ -15,9 +15,9 @@
 #include <threading/task.hpp>
 
 namespace arch {
-	void task_init();
-	void task_switch_asm(threads::Task *new_task, threads::Task *old_task);
-	void switch_to_user_mode();
+	extern "C" void task_startup();
+	extern "C" void task_switch_asm(threads::Task *new_task, threads::Task *old_task);
+	extern "C" void switch_to_user_mode();
 }   // namespace arch
 
 #endif   // HUGOS_THREADING_HPP
