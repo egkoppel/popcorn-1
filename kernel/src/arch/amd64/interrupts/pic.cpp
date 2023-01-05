@@ -44,17 +44,11 @@ namespace arch::amd64 {
 		}
 	}
 
-	ATChainedPIC::ATChainedPIC(uint8_t offset1, uint8_t offset2) noexcept :
-		master(ports::MASTER),
-		slave(ports::SLAVE),
-		offset1(offset1),
-		offset2(offset2) {
-		uint8_t master_mask = this->master.read_mask();
-		uint8_t slave_mask  = this->slave.read_mask();
-
-		LOG(Log::TRACE, "Master mask: %b", master_mask);
-		LOG(Log::TRACE, "Slave mask: %b", slave_mask);
-
+	ATChainedPIC::ATChainedPIC(uint8_t offset1, uint8_t offset2) noexcept
+		: master(ports::MASTER),
+		  slave(ports::SLAVE),
+		  offset1(offset1),
+		  offset2(offset2) {
 		// Start init sequence
 		this->master.send_command(commands::INIT);
 		io_wait();
@@ -79,9 +73,9 @@ namespace arch::amd64 {
 		this->slave.write_data(commands::MODE_8086);
 		io_wait();
 
-		// Restore masks
-		this->master.write_data(master_mask);
-		this->slave.write_data(slave_mask);
+		// Mask all interrupts
+		this->master.write_data(0xFF);
+		this->slave.write_data(0xFF);
 	}
 
 	ATChainedPIC pics(0x20, 0x28);
