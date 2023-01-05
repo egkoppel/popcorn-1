@@ -379,6 +379,9 @@ namespace memory::paging {
 
 	template<std::size_t Level> class PageTable {
 	public:
+		using iterator = PageTableEntry<Level>*;
+		using const_iterator = const PageTableEntry<Level>*;
+
 		PageTable()                 = default;
 		PageTable(const PageTable&) = delete;
 
@@ -397,6 +400,26 @@ namespace memory::paging {
 
 		int print_to(FILE *f, uint64_t addr) requires(Level >= 2);
 		int print_to(FILE *f, uint64_t addr) requires(Level == 1);
+
+		decltype(auto) begin() {
+			using std::begin;
+			return begin(this->entries);
+		}
+
+		decltype(auto) end() {
+			using std::end;
+			return end(this->entries);
+		}
+
+		decltype(auto) cbegin() const {
+			using std::cbegin;
+			return cbegin(this->entries);
+		}
+
+		decltype(auto) cend() const {
+			using std::cend;
+			return cend(this->entries);
+		}
 
 	private:
 		PageTableEntry<Level> entries[512];
