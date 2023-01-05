@@ -16,7 +16,7 @@
 #include <termcolor.h>
 
 extern "C" void *__dso_handle = nullptr;
-extern "C" void __cxa_finalize(void *dso);
+extern "C" void __cxa_finalize(void *dso) noexcept;
 
 typedef void (*ctor_func)();
 

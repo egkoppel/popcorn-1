@@ -19,12 +19,12 @@ namespace acpi {
 	namespace details {
 		class u64_split {
 		public:
-			u64_split(volatile u32& low, volatile u32& high) : low(&low), high(&high) {}
+			u64_split(volatile u32& low, volatile u32& high) noexcept : low(&low), high(&high) {}
 
-			explicit(false) operator u64() {
+			explicit(false) operator u64() noexcept {
 				return static_cast<u64>(*this->low) | (static_cast<u64>(*this->high) << 32);
 			}
-			u64_split& operator=(u64 val) {
+			u64_split& operator=(u64 val) noexcept {
 				// MUST WRITE TO LOW LAST BECAUSE THAT TRIGGERS THE IPI TO SEND
 				*this->high = (val >> 32) & 0xFFFF;
 				*this->low  = val & 0xFFFF;
