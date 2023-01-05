@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Eliyahu Gluschove-Koppel.
+ * Copyright (c) 2023 Eliyahu Gluschove-Koppel.
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -49,7 +49,7 @@ namespace threads {
 	private:
 		KStack kernel_stack;
 		VirtualAddress stack_ptr;
-		paging::PageTable page_table;
+		paging::PageTable address_space_;
 		std::string name;
 
 		uint64_t pid                 = atomic_fetch_add(&next_pid, 1);
@@ -64,7 +64,7 @@ namespace threads {
 		     const paging::PageTable& page_table) :
 			kernel_stack(kernel_stack),
 			stack_ptr(stack_ptr),
-			page_table(page_table),
+			address_space_(page_table),
 			name(name) {}
 
 		/*Task(std::string name, paging::PageTable p4_page_table, Page stack_top_page, Page stack_bottom_page) :
@@ -147,7 +147,7 @@ namespace threads {
 		inline std::string& get_name() { return this->name; }
 		inline State get_state() const { return this->state; }
 		inline void set_state(State state) { this->state = state; }
-		inline paging::PageTable get_page_table() const { return this->page_table; }
+		inline paging::PageTable get_page_table() const { return this->address_space_; }
 		inline KStack& get_kernel_stack() { return this->kernel_stack; }
 		inline uint64_t get_time_used() const { return this->time_used; }
 		inline uint64_t get_time_slice_length_ms() const { return 50; }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Oliver Hiorns.
+ * Copyright (c) 2023 Oliver Hiorns.
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
