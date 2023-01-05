@@ -10,7 +10,14 @@
 
 #include "scheduler.hpp"
 
+#include "schedulers/roundrobin_nopriority_preemptive.hpp"
+
 namespace threads {
+	ILocalScheduler& ILocalScheduler::create_local_scheduler(Task *currently_running_task) {
+		// TODO: some fancy cpuid thing to decide which scheduler to use
+		local_scheduler = std::make_unique<schedulers::RoundRobinNoPriorityPreemptive>(currently_running_task);
+		return *local_scheduler;
+	}
 
 	void ILocalScheduler::block_task(Task::State reason) {
 		this->get_current_task()->set_state(reason);   // Can safely assume get_current_task is valid pointer as block

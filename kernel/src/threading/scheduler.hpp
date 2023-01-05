@@ -86,6 +86,8 @@ namespace threads {
 		///@}
 
 	public:
+		static ILocalScheduler& create_local_scheduler(Task *currently_running_task = nullptr);
+
 		virtual ~ILocalScheduler() = default;
 
 		/**
