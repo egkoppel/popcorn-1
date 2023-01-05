@@ -34,6 +34,7 @@ namespace memory {
 		IPhysicalAllocator *allocated_by = nullptr;
 
 		usize number() const;
+		usize addr() const { return this->number() * constants::frame_size; }
 		aligned<vaddr_t> frame_to_page_map_region() const;
 
 		frame_t(const frame_t&) = delete;
