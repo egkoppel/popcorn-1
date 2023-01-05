@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-	void write_serial(char a);
+void write_serial1(char a);
 
 #ifdef __cplusplus
 }
