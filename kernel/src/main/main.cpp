@@ -156,8 +156,10 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	for (auto& i : *sections) {
 		if ((i.type() != decltype(i.type())::SHT_NULL)
 		    && (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_ALLOC) != 0) {
+			/* TODO
 			stdserial << i;
 			stdout << i;
+			*/
 
 			auto name            = i.name(*sections);
 			auto is_ap_bootstrap = strncmp(name, ".ap_bootstrap", 13) == 0;
