@@ -36,6 +36,7 @@ namespace arch {
 		global_descriptor_table.add_system_entry(GDT::SystemEntry::new_tss(&task_state_segment),
 		                                         GDT::SystemEntryType::TSS);
 		global_descriptor_table.load();
+		TSS::load(static_cast<u16>(GDT::SystemEntryType::TSS));
 
 		idt_init();
 		interrupt_descriptor_table.load();
