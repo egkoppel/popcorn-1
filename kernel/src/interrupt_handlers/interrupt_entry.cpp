@@ -14,10 +14,30 @@
 
 #include <arch/interrupts.hpp>
 
+void unhandled_irq(arch::interrupt_info_t *info) noexcept {
+	usize rsp;
+	__asm__ volatile("mov %%rsp, %0" : "=r"(rsp));
+	LOG(Log::WARNING,
+	    "Unhandled irq at vector 0x%llx\n"
+	    "Error code %d\n"
+	    "IP: %lp\n"
+	    "Flags: 0x%08x\n"
+	    "SP: %lp\n"
+	    "Attempted access to: %lp\n"
+	    "New stack pointer: %lp",
+	    info->vector,
+	    info->error_code,
+	    info->ip,
+	    info->flags,
+	    info->sp,
+	    info->page_fault_memory_addr,
+	    rsp);
+}
+
 extern "C" void exception_handler_entry(arch::interrupt_info_t *info) noexcept {
 	switch (info->vector) {
 		case 0x8: interrupt_handlers::double_fault(info); break;
 		case 0xE: interrupt_handlers::page_fault(info); break;
-		default: LOG(Log::INFO, "Unhandled irq at vector 0x%llx", info->vector); break;
+		default: unhandled_irq(info); break;
 	}
 }
