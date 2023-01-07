@@ -18,6 +18,11 @@
 #include <stdatomic.h>
 
 namespace threads {
+	struct kernel_task_t {};
+	struct user_task_t {};
+	inline constexpr kernel_task_t kernel_task{};
+	inline constexpr user_task_t user_task{};
+
 	class Task {
 	public:
 		enum class State { RUNNING, SLEEPING, FUTEX, PAUSED };
@@ -33,6 +38,7 @@ namespace threads {
 		const char *name;
 
 		explicit Task(const char *name, memory::KStack<>&& stack);
+		Task(const char *name, usize argument, usize stack_offset);
 
 	public:
 		Task()            = delete;
@@ -40,7 +46,8 @@ namespace threads {
 		Task(const Task& other, deep_copy_t) : stack(other.stack, deep_copy) {}
 		Task(Task&&) = default;
 		~Task()      = default;
-		Task(const char *name, void (*entrypoint)(usize), usize argument);
+		Task(const char *name, void (*entrypoint)(usize), usize argument, kernel_task_t);
+		Task(const char *name, void (*entrypoint)(usize), usize argument, user_task_t);
 
 		static std::unique_ptr<Task> initialise(memory::KStack<>&& current_stack);
 

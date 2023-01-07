@@ -29,20 +29,30 @@ namespace threads {
 		return std::unique_ptr<Task>(ktask);
 	}
 
-	Task::Task(const char *name, void (*entrypoint)(usize), usize argument)
+	Task::Task(const char *name, usize argument, usize stack_offset)
 		: stack(memory::constants::frame_size),
 		  address_space_(),
-		  stack_ptr_(vaddr_t(*this->stack.top()) - 8 * 8),
+		  stack_ptr_(vaddr_t(*this->stack.top()) - (stack_offset + 8) * 8),
 		  name(name) {
+		auto stack_top               = static_cast<u64 *>((*this->stack.top()).address);
+		stack_top[-2 - stack_offset] = reinterpret_cast<u64>(arch::task_startup);
+		stack_top[-3 - stack_offset] = argument;
+		stack_top[-4 - stack_offset] = 0;
+		stack_top[-5 - stack_offset] = 0;
+		stack_top[-6 - stack_offset] = 0;
+		stack_top[-7 - stack_offset] = 0;
+		stack_top[-8 - stack_offset] = 0;
+	}
+
+	Task::Task(const char *name, void (*entrypoint)(usize), usize argument, kernel_task_t) : Task(name, argument, 0) {
 		auto stack_top = static_cast<u64 *>((*this->stack.top()).address);
 		stack_top[-1]  = reinterpret_cast<u64>(entrypoint);
-		stack_top[-2]  = reinterpret_cast<u64>(arch::task_startup);
-		stack_top[-3]  = argument;
-		stack_top[-4]  = 0;
-		stack_top[-5]  = 0;
-		stack_top[-6]  = 0;
-		stack_top[-7]  = 0;
-		stack_top[-8]  = 0;
+	}
+
+	Task::Task(const char *name, void (*entrypoint)(usize), usize argument, user_task_t) : Task(name, argument, 1) {
+		auto stack_top = static_cast<u64 *>((*this->stack.top()).address);
+		stack_top[-1]  = reinterpret_cast<u64>(entrypoint);
+		stack_top[-2]  = reinterpret_cast<u64>(arch::switch_to_user_mode);
 	}
 
 	usize get_p4_table_frame(const Task *task) {
