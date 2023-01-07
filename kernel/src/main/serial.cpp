@@ -10,18 +10,19 @@
 
 #include <log.hpp>
 #include <optional>
+#include <popcorn_prelude.h>
 #include <serial.h>
 #include <stdint.h>
 
-SerialPort::SerialPort(uint16_t port) :
-	data(port),
-	interupt_enable(port + 1),
-	fifo_control(port + 2),
-	line_control(port + 3),
-	modem_contol(port + 4),
-	line_status(port + 5),
-	modem_status(port + 6),
-	scratch(port + 7) {
+SerialPort::SerialPort(uint16_t port)
+	: data(port),
+	  interupt_enable(port + 1),
+	  fifo_control(port + 2),
+	  line_control(port + 3),
+	  modem_contol(port + 4),
+	  line_status(port + 5),
+	  modem_status(port + 6),
+	  scratch(port + 7) {
 	this->interupt_enable.write(0);   // Disable interrupts
 	this->line_control.write(0x80);   // Set DLAB bit (maps first two ports to baud divisor)
 	this->data.write(3);              // Set divisor to 3 (38400 baud)
@@ -31,13 +32,15 @@ SerialPort::SerialPort(uint16_t port) :
 	this->modem_contol.write(0x1E);   // Set to loopback mode
 
 	this->data.write(0xAE);   // Write to port
-	if (this->data.read() != 0xAE) { throw SerialPortError{}; }
+	if (this->data.read() != 0xAE) { THROW(SerialPortError{}); }
 
 	this->modem_contol.write(0x0F);   // Turn off loopback, enable IRQs
 	LOG(Log::INFO, "Serial port enabled");
 }
 
-int SerialPort::is_transmit_empty() const noexcept { return this->line_status.read() & 0x20; }
+int SerialPort::is_transmit_empty() const noexcept {
+	return this->line_status.read() & 0x20;
+}
 void SerialPort::write(char a) noexcept {
 	while (is_transmit_empty() == 0)
 		;
@@ -53,7 +56,7 @@ void SerialPort::print(char *s) noexcept {
 std::optional<SerialPort> serial1{};
 
 extern "C" {
-	void write_serial1(char c) {
-		if (serial1) { serial1.value().write(c); }
-	}
+void write_serial1(char c) {
+	if (serial1) { serial1.value().write(c); }
+}
 }

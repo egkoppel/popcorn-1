@@ -33,8 +33,8 @@ namespace memory::physical_allocators {
 	}
 
 	template<class VAllocator>
-	typename BitmapAllocator<VAllocator>::frame_state
-	BitmapAllocator<VAllocator>::get_frame(const frame_t *addr) const noexcept {
+	typename BitmapAllocator<VAllocator>::frame_state BitmapAllocator<VAllocator>::get_frame(const frame_t *addr)
+			const noexcept {
 		uint64_t frame_num    = addr->number() - this->start_frame->number();
 		uint64_t bitmap_index = frame_num / 64;
 		uint64_t bit_index    = frame_num % 64;
@@ -47,7 +47,7 @@ namespace memory::physical_allocators {
 
 	template<class VAllocator> frame_t *BitmapAllocator<VAllocator>::allocate_(u64 byte_length) {
 		/* TODO: Take byte length into account */
-		if (byte_length > constants::frame_size) throw std::bad_alloc();
+		if (byte_length > constants::frame_size) THROW(std::bad_alloc());
 
 		for (usize i = 0; i < this->bitmap.size(); i++) {
 			decltype(auto) addr = this->bitmap[i];
@@ -61,15 +61,15 @@ namespace memory::physical_allocators {
 				return ret_frame;
 			}
 		}
-		throw std::bad_alloc();
+		THROW(std::bad_alloc());
 	}
 
 	/*std::optional<Frame> PhysicalBitmapAllocator::allocate_at(Frame addr, uint64_t byte_length) {
 	TODO: Take byte length into account
 	int allocated = this->get_bit(addr);
 	if (!allocated) {
-		if (this->set_bit(addr)) return std::nullopt;
-		return {addr};
+	    if (this->set_bit(addr)) return std::nullopt;
+	    return {addr};
 	} else return std::nullopt;
 }*/
 
@@ -79,7 +79,8 @@ namespace memory::physical_allocators {
 			uint64_t frame_num    = f->number();
 			uint64_t bitmap_index = frame_num / 64;
 			uint64_t bit_index    = frame_num % 64;
-			//FIXME: assert(this->bitmap_start + bitmap_index < this->bitmap_end /*, "Attempted deallocation at %p outside of bitmap", addr*/);
+			// FIXME: assert(this->bitmap_start + bitmap_index < this->bitmap_end /*, "Attempted deallocation at %p
+			// outside of bitmap", addr*/);
 			this->bitmap[bitmap_index] |= 1ull << bit_index;   // Set bit to mark it as allocated
 		}
 	}

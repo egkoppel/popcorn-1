@@ -21,7 +21,7 @@ namespace memory::paging {
 	}
 
 	template<std::size_t Level> void *PageTable<Level>::operator new(std::size_t size, IPhysicalAllocator *allocator) {
-		if (size != constants::frame_size) throw std::bad_alloc();
+		if (size != constants::frame_size) THROW(std::bad_alloc());
 		PhysicalRegion page_table_region{size, *allocator};
 		vaddr_t page_table_address = page_table_region.release()->frame_to_page_map_region();
 		return static_cast<void *>(page_table_address);

@@ -17,10 +17,10 @@
 namespace memory::physical_allocators {
 	class NullAllocator : public IPhysicalAllocator {
 	protected:
-		frame_t *allocate_(u64) override { throw std::bad_alloc(); }
+		frame_t *allocate_(u64) override { THROW(std::bad_alloc()); }
 		frame_t *allocate_at_(aligned<paddr_t> start, u64) override { return start.frame(); }
 		void deallocate_(const frame_t *frame, u64) noexcept override {}
 	};
 }   // namespace memory::physical_allocators
 
-#endif   //POPCORN_KERNEL_SRC_MEMORY_PHYSICAL_ALLOCATORS_NULL_ALLOCATOR_HPP
+#endif   // POPCORN_KERNEL_SRC_MEMORY_PHYSICAL_ALLOCATORS_NULL_ALLOCATOR_HPP

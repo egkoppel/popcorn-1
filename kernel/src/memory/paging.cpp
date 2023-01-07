@@ -157,7 +157,7 @@ namespace memory::paging {
 		                          .child_table_or_create(this->allocator))[page.address.page_table_index<2>()]
 		                        .child_table_or_create(this->allocator);
 		decltype(auto) l1_entry = (*l1_table)[page.address.page_table_index<1>()];
-		if (static_cast<bool>(l1_entry.get_flags() & PageTableFlags::PRESENT)) throw AlreadyMappedException();
+		if (static_cast<bool>(l1_entry.get_flags() & PageTableFlags::PRESENT)) THROW(AlreadyMappedException());
 		l1_entry.set_flags(flags | PageTableFlags::PRESENT);
 		l1_entry.set_pointed_frame(frame);
 

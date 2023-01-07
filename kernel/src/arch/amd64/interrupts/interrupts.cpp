@@ -73,7 +73,7 @@ namespace arch {
 	memory::KStack<> backup_stacks[8];
 
 	void load_backup_stack(uint8_t stack_idx, memory::KStack<>&& stack) {
-		if (stack_idx >= 8) throw std::runtime_error("Only 7 backup stacks supported");
+		if (stack_idx >= 8) THROW(std::runtime_error("Only 7 backup stacks supported"));
 		backup_stacks[stack_idx] = std::move(stack);
 		amd64::task_state_segment.add_stack(stack_idx, backup_stacks[stack_idx]);
 	}

@@ -1,6 +1,6 @@
 
 /*
- * Copyright (c) 2022 Eliyahu Gluschove-Koppel.
+ * Copyright (c) 2023 Eliyahu Gluschove-Koppel.
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -42,10 +42,18 @@ typedef size_t usize;
 #define cpu_local thread_local
 
 #ifdef __cplusplus
+	#include <log.hpp>
+
 struct deep_copy_t {};
 inline constexpr deep_copy_t deep_copy{};
 
 struct shallow_copy_t {};
 inline constexpr shallow_copy_t shallow_copy{};
+
+	#define THROW(x)                                                                                                   \
+		{                                                                                                              \
+			LOG(Log::CRITICAL, "Throwing " #x);                                                                        \
+			throw x;                                                                                                   \
+		}
 #endif
-#endif   //POPCORN_KERNEL_INCLUDE_POPCORN_PRELUDE_HPP
+#endif   // POPCORN_KERNEL_INCLUDE_POPCORN_PRELUDE_HPP

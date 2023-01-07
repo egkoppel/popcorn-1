@@ -27,11 +27,11 @@ namespace memory {
 			MemoryMapBase() = default;
 			/**
 			 * Creates an anonymous memory mapping
-		 	 * @param byte_count
-		 	 * @param flags
-		 	 * @param page_allocator
-		 	 * @param in
-		 	 */
+			 * @param byte_count
+			 * @param flags
+			 * @param page_allocator
+			 * @param in
+			 */
 			MemoryMapBase(PhysicalRegion&& backing_region,
 			              paging::PageTableFlags flags,
 			              IPhysicalAllocator& page_allocator,
@@ -59,7 +59,8 @@ namespace memory {
 	 * @tparam VAllocator The virtual allocator to use
 	 * @tparam T The type of the underlying object
 	 *
-	 * A MemoryMap represents a RAII-based map between virtual and physical memory space, and should usually be treated similarly to a pointer by specifying the type of \p T.
+	 * A MemoryMap represents a RAII-based map between virtual and physical memory space, and should usually be treated
+	 * similarly to a pointer by specifying the type of \p T.
 	 */
 	template<class T = void, class VAllocator = general_allocator_t>
 	class MemoryMap : public detail::MemoryMapBase<VAllocator> {
@@ -103,22 +104,20 @@ namespace memory {
 
 		T& operator*() { return *this->data; }
 		T *operator->() { return this->data; }
+		T *get() { return this->data; }
 		T& operator[](std::size_t offset) { return this->data[offset]; }
 		const T& operator*() const { return *this->data; }
 		const T *operator->() const { return this->data; }
+		const T *get() const { return this->data; }
 		const T& operator[](std::size_t offset) const { return this->data[offset]; }
 
-		template<class Tp, class U, class VAllocatorp>
-			requires(requires { static_cast<Tp *>((U *)nullptr); })
+		template<class Tp, class U, class VAllocatorp> requires(requires { static_cast<Tp *>((U *)nullptr); })
 		friend MemoryMap<Tp, VAllocatorp> static_pointer_cast(MemoryMap<U, VAllocatorp>&& r);
-		template<class Tp, class U, class VAllocatorp>
-			requires(requires { dynamic_cast<Tp *>((U *)nullptr); })
+		template<class Tp, class U, class VAllocatorp> requires(requires { dynamic_cast<Tp *>((U *)nullptr); })
 		friend MemoryMap<Tp, VAllocatorp> dynamic_pointer_cast(MemoryMap<U, VAllocatorp>&& r);
-		template<class Tp, class U, class VAllocatorp>
-			requires(requires { const_cast<Tp *>((U *)nullptr); })
+		template<class Tp, class U, class VAllocatorp> requires(requires { const_cast<Tp *>((U *)nullptr); })
 		friend MemoryMap<Tp, VAllocatorp> const_pointer_cast(MemoryMap<U, VAllocatorp>&& r);
-		template<class Tp, class U, class VAllocatorp>
-			requires(requires { reinterpret_cast<Tp *>((U *)nullptr); })
+		template<class Tp, class U, class VAllocatorp> requires(requires { reinterpret_cast<Tp *>((U *)nullptr); })
 		friend MemoryMap<Tp, VAllocatorp> reinterpret_pointer_cast(MemoryMap<U, VAllocatorp>&& r);
 
 	private:

@@ -18,17 +18,17 @@ namespace memory::physical_allocators {
 		while (true) {
 			auto allocation_end_frame = this->next_frame + IDIV_ROUND_UP(byte_length, constants::frame_size);
 
-			//fprintf(stdserial, "Attempt alloc at %p\n", attempt);
+			// fprintf(stdserial, "Attempt alloc at %p\n", attempt);
 			if ((this->next_frame >= this->kernel_start_frame && this->next_frame < this->kernel_end_frame)
 			    || (this->next_frame >= allocation_end_frame && allocation_end_frame < this->kernel_end_frame)) {
-				//fprintf(stdserial, "bump alloc kernel jump\n");
+				// fprintf(stdserial, "bump alloc kernel jump\n");
 				this->next_frame = this->kernel_end_frame;
 				continue;
 			}
 
 			if ((this->next_frame >= this->multiboot_start_frame && this->next_frame < this->multiboot_end_frame)
 			    || (this->next_frame >= allocation_end_frame && allocation_end_frame < this->multiboot_end_frame)) {
-				//fprintf(stdserial, "bump alloc multiboot jump\n");
+				// fprintf(stdserial, "bump alloc multiboot jump\n");
 				this->next_frame = this->multiboot_end_frame;
 				continue;
 			}
@@ -46,7 +46,7 @@ namespace memory::physical_allocators {
 				}
 			}
 
-			throw std::bad_alloc();
+			THROW(std::bad_alloc());
 		}
 	}
 }   // namespace memory::physical_allocators

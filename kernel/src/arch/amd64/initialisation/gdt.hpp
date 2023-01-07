@@ -83,4 +83,4 @@ namespace arch::amd64 {
 	extern GDT global_descriptor_table;
 }   // namespace arch::amd64
 
-#endif   //HUGOS_GDT_HPP
+#endif   // HUGOS_GDT_HPP

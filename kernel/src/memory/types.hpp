@@ -156,7 +156,7 @@ namespace memory {
 										 public mixin::binary_ops<aligned<vaddr_t, alignment>, usize> {
 		constexpr explicit(false) aligned(vaddr_t addr) {
 #ifndef NDEBUG
-			if ((addr.address & (alignment - 1)) != 0) throw std::runtime_error("Misaligned address");
+			if ((addr.address & (alignment - 1)) != 0) THROW(std::runtime_error("Misaligned address"));
 #endif
 			this->address = addr;
 		}
@@ -196,7 +196,7 @@ namespace memory {
 #ifndef NDEBUG
 			if (this->address.address < constants::page_offset_start
 			    || this->address.address >= constants::page_offset_end)
-				throw std::runtime_error("vaddr_t outside of page map region - attempted conversion to frame_t*");
+				THROW(std::runtime_error("vaddr_t outside of page map region - attempted conversion to frame_t*"));
 #endif
 			return &mem_map[(this->address.address - constants::page_offset_start) / constants::frame_size];
 		}
@@ -206,7 +206,7 @@ namespace memory {
 #ifndef NDEBUG
 			if (this->address.address < constants::page_offset_start
 			    || this->address.address >= constants::page_offset_end)
-				throw std::runtime_error("vaddr_t outside of page map region - attempted conversion to frame_t*");
+				THROW(std::runtime_error("vaddr_t outside of page map region - attempted conversion to frame_t*"));
 #endif
 			return &mem_map[(this->address.address - constants::page_offset_start) / constants::frame_size];
 		}
@@ -218,7 +218,7 @@ namespace memory {
 										 public mixin::binary_ops<aligned<paddr_t, alignment>, usize> {
 		constexpr explicit(false) aligned(paddr_t addr) {
 #ifndef NDEBUG
-			if ((addr.address & (alignment - 1)) != 0) throw std::runtime_error("Misaligned address");
+			if ((addr.address & (alignment - 1)) != 0) THROW(std::runtime_error("Misaligned address"));
 #endif
 			this->address = addr;
 		}

@@ -16,6 +16,7 @@
 
 #include <arch/constants.hpp>
 #include <optional>
+#include <popcorn_prelude.h>
 #include <stdint.h>
 #include <utils.h>
 
@@ -68,7 +69,7 @@ namespace memory {
 		 * other bob 2
 		 * @return
 		 */
-		virtual frame_t *allocate_at_(aligned<paddr_t>, u64) { throw std::bad_alloc(); }
+		virtual frame_t *allocate_at_(aligned<paddr_t>, u64) { THROW(std::bad_alloc()); }
 		/**
 		 * bob
 		 */

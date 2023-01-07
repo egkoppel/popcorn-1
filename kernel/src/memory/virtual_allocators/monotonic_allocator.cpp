@@ -17,7 +17,7 @@ namespace memory::virtual_allocators {
 	aligned<vaddr_t> MonotonicAllocator::allocate_(uint64_t byte_length) {
 		auto start = this->current_;
 		auto end   = start + IDIV_ROUND_UP(byte_length, constants::frame_size);
-		if (end > this->end_) throw std::bad_alloc();
+		if (end > this->end_) THROW(std::bad_alloc())
 		else {
 			this->current_ = end;
 			return start;

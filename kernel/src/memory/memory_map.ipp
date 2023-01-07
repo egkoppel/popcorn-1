@@ -19,10 +19,10 @@ namespace memory {
 		                                         paging::PageTableFlags flags,
 		                                         IPhysicalAllocator& page_allocator,
 		                                         paging::AddressSpaceBase& in,
-		                                         VAllocator allocator) :
-			backing_region(std::move(backing_region)),
-			virtual_region(this->backing_region.size(), allocator),
-			address_space(&in) {
+		                                         VAllocator allocator)
+			: backing_region(std::move(backing_region)),
+			  virtual_region(this->backing_region.size(), allocator),
+			  address_space(&in) {
 			for (auto [page, frame] : iter::zip(this->virtual_region, this->backing_region)) {
 				in.map_page_to(page, frame, flags);
 			}
@@ -34,10 +34,10 @@ namespace memory {
 
 
 		template<class VAllocator>
-		MemoryMapBase<VAllocator>::MemoryMapBase(MemoryMapBase&& other) noexcept :
-			backing_region(std::move(other.backing_region)),
-			virtual_region(std::move(other.virtual_region)),
-			address_space(other.address_space) {}
+		MemoryMapBase<VAllocator>::MemoryMapBase(MemoryMapBase&& other) noexcept
+			: backing_region(std::move(other.backing_region)),
+			  virtual_region(std::move(other.virtual_region)),
+			  address_space(other.address_space) {}
 
 		template<class VAllocator>
 		MemoryMapBase<VAllocator>& MemoryMapBase<VAllocator>::operator=(MemoryMapBase&& rhs) noexcept {
@@ -49,7 +49,7 @@ namespace memory {
 		}
 
 		template<class VAllocator> void MemoryMapBase<VAllocator>::resize_to(std::size_t new_size) {
-			if (new_size > this->size()) throw "i'll fix it later exception";
+			if (new_size > this->size()) THROW("i'll fix it later exception");
 		}
 	}   // namespace detail
 
@@ -58,13 +58,13 @@ namespace memory {
 	                                    paging::PageTableFlags flags,
 	                                    IPhysicalAllocator& page_allocator,
 	                                    paging::AddressSpaceBase& in,
-	                                    VAllocator allocator) :
-		detail::MemoryMapBase<VAllocator>(PhysicalRegion(byte_count, page_allocator),
-	                                      flags,
-	                                      page_allocator,
-	                                      in,
-	                                      allocator),
-		data(reinterpret_cast<T *>((*this->virtual_region.begin()).address.address)) {}
+	                                    VAllocator allocator)
+		: detail::MemoryMapBase<VAllocator>(PhysicalRegion(byte_count, page_allocator),
+	                                        flags,
+	                                        page_allocator,
+	                                        in,
+	                                        allocator),
+		  data(reinterpret_cast<T *>((*this->virtual_region.begin()).address.address)) {}
 
 	template<class T, class VAllocator>
 	MemoryMap<T, VAllocator>::MemoryMap(paddr_t at,
@@ -72,25 +72,25 @@ namespace memory {
 	                                    paging::PageTableFlags flags,
 	                                    IPhysicalAllocator& page_allocator,
 	                                    paging::AddressSpaceBase& in,
-	                                    VAllocator allocator) :
-		detail::MemoryMapBase<VAllocator>(PhysicalRegion(aligned<paddr_t>::aligned_down(at),
-	                                                     calculate_total_size(at, byte_count),
-	                                                     page_allocator),
-	                                      flags,
-	                                      page_allocator,
-	                                      in,
-	                                      allocator),
-		data(reinterpret_cast<T *>((*this->virtual_region.begin()).address.address + calculate_offset(at))) {}
+	                                    VAllocator allocator)
+		: detail::MemoryMapBase<VAllocator>(PhysicalRegion(aligned<paddr_t>::aligned_down(at),
+	                                                       calculate_total_size(at, byte_count),
+	                                                       page_allocator),
+	                                        flags,
+	                                        page_allocator,
+	                                        in,
+	                                        allocator),
+		  data(reinterpret_cast<T *>((*this->virtual_region.begin()).address.address + calculate_offset(at))) {}
 
 	template<class T, class VAllocator>
-	MemoryMap<T, VAllocator>::MemoryMap(MemoryMap&& other) noexcept :
-		detail::MemoryMapBase<VAllocator>(static_cast<detail::MemoryMapBase<VAllocator>&&>(other)),
-		data(other.data) {}
+	MemoryMap<T, VAllocator>::MemoryMap(MemoryMap&& other) noexcept
+		: detail::MemoryMapBase<VAllocator>(static_cast<detail::MemoryMapBase<VAllocator>&&>(other)),
+		  data(other.data) {}
 
 	template<class T, class VAllocator>
-	MemoryMap<T, VAllocator>::MemoryMap(detail::MemoryMapBase<VAllocator>&& other, T *data) noexcept :
-		detail::MemoryMapBase<VAllocator>(std::move(other)),
-		data(data) {}
+	MemoryMap<T, VAllocator>::MemoryMap(detail::MemoryMapBase<VAllocator>&& other, T *data) noexcept
+		: detail::MemoryMapBase<VAllocator>(std::move(other)),
+		  data(data) {}
 
 	template<class T, class VAllocator>
 	MemoryMap<T, VAllocator>& MemoryMap<T, VAllocator>::operator=(MemoryMap&& rhs) noexcept {
@@ -111,8 +111,7 @@ namespace memory {
 		return (start.address - aligned<paddr_t>::aligned_down(start).address.address);
 	}
 
-	template<class T, class U, class VAllocator>
-		requires(requires { static_cast<T *>((U *)nullptr); })
+	template<class T, class U, class VAllocator> requires(requires { static_cast<T *>((U *)nullptr); })
 	MemoryMap<T, VAllocator> static_pointer_cast(MemoryMap<U, VAllocator>&& r) {
 		auto new_ptr = static_cast<T *>(r.data);
 		return {static_cast<detail::MemoryMapBase<VAllocator>&&>(r), new_ptr};
@@ -134,4 +133,4 @@ namespace memory {
 	}
 }   // namespace memory
 
-#endif   //POPCORN_KERNEL_SRC_MEMORY_MEMORY_MAP_IPP
+#endif   // POPCORN_KERNEL_SRC_MEMORY_MEMORY_MAP_IPP
