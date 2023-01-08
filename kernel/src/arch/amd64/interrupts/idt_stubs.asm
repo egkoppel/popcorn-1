@@ -69,7 +69,7 @@ amd64_exception_handler_entry:
 
     ; locate stack frame
     mov rdi, rsp
-    add rdi, 9*8
+    add rdi, 9*8 ; load stack frame as first arg
     mov rsi, cr2 ; load cr2 value
     mov [rdi], rsi
 

@@ -12,7 +12,9 @@
 #include "double_fault.hpp"
 #include "page_fault.hpp"
 
+#include <amd64_macros.hpp>
 #include <arch/interrupts.hpp>
+#include <main/debug.hpp>
 
 void unhandled_irq(arch::interrupt_info_t *info) noexcept {
 	usize rsp;
@@ -34,8 +36,24 @@ void unhandled_irq(arch::interrupt_info_t *info) noexcept {
 	    rsp);
 }
 
-extern "C" void exception_handler_entry(arch::interrupt_info_t *info) noexcept {
+[[noreturn]] void general_protection_fault(arch::interrupt_info_t *interrupt_info) noexcept {
+	LOG(Log::CRITICAL,
+	    "General protection fault!\n"
+	    "Error code %d\n"
+	    "IP: %lp\n"
+	    "Flags: 0x%08x\n"
+	    "SP: %lp",
+	    interrupt_info->error_code,
+	    interrupt_info->ip,
+	    interrupt_info->flags,
+	    interrupt_info->sp);
+	while (true) hlt();
+}
+
+extern "C" void exception_handler_entry(arch::interrupt_info_t *info, usize rbp) noexcept {
+	// trace_stack_trace(100, rbp);
 	switch (info->vector) {
+		case 0xd: general_protection_fault(info); break;
 		case 0x8: interrupt_handlers::double_fault(info); break;
 		case 0xE: interrupt_handlers::page_fault(info); break;
 		default: unhandled_irq(info); break;
