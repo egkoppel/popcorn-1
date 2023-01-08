@@ -293,8 +293,8 @@ namespace memory::paging {
 
 	public:
 		void set_pointed_frame(const frame_t *) noexcept;
-		frame_t *pointed_frame() noexcept;
-		const frame_t *pointed_frame() const noexcept;
+		std::optional<frame_t *> pointed_frame() noexcept;
+		std::optional<const frame_t *> pointed_frame() const noexcept;
 		PageTableFlags get_flags() const noexcept;
 		void set_flags(PageTableFlags) noexcept;
 	};
@@ -328,23 +328,31 @@ namespace memory::paging {
 		}
 
 		PageTableEntry& operator=(const PageTableEntry& rhs) noexcept {
+			if (auto page_table = this->child_table()) {
+				page_table.value()->~PageTable<Level - 1>();
+				PageTable<Level - 1>::operator delete(page_table.value(), nullptr);
+			}
 			this->data = rhs.data;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wattribute-warning"
+			if (auto pf = this->pointed_frame()) pf->ref_count++;
+#pragma GCC diagnostic pop
 			return *this;
 		}
 
 		std::optional<PageTable<Level - 1> *> child_table() noexcept {
 			LOG(Log::TRACE, "Request child table - data: %llb", this->data);
 
-			if (static_cast<bool>(this->get_flags() & PageTableFlags::PRESENT)) {
-				return static_cast<PageTable<Level - 1> *>(this->pointed_frame()->frame_to_page_map_region().address);
-			} else return std::nullopt;
+			return this->pointed_frame().and_then([](auto f) {
+				return std::optional{static_cast<PageTable<Level - 1> *>(f->frame_to_page_map_region().address)};
+			});
 		}
 		std::optional<const PageTable<Level - 1> *> child_table() const noexcept {
 			LOG(Log::TRACE, "Request child table - data: %llb", this->data);
 
-			if (static_cast<bool>(this->get_flags() & PageTableFlags::PRESENT)) {
-				return static_cast<PageTable<Level - 1> *>(this->pointed_frame()->frame_to_page_map_region().address);
-			} else return std::nullopt;
+			return this->pointed_frame().and_then([](auto f) {
+				return std::optional{static_cast<const PageTable<Level - 1> *>(f->frame_to_page_map_region().address)};
+			});
 		}
 		PageTable<Level - 1> *child_table_or_create(IPhysicalAllocator *allocator) {
 			return this->child_table()
@@ -371,16 +379,16 @@ namespace memory::paging {
 
 		explicit PageTableEntry(const PageTableEntry& other, IPhysicalAllocator& allocator, deep_copy_t);
 
-		PageTableEntry& operator=(const PageTableEntry& rhs) noexcept {
-			this->data = rhs.data;
-			return *this;
-		}
+		/*PageTableEntry& operator=(const PageTableEntry& rhs) noexcept {
+		    this->data = rhs.data;
+		    return *this;
+		}*/
 	};
 
 	template<std::size_t Level> class PageTable {
 	public:
-		using iterator = PageTableEntry<Level>*;
-		using const_iterator = const PageTableEntry<Level>*;
+		using iterator       = PageTableEntry<Level> *;
+		using const_iterator = const PageTableEntry<Level> *;
 
 		PageTable()                 = default;
 		PageTable(const PageTable&) = delete;

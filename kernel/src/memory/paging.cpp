@@ -131,10 +131,14 @@ namespace memory::paging {
 		LOG(Log::TRACE, "l1 entry data %llb", this->data);
 	}
 
-	frame_t *PageTableEntryImpl::pointed_frame() noexcept {
-		return const_cast<frame_t *>(const_cast<const PageTableEntryImpl *>(this)->pointed_frame());
+	std::optional<frame_t *> PageTableEntryImpl::pointed_frame() noexcept {
+		return const_cast<const PageTableEntryImpl *>(this)->pointed_frame().and_then([](auto f) {
+			return std::optional{const_cast<frame_t *>(f)};
+		});
 	}
-	const frame_t *PageTableEntryImpl::pointed_frame() const noexcept {
+	std::optional<const frame_t *> PageTableEntryImpl::pointed_frame() const noexcept {
+		if ((this->data & static_cast<std::underlying_type_t<PageTableFlags>>(PageTableFlags::PRESENT)) == 0)
+			return std::nullopt;
 		auto frame_addr = this->data
 		                  & static_cast<std::underlying_type_t<PageTableFlags>>(PageTableFlags::IMPL_ADDR_BITS);
 		auto frame_num = frame_addr / constants::frame_size;
