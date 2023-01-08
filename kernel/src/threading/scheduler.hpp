@@ -28,14 +28,18 @@ namespace threads {
 		/**
 		 * All tasks that exist
 		 */
-		SyscallHandleTable<std::unique_ptr<Task>, syscall_handle_type::syscall_handle_type::TASK> task_handles_list;
-		std::map<time_t, Task&> sleep_queue;
+		/*SyscallHandleTable<std::unique_ptr<Task>, syscall_handle_type::syscall_handle_type::TASK> task_handles_list;
+		std::map<time_t, Task&> sleep_queue;*/
 
+		std::vector<std::unique_ptr<Task>> tasks;
 		static std::unique_ptr<GlobalScheduler> instance;
 
 	public:
 		GlobalScheduler() = default;
-		static GlobalScheduler& get() { return *instance; }
+		static GlobalScheduler& get() {
+			if (!instance) instance = std::make_unique<GlobalScheduler>();
+			return *instance;
+		}
 
 		/**
 		 * @brief Get a task object from a syscall handle
@@ -44,10 +48,12 @@ namespace threads {
 		 * @note Task pointer is not invalidated while task is running
 		 */
 		Task *get_task(syscall_handle_t task) {
-			return task_handles_list.get_data_from_handle(task, std::unique_ptr<Task>()).get();
+			return nullptr;   // task_handles_list.get_data_from_handle(task, std::unique_ptr<Task>()).get();
 		}
 
-		void add_to_sleep_queue(Task& task, time_t handle) { this->sleep_queue.insert({handle, task}); }
+		void add_task(std::unique_ptr<Task> t) { this->tasks.push_back(std::move(t)); }
+
+		void add_to_sleep_queue(Task& task, time_t handle) {}   // { this->sleep_queue.insert({handle, task}); }
 		void irq_fired();
 		/**
 		 * @brief Unblocks the task and causes it to be scheduled, if it is currently blocked
@@ -56,7 +62,7 @@ namespace threads {
 		void unblock_task(Task& task);
 		time_t current_time();
 	};
-	
+
 	extern "C" void task_startup_scheduler_unlock();
 
 	class ILocalScheduler {
