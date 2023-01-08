@@ -12,6 +12,8 @@
 #ifndef POPCORN_KERNEL_SRC_MEMORY_MEMORY_MAP_IPP
 #define POPCORN_KERNEL_SRC_MEMORY_MEMORY_MAP_IPP
 
+#include <utility/zip.hpp>
+
 namespace memory {
 	namespace detail {
 		template<class VAllocator>
@@ -131,6 +133,18 @@ namespace memory {
 		auto new_ptr = reinterpret_cast<T *>(r.data);
 		return {static_cast<detail::MemoryMapBase<VAllocator>&&>(r), new_ptr};
 	}
+
+	template<class VAllocator>
+	MemoryMap<void, VAllocator>::MemoryMap(usize byte_count,
+	                                       paging::PageTableFlags flags,
+	                                       IPhysicalAllocator& page_allocator,
+	                                       paging::AddressSpaceBase& in,
+	                                       VAllocator allocator)
+		: detail::MemoryMapBase<VAllocator>(PhysicalRegion(byte_count, page_allocator),
+	                                        flags,
+	                                        page_allocator,
+	                                        in,
+	                                        allocator) {}
 }   // namespace memory
 
 #endif   // POPCORN_KERNEL_SRC_MEMORY_MEMORY_MAP_IPP

@@ -17,7 +17,6 @@
 #include "virtual_region.hpp"
 
 #include <optional>
-#include <threading/scheduler.hpp>
 #include <utils.h>
 
 namespace memory {
@@ -35,8 +34,8 @@ namespace memory {
 			MemoryMapBase(PhysicalRegion&& backing_region,
 			              paging::PageTableFlags flags,
 			              IPhysicalAllocator& page_allocator,
-			              paging::AddressSpaceBase& in = threads::local_scheduler->get_current_task()->address_space(),
-			              VAllocator allocator         = VAllocator());
+			              paging::AddressSpaceBase& in,
+			              VAllocator allocator = VAllocator());
 			MemoryMapBase(const MemoryMapBase&) = delete;
 			MemoryMapBase(MemoryMapBase&&) noexcept;
 			~MemoryMapBase();
@@ -46,6 +45,7 @@ namespace memory {
 		public:
 			void resize_to(std::size_t new_size);
 			std::size_t size() { return this->virtual_region.size(); }
+			vaddr_t start() { return *this->virtual_region.begin(); }
 
 		protected:
 			PhysicalRegion backing_region;
@@ -80,8 +80,8 @@ namespace memory {
 		MemoryMap(usize byte_count,
 		          paging::PageTableFlags flags,
 		          IPhysicalAllocator& page_allocator,
-		          paging::AddressSpaceBase& in = threads::local_scheduler->get_current_task()->address_space(),
-		          VAllocator allocator         = VAllocator());
+		          paging::AddressSpaceBase& in,
+		          VAllocator allocator = VAllocator());
 
 		/**
 		 * Creates a memory mapping at the requested location
@@ -95,8 +95,8 @@ namespace memory {
 		          usize byte_count,
 		          paging::PageTableFlags flags,
 		          IPhysicalAllocator& page_allocator,
-		          paging::AddressSpaceBase& in = threads::local_scheduler->get_current_task()->address_space(),
-		          VAllocator allocator         = VAllocator());
+		          paging::AddressSpaceBase& in,
+		          VAllocator allocator = VAllocator());
 		MemoryMap(const MemoryMap&) = delete;
 
 		MemoryMap(MemoryMap&&) noexcept;
@@ -130,10 +130,22 @@ namespace memory {
 
 	template<class VAllocator> class MemoryMap<void, VAllocator> : public detail::MemoryMapBase<VAllocator> {
 	public:
-		using detail::MemoryMapBase<VAllocator>::MemoryMapBase;
 		using detail::MemoryMapBase<VAllocator>::size;
 		using detail::MemoryMapBase<VAllocator>::resize_to;
 		using detail::MemoryMapBase<VAllocator>::operator=;
+
+		/**
+		 * Creates an anonymous memory mapping
+		 * @param byte_count
+		 * @param flags
+		 * @param page_allocator
+		 * @param in
+		 */
+		MemoryMap(usize byte_count,
+		          paging::PageTableFlags flags,
+		          IPhysicalAllocator& page_allocator,
+		          paging::AddressSpaceBase& in,
+		          VAllocator allocator = VAllocator());
 	};
 }   // namespace memory
 
