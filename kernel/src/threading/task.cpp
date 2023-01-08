@@ -22,7 +22,8 @@ namespace threads {
 		: stack(std::move(stack)),
 		  address_space_(),
 		  stack_ptr_(0_va),
-		  name(name) {}
+		  name(name),
+		  allocator(vaddr_t{.address = constants::userspace_end / 2}, vaddr_t{.address = constants::userspace_end}) {}
 
 	std::unique_ptr<Task> Task::initialise(memory::KStack<>&& current_stack) {
 		auto ktask = new Task{"kmain", std::move(current_stack)};
@@ -33,7 +34,8 @@ namespace threads {
 		: stack(memory::constants::frame_size),
 		  address_space_(),
 		  stack_ptr_(vaddr_t(*this->stack.top()) - (stack_offset + 8) * 8),
-		  name(name) {
+		  name(name),
+		  allocator(vaddr_t{.address = constants::userspace_end / 2}, vaddr_t{.address = constants::userspace_end}) {
 		auto stack_top               = static_cast<u64 *>((*this->stack.top()).address);
 		stack_top[-2 - stack_offset] = reinterpret_cast<u64>(arch::task_startup);
 		stack_top[-3 - stack_offset] = argument;
@@ -54,6 +56,16 @@ namespace threads {
 		stack_top[-1]  = reinterpret_cast<u64>(entrypoint);
 		stack_top[-2]  = reinterpret_cast<u64>(arch::switch_to_user_mode);
 	}
+	memory::vaddr_t Task::new_mmap(memory::vaddr_t hint, usize size, bool downwards) {
+		using enum paging::PageTableFlags;
+		auto flags = WRITEABLE | USER | NO_EXECUTE;
+		decltype(mmaps)::value_type map{size,
+		                                flags,
+		                                allocators.general(),
+		                                this->address_space_,
+		                                allocator_wrapper{this}};
+		return map.start();
+	}
 
 	usize get_p4_table_frame(const Task *task) {
 		auto ret = task->address_space().l4_table_frame()->addr();
@@ -65,5 +77,11 @@ namespace threads {
 	}
 	usize get_kstack_top(const Task *task) {
 		return (*task->kernel_stack().top()).address.address;
+	}
+	memory::aligned<memory::vaddr_t> Task::allocator_wrapper::allocate(std::size_t size) {
+		return this->task->allocator.allocate(size);
+	}
+	void Task::allocator_wrapper::deallocate(memory::aligned<memory::vaddr_t> start, std::size_t size) {
+		this->task->allocator.deallocate(start, size);
 	}
 }   // namespace threads
