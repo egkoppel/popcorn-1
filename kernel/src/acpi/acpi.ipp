@@ -13,6 +13,8 @@
 
 #include "sdts/apic.hpp"
 
+#include <tuple>
+
 namespace acpi {
 	template<class VAllocator>
 	AcpiData<VAllocator> parse_acpi_tables(memory::paddr_t rsdt_addr, memory::IPhysicalAllocator& physical_allocator) {
