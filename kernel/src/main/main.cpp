@@ -69,6 +69,8 @@ memory::paddr_t real_initial_mem_map_start{
 
 using namespace memory;
 
+static MemoryMap<char> framebuffer_mapping;
+
 void parse_cli_args(const multiboot::Data& multiboot) {
 	auto cli = multiboot.find_tag<multiboot::tags::Cli>(multiboot::TagType::CLI);
 
@@ -351,7 +353,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	                         | memory::paging::PageTableFlags::IMPL_CACHE_WRITETHROUGH
 	                         | memory::paging::PageTableFlags::GLOBAL;
 
-	MemoryMap<char> framebuffer_mapping{fb->begin(), fb->size(), framebuffer_flags, null_allocator, paging::kas};
+	framebuffer_mapping = MemoryMap<char>{fb->begin(), fb->size(), framebuffer_flags, null_allocator, paging::kas};
 
 	FRAMEBUFFER = framebuffer_mapping.operator->();
 	Log::set_screen_log_level(Log::INFO);
