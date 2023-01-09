@@ -77,8 +77,8 @@ void putchar(unsigned char c) {
 		switch (c) {
 			case 'm': esc = false; __attribute__((fallthrough));
 			case ';':
-				handle_esc_code(
-						code);   // then fallthrough to reset code (necessary to parse next one, harmless if 'm')
+				handle_esc_code(code);   // then fallthrough to reset code (necessary to parse next one, harmless if
+				                         // 'm')
 				__attribute__((fallthrough));
 			case '[': code = 0; break;
 			case 'c':
@@ -109,9 +109,10 @@ newline:
 		char *fb_target = FRAMEBUFFER + y * framebuffer_pitch * psf_height + x * (psf_width + 1) * framebuffer_bpp / 8;
 		for (uint32_t yy = 0; yy < psf_height; ++yy) {
 			for (uint32_t xx = 0; xx < psf_width; ++xx) {
-				uint32_t bit_addr = yy * psf_width + xx;
-				char font_byte    = *((char *)&font_psf_start + psf_headersize + c * psf_bytesperglyph + bit_addr / 8);
-				bool bit          = (font_byte << (bit_addr % 8)) & (1 << 7);
+				uint32_t bit_addr       = yy * psf_width + xx;
+				unsigned char font_byte = *((unsigned char *)&font_psf_start + psf_headersize + c * psf_bytesperglyph
+				                            + bit_addr / 8);
+				bool bit                = (font_byte << (bit_addr % 8)) & (1 << 7);
 				*(uint32_t *)(fb_target + xx * framebuffer_bpp / 8) = bit ? col : 0;
 			}
 			fb_target += framebuffer_pitch;
@@ -268,9 +269,9 @@ int _kvfprintf(FILE *stream, const char *fmt, va_list args) {
 			uint64_t un;
 			long len;
 			char *str;
-			//double f_val; // for floats, which currently are unsupported so are commented out
-			//uint64_t f_intpart, f_floatpart;
-			//bool neg;
+			// double f_val; // for floats, which currently are unsupported so are commented out
+			// uint64_t f_intpart, f_floatpart;
+			// bool neg;
 			switch (*fmt) {
 				case 'c':   // todo: handle %lc
 					fputc(va_arg(args, int /*char*/), stream);
@@ -346,42 +347,42 @@ int _kvfprintf(FILE *stream, const char *fmt, va_list args) {
 
 				case 'f':
 				case 'F':
-				/* // while we compile with -mno-sse, floats are basically broken, so this won't work anyway. If we ever enable floats again, we can uncomment this.
-					if (options.precision < 0) options.precision = 6;
-					
+				/* // while we compile with -mno-sse, floats are basically broken, so this won't work anyway. If we ever
+				   enable floats again, we can uncomment this. if (options.precision < 0) options.precision = 6;
+
 					//f_val = va_arg(args, double);
 					f_val = ((union{uint64_t i; double f;})va_arg(args, uint64_t)).f;
 					if ((neg = (f_val < 0.0))) {
-						f_val *= -1.0;
+					    f_val *= -1.0;
 					}
 					f_intpart = (uint64_t)f_val;
 					utoa(f_intpart, itoabuf, 10);
 					const char too_big[] = "TOOBIG";
 					if (f_val > (double)UINT64_MAX) memcpy(itoabuf, too_big, sizeof(too_big));
-					
+
 					len = (neg ? 1 : 0) + strlen(itoabuf) + 1 + options.precision;
-					
+
 					f_val -= f_intpart;
 					for (int i = 0; i < options.precision; ++i) f_val *= 10;
 					f_floatpart = (uint64_t)f_val;
-					
+
 					while(len < options.width) {
-						fputc(stream, options.zeropad ? '0' : ' ');
-						--options.width;
+					    fputc(stream, options.zeropad ? '0' : ' ');
+					    --options.width;
 					}
 					if (neg) fputc(stream, '-');
 					fputs(stream, itoabuf);
 					fputc(stream, '.');
 					if (options.precision) {
-						utoa(f_floatpart, itoabuf, 10);
-						fputs(stream, itoabuf);
-						if ((long)strlen(itoabuf) != options.precision) {
-							int diff = options.precision - (long)strlen(itoabuf);
-							while (diff > 0) {
-								fputc(stream, '?');
-								--diff;
-							}
-						}
+					    utoa(f_floatpart, itoabuf, 10);
+					    fputs(stream, itoabuf);
+					    if ((long)strlen(itoabuf) != options.precision) {
+					        int diff = options.precision - (long)strlen(itoabuf);
+					        while (diff > 0) {
+					            fputc(stream, '?');
+					            --diff;
+					        }
+					    }
 					}
 					break;
 				*/
@@ -438,7 +439,9 @@ int vfprintf(FILE *stream, const char *fmt, va_list args) {
 	return _kvfprintf(stream, fmt, args);
 }
 
-int vprintf(const char *fmt, va_list args) { return vfprintf(stdout, fmt, args); }
+int vprintf(const char *fmt, va_list args) {
+	return vfprintf(stdout, fmt, args);
+}
 
 int fprintf(FILE *stream, const char *fmt, ...) {
 	stdio_char_count = 0;
@@ -496,7 +499,9 @@ int snprintf(char *str, size_t size, const char *fmt, ...) {
 	return ret;
 }
 
-int vsprintf(char *str, const char *fmt, va_list args) { return vsnprintf(str, SIZE_MAX, fmt, args); }
+int vsprintf(char *str, const char *fmt, va_list args) {
+	return vsnprintf(str, SIZE_MAX, fmt, args);
+}
 
 int sprintf(char *str, const char *fmt, ...) {
 	va_list args;
@@ -545,4 +550,6 @@ void term_clear() {
 	y = 0;
 }
 
-int fflush(FILE *) { return 0; }
+int fflush(FILE *) {
+	return 0;
+}
