@@ -380,9 +380,13 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
                                        std::move(kernel_monotonic_frame_allocator),
                                        general_allocator_t{});
 
+	allocators.general_frame_allocator_ = &main_frame_allocator;
+	paging::kas.rebind_allocator(allocators.general());
+
 	init_sbrk();
 
 	allocators.general_frame_allocator_ = new physical_allocators::BitmapAllocator(std::move(main_frame_allocator));
+	paging::kas.rebind_allocator(allocators.general());
 
 	LOG(Log::DEBUG, "Creating extra stacks");
 
