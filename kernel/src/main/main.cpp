@@ -18,11 +18,7 @@
 #include <arch/hal.hpp>
 #include <arch/initialisation.hpp>
 #include <arch/interrupts.hpp>
-#include <cstdint>
-#include <cstdio>
 #include <cstring>
-#include <interrupt_handlers/double_fault.hpp>
-#include <interrupt_handlers/page_fault.hpp>
 #include <log.hpp>
 #include <memory/memory_map.hpp>
 #include <memory/paging.hpp>
@@ -45,6 +41,7 @@
 #include <serial.h>
 #include <smp/core_local.hpp>
 #include <termcolor.h>
+#include <threading/scheduler.hpp>
 #include <threading/task.hpp>
 #include <tuple>
 #include <userspace/fsd.hpp>
@@ -258,40 +255,11 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 
 	memory::physical_allocators::NullAllocator null_allocator{};
 
-	/*fprintf(stdserial, "Map multiboot\n");
-	memory::paging::PageTableEntry::flags_t multiboot_flags = 0;
-	multiboot_flags |= memory::paging::PageTableEntry::flags::GLOBAL;
-	multiboot_flags |= memory::paging::PageTableEntry::flags::NO_EXECUTE;
-	if (USER_ACCESS_FROM_KERNEL) multiboot_flags |= memory::paging::PageTableEntry::flags::USER;
-
-	VirtualAddress multiboot_address = MemoryMapper::new_address_map(VirtualAddress(multiboot_addr),
-	                                                                 mb->size(),
-	                                                                 multiboot_flags,
-	                                                                 kernel_virt_allocator,
-	                                                                 allocators.general());*/
-
-	/*fprintf(stdserial, "Map initramfs\n");
-	memory::paging::PageTableEntry::flags_t initramfs_flags = 0;
-	initramfs_flags |= memory::paging::PageTableEntry::flags::NO_EXECUTE;
-	initramfs_flags |= memory::paging::PageTableEntry::flags::USER;
-
-	VirtualAddress initramfs_address = MemoryMapper::new_address_map(boot_module->begin(),
-	                                                                 boot_module->module_size(),
-	                                                                 initramfs_flags,
-	                                                                 kernel_virt_allocator,
-	                                                                 allocators.general(),
-	                                                                 new_p4_table);*/
-
 	LOG(Log::DEBUG, "Map all the memory");
 	auto all_mem_flags = paging::PageTableFlags::WRITEABLE | memory::paging::PageTableFlags::GLOBAL
 	                     | memory::paging::PageTableFlags::NO_EXECUTE;
 	if (USER_ACCESS_FROM_KERNEL) all_mem_flags = all_mem_flags | memory::paging::PageTableFlags::USER;
 
-	/*for (auto f = 0_palign; f.address.address < total_ram; f++) {
-	    new_p4_table.map_page_to(vaddr_t{.address = f.address.address + memory::constants::page_offset_start},
-	                             f.frame(),
-	                             all_mem_flags);
-	}*/
 	for (auto& entry : *mmap) {
 		if (entry.get_type() == multiboot::tags::MemoryMap::Type::AVAILABLE) {
 			auto start = aligned<paddr_t>::aligned_down(entry.get_start_address());
@@ -330,15 +298,6 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	}
 
 	// ******************************* END PAGE TABLE REMAPPING *******************************
-
-	/* TODO: Check if needs address offset like old code
-	 * PhysicalAddress old_p4_table_frame;
-	 * __asm__ volatile("mov %%cr3, %0" : "=r"(old_p4_table_frame));
-	 * Page old_p4_table_page = Page::from_address(static_cast<VirtualAddress>(old_p4_table_frame +
-	 * 0xFFFF800000000000));
-	 * __asm__ volatile("mov %0, %%cr3" : : "r"(new_p4_table));
-	 */
-	fprintf(stdserial, "************\n");
 
 	auto old_p4_table = get_current_page_table_addr();
 	vaddr_t old_p4_table_page{.address = old_p4_table.address + constants::kexe_start};
@@ -394,12 +353,6 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	arch::load_backup_stack(1, std::move(double_fault_stack));
 
 	LOG(Log::DEBUG, "Loaded double fault stack");
-
-	/*uint8_t index = global_descriptor_table.add_tss_entry(
-	        gdt::tss_entry(reinterpret_cast<uint64_t>(&task_state_segment), sizeof(tss::TSS), 0));
-	printf("TSS index at %u\n", index);
-	tss::TSS::load(index);*/
-	// printf("[ " TERMCOLOR_GREEN "OK" TERMCOLOR_RESET " ] Loaded TSS\n");
 
 	create_core_local_data(tls_size);
 
