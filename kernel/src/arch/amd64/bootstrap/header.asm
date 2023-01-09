@@ -1,6 +1,5 @@
 bits 32
 section .multiboot2
-extern long_mode_start
 mb_header_start:
 dd 0xE85250D6 ; magic
 dd 0 ; arch
