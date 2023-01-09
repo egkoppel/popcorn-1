@@ -38,6 +38,8 @@ set(SRCROOT ${PROJECT_SOURCE_DIR})
 
 include(FetchContent)
 
+configure_file(grub.cfg.in grub.cfg)
+
 Set(FETCHCONTENT_QUIET FALSE)
 FetchContent_Declare(
         libcxxrt
@@ -83,11 +85,11 @@ add_custom_target(initramfs DEPENDS ${PROJECT_BINARY_DIR}/initramfs.tar.gz)
 
 add_custom_command(
         OUTPUT ${PROJECT_BINARY_DIR}/popcorn.iso
-        DEPENDS ${SRCROOT}/grub.cfg ${PROJECT_BINARY_DIR}/initramfs.tar.gz ${PROJECT_BINARY_DIR}/kernel.bin
+        DEPENDS ${PROJECT_BINARY_DIR}/grub.cfg ${PROJECT_BINARY_DIR}/initramfs.tar.gz ${PROJECT_BINARY_DIR}/kernel.bin
         COMMAND mkdir -p ${PROJECT_BINARY_DIR}/iso/boot/grub
         COMMAND cp ${PROJECT_BINARY_DIR}/kernel.bin ${PROJECT_BINARY_DIR}/iso/boot/hug.bin
         COMMAND cp ${PROJECT_BINARY_DIR}/initramfs.tar.gz ${PROJECT_BINARY_DIR}/iso/boot/initramfs.tar.gz
-        COMMAND cp ${SRCROOT}/grub.cfg ${PROJECT_BINARY_DIR}/iso/boot/grub/grub.cfg
+        COMMAND cp ${PROJECT_BINARY_DIR}/grub.cfg ${PROJECT_BINARY_DIR}/iso/boot/grub/grub.cfg
         COMMAND grub-mkrescue -o ${PROJECT_BINARY_DIR}/popcorn.iso ${PROJECT_BINARY_DIR}/iso
 )
 add_custom_target(popcorn_iso DEPENDS ${PROJECT_BINARY_DIR}/popcorn.iso)

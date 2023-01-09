@@ -1,19 +1,19 @@
 set default = 0
 set timeout = 10
 
-menuentry "Popcorn [Kernel: convolution 0.0.1-dev amd64]" {
+menuentry "@CMAKE_PROJECT_NAME@ [Kernel: convolution @CMAKE_PROJECT_VERSION@ @HUGOS_ARCH@]" {
     multiboot2 /boot/hug.bin
 	module2 /boot/initramfs.tar.gz initramfs
 	boot
 }
 
-menuentry "Popcorn [Kernel: convolution 0.0.1-dev amd64] (DEBUG)" {
+menuentry "@CMAKE_PROJECT_NAME@ [Kernel: convolution @CMAKE_PROJECT_VERSION@ @HUGOS_ARCH@] (DEBUG)" {
     multiboot2 /boot/hug.bin log_level=3
     module2 /boot/initramfs.tar.gz initramfs
     boot
 }
 
-menuentry "Popcorn [Kernel: convolution 0.0.1-dev amd64] (TRACE)" {
+menuentry "@CMAKE_PROJECT_NAME@ [Kernel: convolution @CMAKE_PROJECT_VERSION@ @HUGOS_ARCH@] (TRACE)" {
     multiboot2 /boot/hug.bin log_level=4
     module2 /boot/initramfs.tar.gz initramfs
     boot
