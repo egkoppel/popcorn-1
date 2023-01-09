@@ -31,8 +31,8 @@ namespace memory::physical_allocators {
 
 		enum frame_state { free, allocated };
 
-		static constexpr auto flags =
-				paging::PageTableFlags::WRITEABLE | paging::PageTableFlags::NO_EXECUTE | paging::PageTableFlags::GLOBAL;
+		static constexpr auto flags = paging::PageTableFlags::WRITEABLE | paging::PageTableFlags::NO_EXECUTE
+		                              | paging::PageTableFlags::GLOBAL;
 
 		int mark_frame(const frame_t *addr,
 		               frame_state state = allocated) noexcept;      //!< Marks a frame with a given state
@@ -41,9 +41,9 @@ namespace memory::physical_allocators {
 		BitmapAllocator(paddr_t start_addr,
 		                std::size_t size,
 		                IPhysicalAllocator& page_allocator,
-		                VAllocator allocator) noexcept :
-			start_frame(aligned<paddr_t>::aligned_down(start_addr).frame()),
-			bitmap(size, flags, page_allocator, paging::kas, allocator) {
+		                VAllocator allocator) noexcept
+			: start_frame(aligned<paddr_t>::aligned_down(start_addr).frame()),
+			  bitmap(size, flags, page_allocator, paging::kas, allocator) {
 			memset(this->bitmap.operator->(), 0, size);
 		}
 
@@ -54,12 +54,14 @@ namespace memory::physical_allocators {
 		BitmapAllocator& operator=(BitmapAllocator&& rhs) noexcept = default;
 
 		frame_t *allocate_(u64 byte_length) override;
-		//std::optional<memory::Frame> allocate_at(memory::Frame, uint64_t byte_length) override;
 		void deallocate_(const frame_t *frames, u64) noexcept override;
 		static BitmapAllocator from(paddr_t start_addr, std::size_t size, MonotonicAllocator&&, VAllocator allocator);
+
+	private:
+		std::tuple<u64, u64> frame_to_indices(const frame_t *frame);
 	};
 }   // namespace memory::physical_allocators
 
 #include "bitmap_allocator.ipp"
 
-#endif   //HUGOS_KERNEL_SRC_MEMORY_PHYSICAL_ALLOCATORS_BITMAP_ALLOCATOR_HPP
+#endif   // HUGOS_KERNEL_SRC_MEMORY_PHYSICAL_ALLOCATORS_BITMAP_ALLOCATOR_HPP
