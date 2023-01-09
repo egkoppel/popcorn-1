@@ -1,6 +1,6 @@
-bits 32
+%include "constants.inc"
 
-KERNEL_OFFSET: equ 0xFFFFFFFF80000000
+bits 32
 
 section .rodata
 

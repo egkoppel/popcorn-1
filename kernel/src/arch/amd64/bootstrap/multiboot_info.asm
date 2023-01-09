@@ -1,3 +1,5 @@
+%include "constants.inc"
+
 bits 32
 
 section .bss
@@ -19,7 +21,6 @@ framebuffer_type: resb 1
 section .text
 global read_multiboot_info
 
-KERNEL_VIRTUAL_BASE: equ 0xFFFFFFFF80000000
 TAG_TYPE_END: equ 0
 TAG_TYPE_FRAMEBUFFER: equ 8
 
@@ -53,25 +54,25 @@ read_multiboot_info:
 	mov ecx, ebx
 	add ecx, 8
 	mov eax, dword [ecx]
-	mov dword [framebuffer_addr - KERNEL_VIRTUAL_BASE], eax ; lower addr
+	mov dword [framebuffer_addr - KERNEL_OFFSET], eax ; lower addr
 	add ecx, 4
 	mov eax, dword [ecx]
-	mov dword [framebuffer_addr - KERNEL_VIRTUAL_BASE + 4], eax ; upper addr
+	mov dword [framebuffer_addr - KERNEL_OFFSET + 4], eax ; upper addr
 	add ecx, 4
 	mov eax, dword [ecx]
-	mov dword [framebuffer_pitch - KERNEL_VIRTUAL_BASE], eax
+	mov dword [framebuffer_pitch - KERNEL_OFFSET], eax
 	add ecx, 4
 	mov eax, dword [ecx]
-	mov dword [framebuffer_width - KERNEL_VIRTUAL_BASE], eax
+	mov dword [framebuffer_width - KERNEL_OFFSET], eax
 	add ecx, 4
 	mov eax, dword [ecx]
-	mov dword [framebuffer_height - KERNEL_VIRTUAL_BASE], eax
+	mov dword [framebuffer_height - KERNEL_OFFSET], eax
 	add ecx, 4
 	mov al, byte [ecx]
-	mov byte [framebuffer_bpp - KERNEL_VIRTUAL_BASE], al
+	mov byte [framebuffer_bpp - KERNEL_OFFSET], al
 	add ecx, 1
 	mov al, byte [ecx]
-	mov byte [framebuffer_type - KERNEL_VIRTUAL_BASE], al
+	mov byte [framebuffer_type - KERNEL_OFFSET], al
 	jmp .continue_check_tag
 
 .end:

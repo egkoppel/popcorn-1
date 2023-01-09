@@ -1,6 +1,6 @@
-bits 32
+%include "constants.inc"
 
-KERNEL_VIRTUAL_BASE: equ 0xFFFFFFFF80000000
+bits 32
 
 section .bss
 global x
@@ -45,8 +45,8 @@ _32_utoa:
 		; val % base -> edx
 		; val / base -> eax
 
-		movzx ecx, byte [itoa_str + edx - KERNEL_VIRTUAL_BASE] ; cl = itoa_str[val % base]
-		mov byte [itoa_buffer + edi - KERNEL_VIRTUAL_BASE], cl ; buf[i] = cl = itoa_str[val % base]
+		movzx ecx, byte [itoa_str + edx - KERNEL_OFFSET] ; cl = itoa_str[val % base]
+		mov byte [itoa_buffer + edi - KERNEL_OFFSET], cl ; buf[i] = cl = itoa_str[val % base]
 
 		dec edi ; --i
 		; val /= base already done since quotient in eax
@@ -59,7 +59,7 @@ _32_utoa:
 	jmp .loop_start
 	.loop_end:
 
-	lea eax, [itoa_buffer + edi + 1 - KERNEL_VIRTUAL_BASE]; return &buf[i+1]
+	lea eax, [itoa_buffer + edi + 1 - KERNEL_OFFSET]; return &buf[i+1]
 
 	; unsave regs
 	pop edi
@@ -87,16 +87,16 @@ _32_shift_up:
 	push esi
 	push edi
 	
-	mov eax, [framebuffer_bpp - KERNEL_VIRTUAL_BASE]
+	mov eax, [framebuffer_bpp - KERNEL_OFFSET]
 	shr eax, 3
-	imul dword [framebuffer_width - KERNEL_VIRTUAL_BASE]
-	imul dword [psf_height - KERNEL_VIRTUAL_BASE]
+	imul dword [framebuffer_width - KERNEL_OFFSET]
+	imul dword [psf_height - KERNEL_OFFSET]
 	mov esi, eax ; esi = stride for one row of text
-	imul dword [framebuffer_height - KERNEL_VIRTUAL_BASE]
-	add eax, [framebuffer_addr - KERNEL_VIRTUAL_BASE] ; eax = framebuffer end addr
+	imul dword [framebuffer_height - KERNEL_OFFSET]
+	add eax, [framebuffer_addr - KERNEL_OFFSET] ; eax = framebuffer end addr
 	
 	mov ecx, esi
-	add ecx, [framebuffer_addr - KERNEL_VIRTUAL_BASE] ; ecx = framebuffer_addr + stride for one row of text
+	add ecx, [framebuffer_addr - KERNEL_OFFSET] ; ecx = framebuffer_addr + stride for one row of text
 	.loop_start1:
 		mov edx, ecx
 		mov ebx, edx
@@ -149,33 +149,33 @@ _32_putc:
 	je .col_red
 	cmp cl, 130 ; c == [col_green]
 	je .col_green
-		movzx eax, word [x - KERNEL_VIRTUAL_BASE]
+		movzx eax, word [x - KERNEL_OFFSET]
 		push eax
-		movzx eax, word [y - KERNEL_VIRTUAL_BASE]
+		movzx eax, word [y - KERNEL_OFFSET]
 		push eax
 		push ecx
 		call psf_copychar
 		add esp, 12
 		
-		inc word [x - KERNEL_VIRTUAL_BASE]
+		inc word [x - KERNEL_OFFSET]
 		jmp .epi
 	.col_reset:
-		mov dword [col - KERNEL_VIRTUAL_BASE], 0xffffff
+		mov dword [col - KERNEL_OFFSET], 0xffffff
 		jmp .epi
 	.col_green:
-		mov dword [col - KERNEL_VIRTUAL_BASE], 0x00ff00
+		mov dword [col - KERNEL_OFFSET], 0x00ff00
 		jmp .epi
 	.col_red:
-		mov dword [col - KERNEL_VIRTUAL_BASE], 0xff0000
+		mov dword [col - KERNEL_OFFSET], 0xff0000
 		jmp .epi
 	.println:
-		mov word [x - KERNEL_VIRTUAL_BASE], 0
-		inc word [y - KERNEL_VIRTUAL_BASE]
+		mov word [x - KERNEL_OFFSET], 0
+		inc word [y - KERNEL_OFFSET]
 		
-		mov ax, [termsize_y - KERNEL_VIRTUAL_BASE]
-		cmp word [y - KERNEL_VIRTUAL_BASE], ax
+		mov ax, [termsize_y - KERNEL_OFFSET]
+		cmp word [y - KERNEL_OFFSET], ax
 		jle .epi
-			mov word [y - KERNEL_VIRTUAL_BASE], ax
+			mov word [y - KERNEL_OFFSET], ax
 			call _32_shift_up
 	.epi:
 
@@ -239,18 +239,18 @@ _32_init_io: ; inits the termsize vars, parse_psf and read_multiboot_info must b
 	push esi
 	push edi
 	
-	mov eax, [framebuffer_width - KERNEL_VIRTUAL_BASE]
+	mov eax, [framebuffer_width - KERNEL_OFFSET]
 	xor edx, edx
-	mov ecx, [psf_width - KERNEL_VIRTUAL_BASE]
+	mov ecx, [psf_width - KERNEL_OFFSET]
 	inc ecx
 	div dword ecx
-	mov [termsize_x - KERNEL_VIRTUAL_BASE], eax
+	mov [termsize_x - KERNEL_OFFSET], eax
 	
-	mov eax, [framebuffer_height - KERNEL_VIRTUAL_BASE]
+	mov eax, [framebuffer_height - KERNEL_OFFSET]
 	xor edx, edx
-	mov ecx, [psf_height - KERNEL_VIRTUAL_BASE]
+	mov ecx, [psf_height - KERNEL_OFFSET]
 	div dword ecx
-	mov [termsize_y - KERNEL_VIRTUAL_BASE], eax
+	mov [termsize_y - KERNEL_OFFSET], eax
 	
 	; unsave regs
 	pop edi

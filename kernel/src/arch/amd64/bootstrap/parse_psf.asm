@@ -1,3 +1,5 @@
+%include "constants.inc"
+
 bits 32
 
 section .bss
@@ -23,7 +25,6 @@ extern font_psf_start
 extern font_psf_end
 extern font_psf_size
 
-KERNEL_VIRTUAL_BASE: equ 0xFFFFFFFF80000000
 PSF_FONT_MAGIC: equ 0x864ab572
 
 parse_psf:
@@ -37,7 +38,7 @@ parse_psf:
 	push edi
 	
 	
-	mov dword eax, font_psf_start - KERNEL_VIRTUAL_BASE
+	mov dword eax, font_psf_start - KERNEL_OFFSET
 	mov dword ebx, [eax]
 	cmp ebx, PSF_FONT_MAGIC
 	je .magic_correct
@@ -45,34 +46,34 @@ parse_psf:
 .magic_correct:
 	add eax, 4
 	mov dword ebx, [eax]
-	mov dword [psf_version - KERNEL_VIRTUAL_BASE], ebx
+	mov dword [psf_version - KERNEL_OFFSET], ebx
 	
 	add eax, 4
 	mov dword ebx, [eax]
-	mov dword [psf_headersize - KERNEL_VIRTUAL_BASE], ebx
+	mov dword [psf_headersize - KERNEL_OFFSET], ebx
 	
 	add eax, 4
 	mov dword ebx, [eax]
-	mov dword [psf_flags - KERNEL_VIRTUAL_BASE], ebx
+	mov dword [psf_flags - KERNEL_OFFSET], ebx
 	
 	add eax, 4
 	mov dword ebx, [eax]
-	mov dword [psf_numglyph - KERNEL_VIRTUAL_BASE], ebx
+	mov dword [psf_numglyph - KERNEL_OFFSET], ebx
 	
 	add eax, 4
 	mov dword ebx, [eax]
-	mov dword [psf_bytesperglyph - KERNEL_VIRTUAL_BASE], ebx
+	mov dword [psf_bytesperglyph - KERNEL_OFFSET], ebx
 	
 	add eax, 4
 	mov dword ebx, [eax]
-	mov dword [psf_height - KERNEL_VIRTUAL_BASE], ebx
+	mov dword [psf_height - KERNEL_OFFSET], ebx
 	
 	add eax, 4
 	mov dword ebx, [eax]
-	mov dword [psf_width - KERNEL_VIRTUAL_BASE], ebx
+	mov dword [psf_width - KERNEL_OFFSET], ebx
 	
 	
-	mov dword eax, [psf_version - KERNEL_VIRTUAL_BASE] ; sanity check
+	mov dword eax, [psf_version - KERNEL_OFFSET] ; sanity check
 	cmp eax, 0
 	je .valid_version
 	ud2 ; if version != 0 then this is not a valid PSF
