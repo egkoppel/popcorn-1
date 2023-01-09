@@ -9,22 +9,23 @@
  */
 
 #include "debug.hpp"
+
+#include <log.hpp>
 #include <stdint.h>
 #include <stdio.h>
 
 /* Assume, as is often the case, that RBP is the first thing pushed. If not, we are in trouble. */
 struct stackframe {
-	struct stackframe* rbp;
+	struct stackframe *rbp;
 	uint64_t rip;
 };
 
 void trace_stack_trace(unsigned int MaxFrames, uint64_t rbp) noexcept {
-	auto *stk = reinterpret_cast<struct stackframe*>(rbp);
-	fprintf(stdserial, "Stack trace:\n");
-	for(unsigned int frame = 0; stk && stk->rbp && frame < MaxFrames; ++frame)
-	{
+	auto *stk = reinterpret_cast<struct stackframe *>(rbp);
+	LOG(Log::INFO, "Stack trace: (%lp)", rbp);
+	for (unsigned int frame = 0; stk && stk->rbp && frame < MaxFrames; ++frame) {
 		// Unwind to previous stack frame
-		fprintf(stdserial, "\t0x%llx\n", stk->rip);
+		LOG(Log::INFO, "\t%lp", stk->rip);
 		stk = stk->rbp;
 	}
 }
