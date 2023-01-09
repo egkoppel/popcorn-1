@@ -22,15 +22,14 @@ namespace memory::paging {
 
 	template<std::size_t Level> void *PageTable<Level>::operator new(std::size_t size, IPhysicalAllocator *allocator) {
 		if (size != constants::frame_size) THROW(std::bad_alloc());
-		PhysicalRegion page_table_region{size, *allocator};
-		vaddr_t page_table_address = page_table_region.release()->frame_to_page_map_region();
+		vaddr_t page_table_address = allocator->allocate(size)->frame_to_page_map_region();
 		return static_cast<void *>(page_table_address);
 	}
 
 	template<std::size_t Level> void PageTable<Level>::operator delete(void *address, IPhysicalAllocator *) noexcept {
 		aligned<vaddr_t> page_table_address = vaddr_t{.address = reinterpret_cast<usize>(address)};
 		frame_t *frame                      = page_table_address.page_map_region_to_frame();
-		PhysicalRegion page_table_region{frame, constants::frame_size};   // Gets dropped and does refcounting properly
+		IPhysicalAllocator::drop(frame, constants::frame_size);
 	}
 
 	template<std::size_t Level> PageTableEntry<Level>& PageTable<Level>::operator[](std::size_t index) noexcept {
