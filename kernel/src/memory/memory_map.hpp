@@ -46,6 +46,9 @@ namespace memory {
 			void resize_to(std::size_t new_size);
 			std::size_t size() { return this->virtual_region.size(); }
 			vaddr_t start() { return *this->virtual_region.begin(); }
+			vaddr_t end() { return *this->virtual_region.end(); }
+			paddr_t pstart() { return paddr_t{.address = (*this->backing_region.begin())->addr()}; }
+			paddr_t pend() { return paddr_t{.address = (*this->backing_region.end())->addr()}; }
 
 		protected:
 			PhysicalRegion backing_region;
