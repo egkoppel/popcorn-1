@@ -79,7 +79,7 @@ namespace acpi {
 				default: break;
 			}
 		}
-		LOG(Log::INFO, "LAPIC is at %lp", lapic_addr);
+		LOG(Log::DEBUG, "LAPIC is at %lp", lapic_addr);
 		Cpu::lapic = memory::MemoryMap<volatile lapic>{lapic_addr,
 		                                               sizeof(volatile lapic),
 		                                               lapic_flags,
