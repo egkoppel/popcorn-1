@@ -52,7 +52,7 @@ namespace memory::paging {
 	}
 
 	void AddressSpaceBase::map_page_to(aligned<vaddr_t> page, const frame_t *frame, PageTableFlags flags) {
-		LOG(Log::DEBUG, "map %llx to pfn %d", page, frame->number());
+		LOG(Log::DEBUG, "map %llx to pfn %llu", page, frame->number());
 
 		auto l1_table = (*(*(*this->l4_table)[page.address.page_table_index<4>()]
 		                            .child_table_or_create(this->allocator))[page.address.page_table_index<3>()]
@@ -63,7 +63,7 @@ namespace memory::paging {
 		l1_entry.set_flags(flags | PageTableFlags::PRESENT);
 		l1_entry.set_pointed_frame(frame);
 
-		LOG(Log::DEBUG, "mapped %llx to pfn %d", page, frame->number());
+		LOG(Log::DEBUG, "mapped %llx to pfn %llu", page, frame->number());
 	}
 
 	bool AddressSpaceBase::unmap_page(aligned<vaddr_t> page) {
@@ -82,7 +82,7 @@ namespace memory::paging {
 		auto flags = l1_entry.get_flags();
 		if (!static_cast<bool>(flags & PageTableFlags::PRESENT)) return false;
 
-		LOG(Log::DEBUG, "unmapped %llx from pfn %d", page, l1_entry.pointed_frame().value()->number());
+		LOG(Log::DEBUG, "unmapped %llx from pfn %llu", page, l1_entry.pointed_frame().value()->number());
 		l1_entry.set_flags(flags & ~PageTableFlags::PRESENT);
 
 		return true;

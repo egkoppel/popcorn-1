@@ -11,6 +11,7 @@
 #ifndef _HUGOS_DEBUG_H
 #define _HUGOS_DEBUG_H
 
+#include <popcorn_prelude.h>
 #include <stdint.h>
 
 void trace_stack_trace(unsigned int MaxFrames, u64 rbp) noexcept;

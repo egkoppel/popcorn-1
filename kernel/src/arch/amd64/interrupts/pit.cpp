@@ -11,24 +11,26 @@
 #include "pit.hpp"
 
 namespace arch::amd64 {
+	Pit timer = Pit();
 
-Pit timer = Pit();
+	void Pit::update() noexcept {
+		Pit::command_t c{.bcd = 0, .mode = this->mode, .access = access_t::LOBYTE_HIBYTE, .channel = 0};
+		command.write(*reinterpret_cast<uint8_t *>(&c));
+		channel0_data.write(this->divisor & 0xFF);
+		channel0_data.write(this->divisor >> 8);
+	}
 
-void Pit::update() noexcept {
-	Pit::command_t c{.bcd = 0, .mode = this->mode, .access = access_t::LOBYTE_HIBYTE, .channel = 0};
-	command.write(*reinterpret_cast<uint8_t *>(&c));
-	channel0_data.write(this->divisor & 0xFF);
-	channel0_data.write(this->divisor >> 8);
-}
+	void Pit::set_divisor(u16 divisor) noexcept {
+		this->divisor = divisor;
+		this->update();
+	}
 
-void Pit::set_divisor(u16 divisor) noexcept {
-	this->divisor = divisor;
-	this->update();
-}
+	void Pit::set_mode(mode_t mode) noexcept {
+		this->mode = mode;
+		this->update();
+	}
 
-void Pit::set_mode(mode_t mode) noexcept {
-	this->mode = mode;
-	this->update();
-}
-
-void Pit::set_frequency(u16 frequency) noexcept { this->set_divisor(1193180 / frequency); }
+	void Pit::set_frequency(u16 frequency) noexcept {
+		this->set_divisor(1193180 / frequency);
+	}
+}   // namespace arch::amd64
