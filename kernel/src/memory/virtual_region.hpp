@@ -35,22 +35,23 @@ namespace memory {
 		using iterator       = iter::iter_wrapper<aligned<vaddr_t>>;
 		using const_iterator = iter::iter_wrapper<aligned<vaddr_t>>;
 
-		explicit VirtualRegion(Allocator allocator = Allocator()) :
-			start{{.address = 0}},
-			allocation_size{0},
-			allocator{allocator} {}
-		explicit VirtualRegion(usize allocation_size, Allocator allocator = Allocator()) :
-			start{allocator.allocate(allocation_size)},
-			allocation_size{allocation_size},
-			allocator{allocator} {}
-		explicit VirtualRegion(aligned<vaddr_t> start, usize allocation_size, Allocator allocator = Allocator()) :
-			start{start},
-			allocation_size{allocation_size},
-			allocator{allocator} {}
+		explicit VirtualRegion(Allocator allocator = Allocator())
+			: start{{.address = 0}},
+			  allocation_size{0},
+			  allocator{allocator} {}
+		explicit VirtualRegion(usize allocation_size, Allocator allocator = Allocator())
+			: start{allocator.allocate(allocation_size)},
+			  allocation_size{allocation_size},
+			  allocator{allocator} {}
+		explicit VirtualRegion(aligned<vaddr_t> start, usize allocation_size, Allocator allocator = Allocator())
+			: start{start},
+			  allocation_size{allocation_size},
+			  allocator{allocator} {}
 		VirtualRegion(const VirtualRegion&) noexcept = delete;
-		explicit VirtualRegion(VirtualRegion&& other) noexcept :
-			start(other.start),
-			allocation_size(other.allocation_size) {
+		explicit VirtualRegion(VirtualRegion&& other) noexcept
+			: start(other.start),
+			  allocation_size(other.allocation_size),
+			  allocator(std::move(other.allocator)) {
 			other.allocation_size = 0;
 		}
 		~VirtualRegion() {
@@ -85,4 +86,4 @@ namespace memory {
 	};
 }   // namespace memory
 
-#endif   //POPCORN_KERNEL_SRC_MEMORY_VIRTUAL_REGION_HPP
+#endif   // POPCORN_KERNEL_SRC_MEMORY_VIRTUAL_REGION_HPP
