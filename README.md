@@ -1,4 +1,4 @@
-# hugOS
+# popcorn
 
 A hobby microkernel
 
