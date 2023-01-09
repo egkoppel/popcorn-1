@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(popcorn LANGUAGES NONE)
+project(popcorn LANGUAGES NONE VERSION 0.2.0)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
@@ -19,6 +19,11 @@ set(triple x86_64-unknown-none-elf)
 
 set(WARNINGS "-Wall -Werror=incompatible-pointer-types -Werror=return-type -Wno-address-of-packed-member -Wno-gnu-zero-variadic-macro-arguments -Wno-gnu-folding-constant")
 set(KERNEL_BUILD_FLAGS "-ferror-limit=0 -fexceptions -mcmodel=kernel -nostdlib -fno-stack-protector -ffreestanding -mno-mmx -mno-sse -mno-sse3 -mno-sse4 -mno-avx -mno-red-zone -msoft-float")
+
+option(ENABLE_UBSAN "Enable UBSan in the build")
+if (${ENABLE_UBSAN})
+    set(KERNEL_BUILD_FLAGS "${KERNEL_BUILD_FLAGS} -fsanitize=undefined")
+endif ()
 
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g")
 set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG")
