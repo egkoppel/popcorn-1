@@ -30,7 +30,7 @@ namespace threads {
 		return std::unique_ptr<Task>(ktask);
 	}
 
-	Task::Task(const char *name, usize argument, usize stack_offset)
+	[[clang::no_sanitize("pointer-overflow")]] Task::Task(const char *name, usize argument, usize stack_offset)
 		: stack(memory::constants::frame_size),
 		  address_space_(),
 		  stack_ptr_(vaddr_t(*this->stack.top()) - (stack_offset + 8) * 8),
@@ -46,16 +46,25 @@ namespace threads {
 		stack_top[-8 - stack_offset] = 0;
 	}
 
-	Task::Task(const char *name, void (*entrypoint)(usize), usize argument, kernel_task_t) : Task(name, argument, 0) {
+	[[clang::no_sanitize("pointer-overflow")]] Task::Task(const char *name,
+	                                                      void (*entrypoint)(usize),
+	                                                      usize argument,
+	                                                      kernel_task_t)
+		: Task(name, argument, 0) {
 		auto stack_top = static_cast<u64 *>((*this->stack.top()).address);
 		stack_top[-1]  = reinterpret_cast<u64>(entrypoint);
 	}
 
-	Task::Task(const char *name, void (*entrypoint)(usize), usize argument, user_task_t) : Task(name, argument, 1) {
+	[[clang::no_sanitize("pointer-overflow")]] Task::Task(const char *name,
+	                                                      void (*entrypoint)(usize),
+	                                                      usize argument,
+	                                                      user_task_t)
+		: Task(name, argument, 1) {
 		auto stack_top = static_cast<u64 *>((*this->stack.top()).address);
 		stack_top[-1]  = reinterpret_cast<u64>(entrypoint);
 		stack_top[-2]  = reinterpret_cast<u64>(arch::switch_to_user_mode);
 	}
+
 	memory::vaddr_t Task::new_mmap(memory::vaddr_t hint, usize size, bool downwards) {
 		using enum paging::PageTableFlags;
 		auto flags = WRITEABLE | USER | NO_EXECUTE;
@@ -64,7 +73,9 @@ namespace threads {
 		                                allocators.general(),
 		                                this->address_space_,
 		                                allocator_wrapper{this}};
-		return map.start();
+		this->mmaps.push_back(std::move(map));
+		LOG(Log::DEBUG, "mmap backing at %lp", this->mmaps.back().pstart());
+		return this->mmaps.back().start();
 	}
 
 	usize get_p4_table_frame(const Task *task) {
