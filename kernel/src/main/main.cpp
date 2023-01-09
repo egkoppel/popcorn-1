@@ -141,6 +141,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	 * if (strcmp(boot_module->name(), "initramfs") != 0) panic("No initramfs found");*/
 
 	arch::arch_specific_early_init();
+	arch::set_interrupt_perms(0x3, true, 0);
 	arch::set_interrupt_perms(0xE, false, 0);
 	arch::set_interrupt_perms(0x8, false, 1);
 	/*arch::load_interrupt_handler(arch::InterruptVectors::PAGE_FAULT, false, 0, interrupt_handlers::page_fault);
