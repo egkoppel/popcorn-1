@@ -58,3 +58,4 @@ long_mode_start:
 	xor rbp, rbp ; null base pointer
 	jmp __cxa_init
 	hlt
+	
