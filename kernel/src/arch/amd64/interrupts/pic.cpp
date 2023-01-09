@@ -27,15 +27,15 @@ namespace arch::amd64 {
 		return this->data.read();
 	}
 
-	void Pic::write_data(uint8_t mask) noexcept {
+	void Pic::write_data(u8 mask) noexcept {
 		this->data.write(mask);
 	}
 
-	void Pic::send_command(uint8_t command) noexcept {
+	void Pic::send_command(u8 command) noexcept {
 		this->command.write(command);
 	}
 
-	void ATChainedPIC::acknowledge_irq(uint8_t irq_line) noexcept {
+	void ATChainedPIC::acknowledge_irq(u8 irq_line) noexcept {
 		if (irq_line >= this->offset1 && irq_line < this->offset1 + 8) {
 			this->master.EOI();
 		} else if (irq_line >= this->offset2 && irq_line < this->offset2 + 8) {
@@ -44,7 +44,7 @@ namespace arch::amd64 {
 		}
 	}
 
-	ATChainedPIC::ATChainedPIC(uint8_t offset1, uint8_t offset2) noexcept
+	ATChainedPIC::ATChainedPIC(u8 offset1, u8 offset2) noexcept
 		: master(ports::MASTER),
 		  slave(ports::SLAVE),
 		  offset1(offset1),

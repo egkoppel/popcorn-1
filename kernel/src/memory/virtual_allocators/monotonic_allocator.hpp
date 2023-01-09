@@ -26,9 +26,9 @@ namespace memory::virtual_allocators {
 
 	public:
 		MonotonicAllocator(aligned<vaddr_t> start, aligned<vaddr_t> end) : current_(start), end_(end) {}
-		MonotonicAllocator(MonotonicAllocator&)                 = delete;
+		MonotonicAllocator(const MonotonicAllocator&)                 = delete;
 		MonotonicAllocator(MonotonicAllocator&& other) noexcept = default;
-		MonotonicAllocator& operator=(MonotonicAllocator&)      = delete;
+		MonotonicAllocator& operator=(const MonotonicAllocator&)      = delete;
 		MonotonicAllocator& operator=(MonotonicAllocator&&)     = default;
 
 		aligned<vaddr_t> allocate_(uint64_t byte_length) override;

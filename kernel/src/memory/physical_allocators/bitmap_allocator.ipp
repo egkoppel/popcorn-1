@@ -60,15 +60,6 @@ namespace memory::physical_allocators {
 		THROW(std::bad_alloc());
 	}
 
-	/*std::optional<Frame> PhysicalBitmapAllocator::allocate_at(Frame addr, uint64_t byte_length) {
-	TODO: Take byte length into account
-	int allocated = this->get_bit(addr);
-	if (!allocated) {
-	    if (this->set_bit(addr)) return std::nullopt;
-	    return {addr};
-	} else return std::nullopt;
-}*/
-
 	template<class VAllocator> void BitmapAllocator<VAllocator>::deallocate_(const frame_t *frames, u64 size) noexcept {
 		auto frame_count = IDIV_ROUND_UP(size, constants::frame_size);
 		for (auto f = frames; f < frames + frame_count; f++) {

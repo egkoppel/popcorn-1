@@ -21,7 +21,7 @@ namespace arch {
 
 	namespace amd64 {
 		namespace {
-			[[gnu::naked]] int64_t syscall_long_mode_entry() {
+			[[gnu::naked]] u64 syscall_long_mode_entry() {
 				// TODO: ****** should really switch to kernel stack here ******
 				__asm__ volatile("swapgs");       // Switch to kernel gs
 				__asm__ volatile("pushq %rcx");   // stores rip
@@ -40,9 +40,9 @@ namespace arch {
 
 			enum SfmaskBits { IF = 1 << 9 };
 
-			constexpr uint32_t SFMASK = 0xC0000084;
-			constexpr uint32_t STAR   = 0xC0000081;
-			constexpr uint32_t LSTAR  = 0xC0000082;
+			constexpr u32 SFMASK = 0xC0000084;
+			constexpr u32 STAR   = 0xC0000081;
+			constexpr u32 LSTAR  = 0xC0000082;
 		}   // namespace
 
 		void syscall_register_init() noexcept {
@@ -50,8 +50,8 @@ namespace arch {
 			wrsmr(SFMASK, SfmaskBits::IF);
 			wrsmr(LSTAR, reinterpret_cast<uint64_t>(syscall_long_mode_entry));
 			wrsmr(STAR,
-			      (static_cast<uint64_t>(GDT::EntryType::USER_CODE_COMPAT_MODE) * 8 | 0b11) << 48
-			              | static_cast<uint64_t>(GDT::EntryType::KERNEL_CODE) * 8 << 32);
+			      (static_cast<u64>(GDT::EntryType::USER_CODE_COMPAT_MODE) * 8 | 0b11) << 48
+			              | static_cast<u64>(GDT::EntryType::KERNEL_CODE) * 8 << 32);
 		}
 	}   // namespace amd64
 

@@ -50,6 +50,7 @@ namespace memory::physical_allocators {
 		BitmapAllocator() noexcept : start_frame(nullptr), bitmap() {}
 
 	public:
+        BitmapAllocator(const BitmapAllocator&)            = delete;
 		BitmapAllocator(BitmapAllocator&& rhs) noexcept            = default;
 		BitmapAllocator& operator=(BitmapAllocator&& rhs) noexcept = default;
 

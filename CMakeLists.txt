@@ -15,10 +15,9 @@ enable_language(CXX)
 
 find_program(TAR tar)
 
-set(triple x86_64-unknown-none-elf)
 
 set(WARNINGS "-Wall -Werror=incompatible-pointer-types -Werror=return-type -Wno-address-of-packed-member -Wno-gnu-zero-variadic-macro-arguments -Wno-gnu-folding-constant")
-set(KERNEL_BUILD_FLAGS "-ferror-limit=0 -fexceptions -mcmodel=kernel -nostdlib -fno-stack-protector -ffreestanding -mno-mmx -mno-sse -mno-sse3 -mno-sse4 -mno-avx -mno-red-zone -msoft-float")
+set(KERNEL_BUILD_FLAGS "-fexceptions -mcmodel=kernel -nostdlib -fno-stack-protector -ffreestanding -mno-mmx -mno-sse -mno-sse3 -mno-sse4 -mno-avx -mno-red-zone -msoft-float")
 
 option(ENABLE_UBSAN "Enable UBSan in the build")
 if (${ENABLE_UBSAN})

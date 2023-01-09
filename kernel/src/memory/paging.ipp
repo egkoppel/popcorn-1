@@ -41,7 +41,7 @@ namespace memory::paging {
 	}
 
 	template<std::size_t Level>
-	int PageTable<Level>::print_to(FILE *f, uint64_t addr) requires(Level >= 2)
+	int PageTable<Level>::print_to(FILE *f, u64 addr) requires(Level >= 2)
 	{
 		int char_count = 0;
 		for (size_t i = 0; i < 512; ++i) {
@@ -57,7 +57,7 @@ namespace memory::paging {
 	}
 
 	template<std::size_t Level>
-	int PageTable<Level>::print_to(FILE *f, uint64_t addr) requires(Level == 1)
+	int PageTable<Level>::print_to(FILE *f, u64 addr) requires(Level == 1)
 	{
 		int char_count = 0;
 		for (size_t i = 0; i < 512; ++i) {

@@ -45,5 +45,5 @@ void interrupt_handlers::page_fault(arch::interrupt_info_t *interrupt_info) noex
 
 	LOG(Log::CRITICAL, "Unable to resolve page fault");
 
-	while (true) hal::nop();
+	while (true) hal::halt();
 }

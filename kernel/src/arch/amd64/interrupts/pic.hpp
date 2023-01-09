@@ -13,32 +13,33 @@
 
 #include "port.hpp"
 
+#include <popcorn_prelude.h>
 #include <stdio.h>
 
 namespace arch::amd64 {
 	class Pic {
 	private:
-		Port<uint8_t> command;
-		Port<uint8_t> data;
+		Port<u8> command;
+		Port<u8> data;
 
 	public:
-		explicit Pic(uint16_t addr) noexcept : command(addr), data(addr + 1){};
+		explicit Pic(u16 addr) noexcept : command(addr), data(addr + 1){};
 		void EOI() noexcept;
 		uint8_t read_mask() noexcept;
-		void write_data(uint8_t mask) noexcept;
-		void send_command(uint8_t command) noexcept;
+		void write_data(u8 mask) noexcept;
+		void send_command(u8 command) noexcept;
 	};
 
 	class ATChainedPIC {
 	private:
 		Pic master, slave;
-		uint8_t offset1, offset2;
+		u8 offset1, offset2;
 		using ports    = enum { MASTER = 0x0020, SLAVE = 0x00A0 };
 		using commands = enum { INIT = 0x11, EOI = 0x20, READ_IRR = 0x0B, READ_ISR = 0x0A, MODE_8086 = 0x01 };
 
 	public:
-		ATChainedPIC(uint8_t offset1, uint8_t offset2) noexcept;
-		void acknowledge_irq(uint8_t irq_line) noexcept;
+		ATChainedPIC(u8 offset1, u8 offset2) noexcept;
+		void acknowledge_irq(u8 irq_line) noexcept;
 	};
 
 	extern ATChainedPIC pics;

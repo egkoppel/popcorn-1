@@ -25,12 +25,12 @@ namespace memory {
 		 * @return The start of the returned allocation
 		 * @throws std::bad_alloc Failed to allocate memory
 		 */
-		aligned<vaddr_t> allocate(uint64_t byte_length);
-		void deallocate(aligned<vaddr_t> start, uint64_t byte_length) noexcept;
+		aligned<vaddr_t> allocate(u64 byte_length);
+		void deallocate(aligned<vaddr_t> start, u64 byte_length) noexcept;
 
 	protected:
-		virtual aligned<vaddr_t> allocate_(uint64_t byte_length)                        = 0;
-		virtual void deallocate_(aligned<vaddr_t> start, uint64_t byte_length) noexcept = 0;
+		virtual aligned<vaddr_t> allocate_(u64 byte_length)                        = 0;
+		virtual void deallocate_(aligned<vaddr_t> start, u64 byte_length) noexcept = 0;
 	};
 }   // namespace memory
 

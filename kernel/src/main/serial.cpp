@@ -14,7 +14,7 @@
 #include <serial.h>
 #include <stdint.h>
 
-SerialPort::SerialPort(uint16_t port)
+SerialPort::SerialPort(u16 port)
 	: data(port),
 	  interupt_enable(port + 1),
 	  fifo_control(port + 2),

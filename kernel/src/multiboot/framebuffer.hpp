@@ -12,33 +12,34 @@
 #ifndef HUGOS_FRAMEBUFFER_HPP
 #define HUGOS_FRAMEBUFFER_HPP
 
-#include "memory/types.hpp"
+#include <memory/types.hpp>
+#include <popcorn_prelude.h>
 #include "multiboot.hpp"
 
 namespace multiboot::tags {
 	class [[gnu::packed]] Framebuffer : public Tag {
 	private:
 		memory::paddr_t addr;
-		uint32_t pitch;
-		[[maybe_unused]] uint32_t width;
-		uint32_t height;
-		[[maybe_unused]] uint8_t bpp;
-		[[maybe_unused]] uint8_t type;
+		u32 pitch;
+		[[maybe_unused]] u32 width;
+		u32 height;
+		[[maybe_unused]] u8 bpp;
+		[[maybe_unused]] u8 type;
 
-		[[maybe_unused]] uint8_t _0;
+		[[maybe_unused]] u8 _0;
 
 		[[maybe_unused]] union {
 			struct [[gnu::packed]] {
-				uint32_t num_colors;
+				u32 num_colors;
 			} indexed;
 
 			struct [[gnu::packed]] {
-				uint8_t red_pos;
-				uint8_t red_mask_size;
-				uint8_t green_pos;
-				uint8_t green_mask_size;
-				uint8_t blue_pos;
-				uint8_t blue_mask_size;
+				u8 red_pos;
+				u8 red_mask_size;
+				u8 green_pos;
+				u8 green_mask_size;
+				u8 blue_pos;
+				u8 blue_mask_size;
 			} rgb;
 		} color_info;
 

@@ -12,7 +12,9 @@
 
 #include "gdt.hpp"
 
-using namespace arch::amd64;
+#include <popcorn_prelude.h>
+
+namespace arch::amd64 {
 
 TSS::TSS() noexcept {
 	this->_res0 = 0;
@@ -23,10 +25,11 @@ TSS::TSS() noexcept {
 	for (auto& i : this->privilege_stack_table) { i = memory::vaddr_t{.address = 0}; }
 }
 
-void TSS::load(uint16_t gdt_index) noexcept { __asm__ volatile("ltr %w0" : : "q"(gdt_index * 8)); }
+void TSS::load(u16 gdt_index) noexcept { __asm__ volatile("ltr %w0" : : "q"(gdt_index * 8)); }
 
-void TSS::add_stack(uint8_t stack_idx, const memory::KStack<>& stack) noexcept {
+void TSS::add_stack(u8 stack_idx, const memory::KStack<>& stack) noexcept {
 	this->interrupt_stack_table[stack_idx] = *stack.top();
 }
 
-TSS arch::amd64::task_state_segment = TSS();
+TSS task_state_segment = TSS();
+}

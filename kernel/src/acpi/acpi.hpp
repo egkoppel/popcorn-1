@@ -22,6 +22,8 @@
 #include <optional>
 #include <smp/cpu.hpp>
 #include <string>
+#include <tuple>
+#include <vector>
 
 namespace acpi {
 	template<class VAllocator> struct AcpiData {

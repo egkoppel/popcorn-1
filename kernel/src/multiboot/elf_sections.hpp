@@ -12,7 +12,7 @@
 #ifndef HUGOS_ELF_SECTIONS_HPP
 #define HUGOS_ELF_SECTIONS_HPP
 
-#include "memory/types.hpp"
+#include <memory/types.hpp>
 #include "multiboot.hpp"
 
 namespace multiboot::tags {
@@ -20,7 +20,7 @@ namespace multiboot::tags {
 	public:
 		class [[gnu::packed]] Entry {
 		public:
-			enum class Type : uint32_t {
+			enum class Type : u32 {
 				SHT_NULL,
 				SHT_PROGBITS,
 				SHT_SYMTAB,
@@ -41,7 +41,7 @@ namespace multiboot::tags {
 				SHT_NUM
 			};
 
-			enum class Flags : uint64_t {
+			enum class Flags : u64 {
 				SHF_WRITE            = 0x1,
 				SHF_ALLOC            = 0x2,
 				SHF_EXECINSTR        = 0x4,
@@ -57,16 +57,16 @@ namespace multiboot::tags {
 			};
 
 		private:
-			uint32_t name_index;
-			uint32_t _type;
-			uint64_t _flags;
+			u32 name_index;
+			u32 _type;
+			u64 _flags;
 			memory::paddr_t addr;
-			[[maybe_unused]] uint64_t offset;
-			uint64_t size;
-			[[maybe_unused]] uint32_t link;
-			uint32_t info;
-			[[maybe_unused]] uint64_t align;
-			[[maybe_unused]] uint64_t entry_size;
+			[[maybe_unused]] u64 offset;
+			u64 size;
+			[[maybe_unused]] u32 link;
+			u32 info;
+			[[maybe_unused]] u64 align;
+			[[maybe_unused]] u64 entry_size;
 
 		public:
 			bool operator<=>(const Entry&) const = default;
@@ -74,7 +74,7 @@ namespace multiboot::tags {
 			inline memory::paddr_t start() const { return addr; }
 			inline memory::paddr_t end() const { return addr + size; }
 			inline Type type() const { return static_cast<Type>(this->_type); }
-			inline uint64_t flags() const { return this->_flags; }
+			inline u64 flags() const { return this->_flags; }
 			char *name(ElfSections& sections) {
 				return static_cast<char *>(sections.find_strtab()->start().virtualise() + this->name_index);
 			}
@@ -91,9 +91,9 @@ namespace multiboot::tags {
 		};
 
 	private:
-		uint32_t entry_count;
-		uint32_t entry_size;
-		uint32_t string_table;
+		u32 entry_count;
+		u32 entry_size;
+		u32 string_table;
 		Entry sections[];
 
 	public:
@@ -102,7 +102,7 @@ namespace multiboot::tags {
 		inline Entry *begin() { return &this->sections[0]; }
 		inline Entry *end() { return &this->sections[this->entry_count]; }
 		Entry *find_strtab() {
-			uint32_t i = 0;
+			u32 i = 0;
 			for (auto& section : *this) {
 				if (i == this->string_table) return &section;
 				i++;
@@ -112,7 +112,7 @@ namespace multiboot::tags {
 	};
 }   // namespace multiboot::tags
 
-uint64_t operator+(multiboot::tags::ElfSections::Entry::Flags lhs) { return static_cast<uint64_t>(lhs); }
+u64 operator+(multiboot::tags::ElfSections::Entry::Flags lhs) { return static_cast<uint64_t>(lhs); }
 
 
 #endif   //HUGOS_ELF_SECTIONS_HPP

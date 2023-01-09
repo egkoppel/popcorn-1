@@ -16,11 +16,12 @@
 #include "utils.h"
 
 #include <optional>
+#include <popcorn_prelude.h>
 #include <stdint.h>
 #include <stdlib.h>
 
 namespace multiboot {
-	enum class TagType : uint32_t {
+	enum class TagType : u32 {
 		CLI             = 1,
 		BOOTLOADER_NAME = 2,
 		BOOT_MODULE     = 3,
@@ -33,18 +34,18 @@ namespace multiboot {
 
 	class [[gnu::packed]] InfoHeader {
 	protected:
-		uint32_t size_;
-		uint32_t reserved;
+		u32 size_;
+		u32 reserved;
 	};
 
 	class [[gnu::packed]] Tag {
 	protected:
 		TagType type;
-		uint32_t size;
+		u32 size;
 
 	public:
 		inline TagType get_type() const { return this->type; }
-		inline uint32_t get_size() const { return this->size; }
+		inline u32 get_size() const { return this->size; }
 	};
 
 	class Data : private InfoHeader {

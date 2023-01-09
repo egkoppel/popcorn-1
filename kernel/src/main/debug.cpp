@@ -11,17 +11,18 @@
 #include "debug.hpp"
 
 #include <log.hpp>
+#include <popcorn_prelude.h>
 #include <stdint.h>
 #include <stdio.h>
 
 /* Assume, as is often the case, that RBP is the first thing pushed. If not, we are in trouble. */
 struct stackframe {
 	struct stackframe *rbp;
-	uint64_t rip;
+	u64 rip;
 };
 
-void trace_stack_trace(unsigned int MaxFrames, uint64_t rbp) noexcept {
-	auto *stk = reinterpret_cast<struct stackframe *>(rbp);
+void trace_stack_trace(unsigned int MaxFrames, u64 rbp) noexcept {
+	auto *stk = reinterpret_cast<stackframe *>(rbp);
 	LOG(Log::INFO, "Stack trace: (%lp)", rbp);
 	for (unsigned int frame = 0; stk && stk->rbp && frame < MaxFrames; ++frame) {
 		// Unwind to previous stack frame

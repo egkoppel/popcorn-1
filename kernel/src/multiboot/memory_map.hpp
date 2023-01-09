@@ -15,18 +15,19 @@
 #include "multiboot.hpp"
 
 #include <memory/types.hpp>
+#include <popcorn_prelude.h>
 
 namespace multiboot::tags {
 	class [[gnu::packed]] MemoryMap : public Tag {
 	public:
-		enum class Type : uint32_t { RESERVED = 0, AVAILABLE = 1, ACPI = 3, HIBERNATION_SAVE = 4, DEFECTIVE = 5 };
+		enum class Type : u32 { RESERVED = 0, AVAILABLE = 1, ACPI = 3, HIBERNATION_SAVE = 4, DEFECTIVE = 5 };
 
 		class [[gnu::packed]] Entry {
 		private:
 			memory::paddr_t base_addr;
-			uint64_t length;
+			u64 length;
 			Type type;
-			uint32_t reserved;
+			u32 reserved;
 
 		public:
 			bool operator==(const Entry& rhs) const { return this->base_addr == rhs.base_addr; };
@@ -34,12 +35,12 @@ namespace multiboot::tags {
 			inline memory::paddr_t get_start_address() const { return this->base_addr; }
 			inline memory::paddr_t get_end_address() const { return this->base_addr + this->length; }
 			inline Type get_type() const { return this->type; }
-			inline uint64_t get_size() const { return this->length; }
+			inline u64 get_size() const { return this->length; }
 		};
 
 	private:
-		uint32_t entry_size;
-		uint32_t entry_version;
+		u32 entry_size;
+		u32 entry_version;
 		Entry first_entry;
 
 	public:

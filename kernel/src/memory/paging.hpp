@@ -195,8 +195,8 @@ namespace memory::paging {
 		PageTableEntry<Level>& operator[](std::size_t) noexcept;
 		const PageTableEntry<Level>& operator[](std::size_t) const noexcept;
 
-		int print_to(FILE *f, uint64_t addr) requires(Level >= 2);
-		int print_to(FILE *f, uint64_t addr) requires(Level == 1);
+		int print_to(FILE *f, u64 addr) requires(Level >= 2);
+		int print_to(FILE *f, u64 addr) requires(Level == 1);
 
 		decltype(auto) begin() {
 			using std::begin;

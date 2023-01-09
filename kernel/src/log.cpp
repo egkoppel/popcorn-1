@@ -56,7 +56,7 @@ namespace Log {
 
 		u32 time_low, time_high;
 		__asm__ volatile("rdtsc" : "=a"(time_low), "=d"(time_high));
-		u64 time = ((u64)time_high << 32) | time_low;
+		u64 time = (static_cast<u64>(time_high) << 32) | time_low;
 
 		va_list format_args;
 		va_list format_args2;

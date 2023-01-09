@@ -12,7 +12,7 @@
 
 namespace memory {
 	aligned<vaddr_t> IVirtualAllocator::allocate(uint64_t byte_length) { return this->allocate_(byte_length); }
-	void IVirtualAllocator::deallocate(aligned<vaddr_t> start, uint64_t byte_length) noexcept {
+	void IVirtualAllocator::deallocate(aligned<vaddr_t> start, u64 byte_length) noexcept {
 		this->deallocate_(start, byte_length);
 	}
 }   // namespace memory

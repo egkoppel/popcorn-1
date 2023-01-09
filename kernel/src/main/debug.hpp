@@ -13,6 +13,6 @@
 
 #include <stdint.h>
 
-void trace_stack_trace(unsigned int MaxFrames, uint64_t rbp) noexcept;
+void trace_stack_trace(unsigned int MaxFrames, u64 rbp) noexcept;
 
 #endif

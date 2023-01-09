@@ -13,8 +13,9 @@
 
 #include <cstdint>
 #include <memory/types.hpp>
+#include <popcorn_prelude.h>
 
-extern inline void wrsmr(uint32_t reg, uint64_t val) {
+extern inline void wrsmr(u32 reg, u64 val) {
 	__asm__ volatile("wrmsr" : : "d"((val) >> 32), "a"(val & 0xFFFFFFFF), "c"(reg));
 }
 

@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <exception>
 #include <log.hpp>
+#include <popcorn_prelude.h>
 #include <stdlib.h>
 #include <termcolor.h>
 
@@ -25,9 +26,9 @@ extern "C" ctor_func end_ctors;
 extern "C" ctor_func init_array_start;
 extern "C" ctor_func init_array_end;
 
-extern "C" void kmain(uint32_t multiboot_magic, uint32_t multiboot_addr);
+extern "C" void kmain(u32 multiboot_magic, u32 multiboot_addr);
 
-extern "C" [[noreturn]] void __cxa_init(uint32_t multiboot_magic, uint32_t multiboot_addr) noexcept try {
+extern "C" [[noreturn]] void __cxa_init(u32 multiboot_magic, u32 multiboot_addr) noexcept try {
 	printf("[    ] Running ctors\n\tstart: %lp\n\t  end: %lp\n", &start_ctors, &end_ctors);
 	ctor_func *i = &start_ctors;
 	while (i < &end_ctors) {

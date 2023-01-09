@@ -46,9 +46,9 @@ namespace memory::physical_allocators {
 			multiboot_start_frame(aligned<paddr_t>::aligned_down(multiboot_start)),
 			multiboot_end_frame(aligned<paddr_t>::aligned_up(multiboot_end)),
 			mem_map(mem_map) {}
-		MonotonicAllocator(MonotonicAllocator&)             = delete;
+		MonotonicAllocator(const MonotonicAllocator&)             = delete;
 		MonotonicAllocator(MonotonicAllocator&&) noexcept   = default;
-		MonotonicAllocator& operator=(MonotonicAllocator&)  = delete;
+		MonotonicAllocator& operator=(const MonotonicAllocator&)  = delete;
 		MonotonicAllocator& operator=(MonotonicAllocator&&) = default;
 
 		frame_t *allocate_(u64 byte_length) override;

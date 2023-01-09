@@ -18,17 +18,17 @@
 
 namespace arch::amd64 {
 	struct [[gnu::packed]] TSS {
-		uint32_t _res0;
+		u32 _res0;
 		memory::vaddr_t privilege_stack_table[3];
-		uint64_t _res1;
+		u64 _res1;
 		memory::vaddr_t interrupt_stack_table[7];
-		uint64_t _res2;
-		uint16_t _res3;
-		uint16_t io_map_base;
+		u64 _res2;
+		u16 _res3;
+		u16 io_map_base;
 
 		TSS() noexcept;
-		static void load(uint16_t gdt_index) noexcept;
-		void add_stack(uint8_t stack_idx, const memory::KStack<>& stack) noexcept;
+		static void load(u16 gdt_index) noexcept;
+		void add_stack(u8 stack_idx, const memory::KStack<>& stack) noexcept;
 	};
 
 	extern "C" TSS task_state_segment;

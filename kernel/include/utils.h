@@ -74,7 +74,6 @@ template<class T> const auto None = Option<T>::None;*/
 
 #define IDIV_ROUND_UP(n, d) (((n) + (d) - 1) / (d))
 
-#define UNWRAP(s) ({if (!s.valid) panic("Attempted to unwrap empty optional " #s); s.value;})
 #endif
 
 #endif

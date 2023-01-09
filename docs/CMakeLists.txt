@@ -25,7 +25,7 @@ add_custom_target(Doxygen ALL DEPENDS ${DOXYGEN_INDEX_FILE})
 set(SPHINX_SOURCE ${CMAKE_CURRENT_SOURCE_DIR})
 set(SPHINX_BUILD ${CMAKE_CURRENT_BINARY_DIR}/docs/sphinx)
 
-add_custom_target(Sphinx ALL
+add_custom_target(docs ALL
         COMMAND ${SPHINX_EXECUTABLE} -b html
         # Tell Breathe where to find the Doxygen output
         -Dbreathe_projects.popcorn=${DOXYGEN_OUTPUT_DIR}/xml
