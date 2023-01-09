@@ -15,18 +15,14 @@
 namespace memory {
 	PhysicalRegion::PhysicalRegion(usize allocation_size, IPhysicalAllocator& allocator)
 		: start(allocator.allocate(allocation_size)),
-		  allocation_size(allocation_size) {
-		this->start->ref_count = 1;
-	}
+		  allocation_size(allocation_size) {}
 
 	PhysicalRegion::PhysicalRegion(aligned<paddr_t> at, usize allocation_size, IPhysicalAllocator& allocator)
 		: start(allocator.allocate(at, allocation_size)),
-		  allocation_size(allocation_size) {
-		this->start->ref_count = 1;
-	}
+		  allocation_size(allocation_size) {}
 
 	PhysicalRegion::~PhysicalRegion() {
-		this->decrement_and_drop();
+		if (this->start) IPhysicalAllocator::drop(this->start, this->allocation_size);
 	}
 
 	PhysicalRegion::PhysicalRegion(const PhysicalRegion& rhs, shallow_copy_t) noexcept
@@ -36,22 +32,21 @@ namespace memory {
 	}
 
 	PhysicalRegion& PhysicalRegion::operator=(const PhysicalRegion& rhs) noexcept {
-		this->decrement_and_drop();
-		this->start           = rhs.start;
-		this->allocation_size = rhs.allocation_size;
-		this->start->ref_count++;
+		PhysicalRegion copy{rhs, shallow_copy};
+		swap(*this, copy);
 		return *this;
-	}
-
-	void PhysicalRegion::decrement_and_drop() noexcept {
-		if (!this->start) return;
-		if (--this->start->ref_count == 0) IPhysicalAllocator::deallocate(this->start, this->allocation_size);
 	}
 
 	frame_t *PhysicalRegion::release() noexcept {
 		auto ret    = this->start;
 		this->start = nullptr;
 		return ret;
+	}
+
+	void swap(PhysicalRegion& lhs, PhysicalRegion& rhs) noexcept {
+		using std::swap;
+		swap(lhs.start, rhs.start);
+		swap(lhs.allocation_size, rhs.allocation_size);
 	}
 
 	usize frame_t::number() const {

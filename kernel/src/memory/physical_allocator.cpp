@@ -17,8 +17,9 @@ namespace memory {
 	frame_t *IPhysicalAllocator::allocate(u64 size) {
 		LOG(Log::DEBUG, "Physical allocation requested of size %llx", size);
 		auto ret = this->allocate_(size);
-		LOG(Log::DEBUG, "Allocated at %llx", (ret - mem_map) * constants::frame_size);
+		LOG(Log::DEBUG, "Allocated at %lp", ret->addr());
 		ret->allocated_by = this;
+		ret->ref_count++;
 		return ret;
 	}
 
@@ -27,10 +28,12 @@ namespace memory {
 		auto ret = this->allocate_at_(at, size);
 		LOG(Log::DEBUG, "Allocated at %llx", (ret - mem_map) * constants::frame_size);
 		ret->allocated_by = this;
+		ret->ref_count++;
 		return ret;
 	}
 
-	void IPhysicalAllocator::deallocate(const frame_t *start, u64 size) noexcept {
-		start->allocated_by->deallocate_(start, size);
+	void IPhysicalAllocator::drop(frame_t *start, u64 size) noexcept {
+		LOG(Log::DEBUG, "drop ref at paddr %lp\nrc: %llu", start->addr(), start->ref_count);
+		if (--start->ref_count == 0) start->allocated_by->deallocate_(start, size);
 	}
 }   // namespace memory

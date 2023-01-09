@@ -47,9 +47,7 @@ namespace memory {
 
 		PhysicalRegion& operator=(const PhysicalRegion&) noexcept;
 		PhysicalRegion& operator=(PhysicalRegion&& other) noexcept {
-			using std::swap;
-			swap(this->start, other.start);
-			swap(this->allocation_size, other.allocation_size);
+			swap(*this, other);
 			return *this;
 		}
 
@@ -69,11 +67,10 @@ namespace memory {
 
 		frame_t *release() noexcept;
 
+		friend void swap(PhysicalRegion& lhs, PhysicalRegion& rhs) noexcept;
 	private:
 		frame_t *start        = nullptr;
 		usize allocation_size = 0;
-
-		void decrement_and_drop() noexcept;
 	};
 }   // namespace memory
 

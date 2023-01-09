@@ -57,7 +57,7 @@ namespace memory {
 		 * @param start Reference into `mem_map` to the frame returned by a call to allocate()
 		 * @param size Size requested from allocation
 		 */
-		static void deallocate(const frame_t *start, u64 size = memory::constants::frame_size) noexcept;
+		static void drop(frame_t *start, u64 size = memory::constants::frame_size) noexcept;
 
 	protected:
 		/**
