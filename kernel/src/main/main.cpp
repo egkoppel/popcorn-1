@@ -122,10 +122,8 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 		LOG(Log::WARNING, "Multiboot magic: 0x%x (incorrect)", multiboot_magic);
 	}
 
-	// FIXME: why the flip does this not work
-	paddr_t _a        = multiboot_addr;
-	decltype(auto) mb = *static_cast<const multiboot::Data *>(_a.virtualise());
-	LOG(Log::DEBUG, "Multiboot info struct loaded at %lp", _a);
+	decltype(auto) mb = *static_cast<const multiboot::Data *>(static_cast<memory::paddr_t>(multiboot_addr).virtualise());
+	LOG(Log::DEBUG, "Multiboot info struct loaded at %lp", static_cast<memory::paddr_t>(multiboot_addr));
 
 	parse_cli_args(mb);
 	parse_bootloader(mb);
