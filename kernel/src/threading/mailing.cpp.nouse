@@ -1,0 +1,36 @@
+
+/*
+ * Copyright (c) 2023 Eliyahu Gluschove-Koppel.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "mailing.hpp"
+
+#include <utility/handle_table.hpp>
+
+alignas(alignof(
+		SyscallHandleTable<threads::Mailbox,
+                           syscall_handle_type::syscall_handle_type::MAILBOX>)) static char mailbox_handles_list_
+		[sizeof(SyscallHandleTable<
+				threads::Mailbox,
+				syscall_handle_type::syscall_handle_type::MAILBOX>)];   // memory for the stream object
+auto& mailbox_handles_list =
+		reinterpret_cast<SyscallHandleTable<threads::Mailbox, syscall_handle_type::syscall_handle_type::MAILBOX>&>(
+				mailbox_handles_list_);
+
+threads::Mailbox *threads::get_mailbox(syscall_handle_t handle) {
+	return mailbox_handles_list.get_data_from_handle_ptr(handle);
+}
+
+syscall_handle_t threads::new_mailbox(Task& for_task) { return mailbox_handles_list.new_handle(Mailbox(for_task)); }
+
+void threads::destroy_mailbox(syscall_handle_t handle) { mailbox_handles_list.free_handle(handle); }
+void threads::mailboxes_init() {
+	new (&mailbox_handles_list)
+			SyscallHandleTable<threads::Mailbox, syscall_handle_type::syscall_handle_type::MAILBOX>();
+}

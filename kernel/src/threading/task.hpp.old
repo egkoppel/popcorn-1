@@ -1,0 +1,272 @@
+/*
+ * Copyright (c) 2023 Eliyahu Gluschove-Koppel.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef HUGOS_TASK_HPP
+#define HUGOS_TASK_HPP
+
+namespace threads {
+	class Task;
+}
+
+#include "mailing.hpp"
+
+#include <assert.h>
+#include <deque>
+#include <map>
+#include <memory/paging.hpp>
+#include <memory/stack.hpp>
+#include <memory>
+#include <optional>
+#include <stdatomic.h>
+#include <stdint.h>
+#include <string>
+#include <userspace/elf.hpp>
+#include <utils.h>
+#include <vector>
+
+using namespace memory;
+
+namespace threads {
+	uint64_t get_time_ms();
+
+	class Task;
+
+	extern atomic_uint_fast64_t next_pid;
+
+	class Scheduler;
+
+	class Task {
+	public:
+		enum class State { RUNNING, SLEEPING, WAITING_FOR_LOCK, PAUSED, WAITING_FOR_MSG, WAITING_FOR_MSG_REPLY, FUTEX };
+
+	private:
+		KStack kernel_stack;
+		VirtualAddress stack_ptr;
+		paging::PageTable address_space_;
+		std::string name;
+
+		uint64_t pid                 = atomic_fetch_add(&next_pid, 1);
+		State state                  = State::RUNNING;
+		uint64_t time_used           = 0;
+		syscall_handle_t handle      = 0;
+		message_t *message_reply_buf = nullptr;
+
+		Task(const std::string& name,
+		     const KStack& kernel_stack,
+		     const VirtualAddress& stack_ptr,
+		     const paging::PageTable& page_table) :
+			kernel_stack(kernel_stack),
+			stack_ptr(stack_ptr),
+			address_space_(page_table),
+			name(name) {}
+
+		/*Task(std::string name, paging::PageTable p4_page_table, Page stack_top_page, Page stack_bottom_page) :
+				code_stack(userspace_stack_top, userspace_stack_top - userspace_stack_page_count),
+				kernel_stack(stack_top_page, stack_bottom_page),
+				p4_page_table(p4_page_table),
+				name(std::move(name)),
+				state(task_state::RUNNING) {
+
+			paging::entry_flags_t flags = {
+					.writeable = true,
+					.user_accessible = true,
+					.write_through = false,
+					.cache_disabled = false,
+					.accessed = false,
+					.dirty = false,
+					.huge = false,
+					.global = false,
+					.no_execute = true,
+			};
+
+			for (Page stack_page = this->code_stack.begin();
+			     stack_page < this->code_stack.end();
+			     stack_page++) {
+				paging::map_page_to(stack_page, global_frame_allocator.allocate().unwrap(), flags, global_frame_allocator);
+			}
+
+			paging::mark_for_no_map(this->code_stack.begin() - 1, global_frame_allocator); // Guard page
+		}*/
+
+	public:
+		static std::optional<std::unique_ptr<Task>> new_task(const std::string& name,
+		                                                     memory::VirtualAddress entrypoint);
+
+		/*Task(std::string name, uint64_t stack_value_count,
+		     paging::PageTable p4_page_table = paging::create_p4_table(global_frame_allocator)) :
+				kernel_stack(4 * 0x1000),
+				code_stack(userspace_stack_top, userspace_stack_top - userspace_stack_page_count),
+				stack_ptr(this->code_stack.end().start() - stack_value_count * 8),
+				p4_page_table(p4_page_table),
+				name(name) {
+
+			// Map kernel data into new process space
+			map_kernel_from_current_into(p4_page_table, global_frame_allocator);
+
+			// Create user stack in new process space
+			auto ctx = mapper_ctx_begin(p4_page_table, global_frame_allocator);
+			paging::entry_flags_t flags = {
+					.writeable = true,
+					.user_accessible = true,
+					.write_through = false,
+					.cache_disabled = false,
+					.accessed = false,
+					.dirty = false,
+					.huge = false,
+					.global = false,
+					.no_execute = true,
+			};
+
+			fprintf(stdserial, "code stack top: %p, bottom %p\n", this->code_stack
+			                                                          .start_page.start(), this->code_stack
+			                                                                                   .end_page.start());
+
+			for (Page stack_page = this->code_stack
+			                               .end_page;
+			     stack_page <= this->code_stack
+			                      .start_page;
+			     stack_page++) {
+				map_page(stack_page, flags, global_frame_allocator);
+			}
+
+			mark_for_no_map(this->code_stack
+			                    .end_page - 1, global_frame_allocator); // Guard page
+
+			mapper_ctx_end(ctx);
+		}*/
+
+	public:
+		inline uint64_t get_pid() const { return this->pid; }
+		inline std::string& get_name() { return this->name; }
+		inline State get_state() const { return this->state; }
+		inline void set_state(State state) { this->state = state; }
+		inline paging::PageTable get_page_table() const { return this->address_space_; }
+		inline KStack& get_kernel_stack() { return this->kernel_stack; }
+		inline uint64_t get_time_used() const { return this->time_used; }
+		inline uint64_t get_time_slice_length_ms() const { return 50; }
+		inline syscall_handle_t get_handle() const { return this->handle; }
+		inline void set_handle(syscall_handle_t handle) { this->handle = handle; };
+		inline void set_message_reply_buf(threads::message_t *message_reply_buf) {
+			this->message_reply_buf = message_reply_buf;
+		}
+		inline threads::message_t *get_message_reply_buf() const { return message_reply_buf; }
+	};
+
+	extern "C" void task_init(void);
+	extern "C" void switch_to_user_mode(void);
+
+	/*template<class... Args>
+	static std::shared_ptr<Task> new_proc(std::string name, void(*entry_func)(Args...), Args... args) {
+		auto task = std::make_shared<Task>(name, 9);
+		auto& stack = task->get_code_stack();
+
+		// Map new stack into current process address space
+		auto ctx = mapper_ctx_begin(task->get_p4_page_table(), global_frame_allocator);
+		Frame stack_frame = Frame::from_phys_addr({0});
+		assert(translate_page(stack.start_page, &stack_frame) == 0);
+		mapper_ctx_end(ctx);
+
+		entry_flags_t flags = {
+				.writeable = true,
+				.user_accessible = false,
+				.write_through = false,
+				.cache_disabled = false,
+				.accessed = false,
+				.dirty = false,
+				.huge = false,
+				.global = false,
+				.no_execute = true,
+		};
+		map_page_to(Page::from_virt_addr({0xcafeb000}), stack_frame, flags, global_frame_allocator);
+
+		*((uint64_t *)0xcafebfff - 1) = reinterpret_cast<uint64_t>(entry_func);
+		*((uint64_t *)0xcafebfff - 2) = reinterpret_cast<uint64_t>(switch_to_user_mode);
+		*((uint64_t *)0xcafebfff - 3) = reinterpret_cast<uint64_t>(task_init);
+
+		if constexpr (sizeof...(Args) > 0) {
+			uint64_t args_list[sizeof...(Args)] = {reinterpret_cast<uint64_t>(args)...};
+
+			if constexpr (sizeof...(Args) > 0) {
+				*((uint64_t *)0xcafebfff - 4) = args_list[0];
+			} // rbx - task_init arg 1
+			if constexpr (sizeof...(Args) > 1) {
+				*((uint64_t *)0xcafebfff - 5) = args_list[1];
+			} // rbp - task_init arg 2
+			if constexpr (sizeof...(Args) > 2) {
+				*((uint64_t *)0xcafebfff - 6) = args_list[2];
+			} // r12 - task_init arg 3
+			if constexpr (sizeof...(Args) > 3) {
+				*((uint64_t *)0xcafebfff - 7) = args_list[3];
+			} // r13 - task_init arg 4
+			if constexpr (sizeof...(Args) > 4) {
+				*((uint64_t *)0xcafebfff - 8) = args_list[4];
+			} // r14 - task_init arg 5
+			if constexpr (sizeof...(Args) > 5) {
+				*((uint64_t *)0xcafebfff - 9) = args_list[5];
+			} // r15 - task_init arg 6
+		}
+
+		unmap_page_no_free(Page::from_virt_addr({0xcafeb000}));
+
+		return task;
+	}*/
+
+	extern "C" void unlock_scheduler_from_task_init();
+	/*std::shared_ptr<Task> init_multitasking(VirtualAddress stack_bottom, VirtualAddress stack_top);
+
+	class Scheduler {
+		friend void threads::unlock_scheduler_from_task_init();
+
+		friend class Mutex;
+
+		friend class Semaphore;
+
+		friend void::syscall_long_mode_handler();
+
+		friend std::shared_ptr<Task> threads::init_multitasking(VirtualAddress stack_bottom, VirtualAddress stack_top);
+
+	private:
+		std::shared_ptr<Task> current_task_ptr;
+		std::deque<std::shared_ptr<Task>> ready_to_run_tasks;
+		std::multimap<uint64_t /* wake time , std::shared_ptr<Task>> sleep_queue;
+
+		int IRQ_disable_counter = 0;
+		int task_switch_disable_counter = 0;
+		bool task_switch_postponed = false;
+
+		uint64_t last_time_used_update_time = 0;
+		uint64_t idle_time = 0;
+		volatile uint64_t time_since_start_ns = 0;
+		uint64_t time_left_for_current_task_ms = 0;
+
+		void task_switch(std::shared_ptr<Task> task);
+		void update_time_used();
+		inline bool is_idle() { return current_task_ptr == nullptr; }
+		void lock_task_switches();
+		void unlock_task_switches();
+
+	public:
+		void add_task(const std::shared_ptr<Task>& task);
+		void schedule();
+		void block_task(Task::State reason);
+		void unblock_task(const std::shared_ptr<Task>& task);
+		inline void sleep(uint64_t ms) { this->sleep_until(get_time_ns() + ms * 1000); }
+		inline void sleep_ns(uint64_t ns) { this->sleep_until(get_time_ns() + ns); }
+		void sleep_until(uint64_t time);
+		void irq();
+		uint64_t get_time_used();
+		uint64_t get_time_ns() const { return this->time_since_start_ns; }
+		void unlock_scheduler();
+		void lock_scheduler();
+		inline const std::shared_ptr<Task>& get_current_task() const { return this->current_task_ptr; }
+	};*/
+}   // namespace threads
+
+#endif   // HUGOS_TASK_HPP

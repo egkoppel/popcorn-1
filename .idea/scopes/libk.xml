@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="libk" pattern="file[hug]:libk//*" />
+</component>

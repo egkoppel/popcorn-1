@@ -1,6 +1,5 @@
 build/
 /_*
-!/src/kernel/stlport/_*
 .vscode
-src/kernel/rust/target
-newlib-cygwin/
+doomgeneric
+cmake-*

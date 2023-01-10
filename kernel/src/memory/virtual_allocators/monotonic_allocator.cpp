@@ -1,0 +1,26 @@
+
+/*
+ * Copyright (c) 2023 Eliyahu Gluschove-Koppel.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "monotonic_allocator.hpp"
+
+#include <new>
+
+namespace memory::virtual_allocators {
+	aligned<vaddr_t> MonotonicAllocator::allocate_(u64 byte_length) {
+		auto start = this->current_;
+		auto end   = start + IDIV_ROUND_UP(byte_length, constants::frame_size);
+		if (end > this->end_) THROW(std::bad_alloc())
+		else {
+			this->current_ = end;
+			return start;
+		}
+	}
+}   // namespace memory::virtual_allocators
