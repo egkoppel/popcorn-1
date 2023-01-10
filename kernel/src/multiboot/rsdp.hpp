@@ -18,14 +18,14 @@ namespace multiboot::tags {
 	class [[gnu::packed]] Rsdp : public Tag {
 	public:
 		char signature[8];
-		uint8_t checksum;
+		u8 checksum;
 		char oem_id[6];
-		uint8_t revision;
+		u8 revision;
 		memory::paddr32_t rsdt_addr_;
-		uint32_t length;
+		u32 length;
 		memory::paddr_t xsdt_addr_;
-		uint8_t extended_checksum;
-		uint8_t _reserved[3];
+		u8 extended_checksum;
+		u8 _reserved[3];
 
 		memory::paddr_t rsdt_addr() const {
 			if (this->revision == 0) return this->rsdt_addr_;
