@@ -12,8 +12,10 @@
 #ifndef HUGOS_ELF_SECTIONS_HPP
 #define HUGOS_ELF_SECTIONS_HPP
 
-#include <memory/types.hpp>
 #include "multiboot.hpp"
+
+#include <memory/types.hpp>
+#include <popcorn_prelude.h>
 
 namespace multiboot::tags {
 	class [[gnu::packed]] ElfSections : public Tag {
@@ -112,7 +114,9 @@ namespace multiboot::tags {
 	};
 }   // namespace multiboot::tags
 
-u64 operator+(multiboot::tags::ElfSections::Entry::Flags lhs) { return static_cast<uint64_t>(lhs); }
+u64 operator+(multiboot::tags::ElfSections::Entry::Flags lhs) {
+	return static_cast<uint64_t>(lhs);
+}
 
 
-#endif   //HUGOS_ELF_SECTIONS_HPP
+#endif   // HUGOS_ELF_SECTIONS_HPP

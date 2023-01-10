@@ -10,12 +10,14 @@
 
 #include "pit.hpp"
 
+#include <bit>
+
 namespace arch::amd64 {
 	Pit timer = Pit();
 
 	void Pit::update() noexcept {
 		Pit::command_t c{.bcd = 0, .mode = this->mode, .access = access_t::LOBYTE_HIBYTE, .channel = 0};
-		command.write(*reinterpret_cast<uint8_t *>(&c));
+		command.write(std::bit_cast<u8>(c));
 		channel0_data.write(this->divisor & 0xFF);
 		channel0_data.write(this->divisor >> 8);
 	}

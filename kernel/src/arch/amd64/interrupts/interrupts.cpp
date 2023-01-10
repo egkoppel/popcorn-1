@@ -36,7 +36,7 @@ namespace arch {
 			};
 		}
 
-		constexpr uint8_t vector_to_idt_index(InterruptVectors vector) noexcept {
+		constexpr u8 vector_to_idt_index(InterruptVectors vector) noexcept {
 			/**
 			 * 0x00 - divide error (no error code)
 			 * 0x01 - debug exception (no error code)
@@ -65,7 +65,7 @@ namespace arch {
 		}
 	};   // namespace
 
-	void set_interrupt_perms(u8 vector, bool user_callable, uint8_t stack_idx) {
+	void set_interrupt_perms(u8 vector, bool user_callable, u8 stack_idx) {
 		auto idt_idx = vector;   // vector_to_idt_index(vector);
 		amd64::interrupt_descriptor_table.set_flags(idt_idx, user_callable ? 3 : 0, stack_idx);
 	}
