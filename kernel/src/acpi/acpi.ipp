@@ -68,11 +68,27 @@ namespace acpi {
 					break;
 				}
 				case IO_APIC: {
-					auto entry = static_cast<madt::ioapic_entry_t&>(entry_raw);
+					auto entry = *static_cast<madt::ioapic_entry_t *>(&entry_raw);
+					LOG(Log::INFO,
+					    "Found IOAPIC with APIC ID: %u at %lp\nGSI base: %d",
+					    entry.apic_id,
+					    static_cast<memory::paddr_t>(entry.ioapic_addr),
+					    entry.global_system_interrupt_base);
+					break;
+				}
+				case IOAPIC_INTERRUPT_SOURCE_OVERRIDE: {
+					auto entry = static_cast<madt::ioapic_source_override_entry_t&>(entry_raw);
+					LOG(Log::INFO,
+					    "Found IOAPIC ISO\nBus: %d, IRQ: %d, GSI: %d\nFlags: %b",
+					    entry.bus_source,
+					    entry.irq_source,
+					    entry.gsi,
+					    entry.flags);
 					break;
 				}
 				case LAPIC_ADDR: {
 					auto entry = static_cast<madt::lapic_addr_entry_t&>(entry_raw);
+					LOG(Log::INFO, "LAPIC addr override to %lp", entry.addr);
 					lapic_addr = entry.addr;
 					break;
 				}
