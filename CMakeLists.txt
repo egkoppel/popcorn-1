@@ -69,9 +69,9 @@ FetchContent_MakeAvailable(libcxxrt)
 add_custom_command(
         OUTPUT ${PROJECT_BINARY_DIR}/kernel.bin
         OUTPUT ${PROJECT_BINARY_DIR}/convolution.map
-        DEPENDS hugos_core_kernel hugos_libk cxxrt-static ${SRCROOT}/kernel/src/linker.ld /Users/Eliyahu/Downloads/libunwind-15.0.5.src/build/lib/libunwind.a
+        DEPENDS hugos_core_kernel hugos_libk cxxrt-static ${SRCROOT}/kernel/src/linker.ld ${SRCROOT}/kernel/extern/libunwind.a
         COMMAND ${CMAKE_CXX_LINK_EXECUTABLE} --eh-frame-hdr --error-limit=0 -T ${SRCROOT}/kernel/src/linker.ld -o ${PROJECT_BINARY_DIR}/kernel.bin --whole-archive $<TARGET_FILE:hugos_core_kernel> --no-whole-archive $<TARGET_FILE:hugos_libk> $<TARGET_FILE:cxxrt-static>
-        /Users/Eliyahu/Downloads/libunwind-15.0.5.src/build/lib/libunwind.a
+        ${SRCROOT}/kernel/extern/libunwind.a
         COMMAND ${CMAKE_NM} -C ${PROJECT_BINARY_DIR}/kernel.bin > ${PROJECT_BINARY_DIR}/convolution.map
 )
 add_custom_target(convolution DEPENDS ${PROJECT_BINARY_DIR}/kernel.bin)
