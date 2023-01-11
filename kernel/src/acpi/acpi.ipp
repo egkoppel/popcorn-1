@@ -11,6 +11,7 @@
 #ifndef POPCORN_KERNEL_SRC_ACPI_ACPI_IPP
 #define POPCORN_KERNEL_SRC_ACPI_ACPI_IPP
 
+#include "ioapic.hpp"
 #include "sdts/apic.hpp"
 
 #include <tuple>
@@ -52,11 +53,12 @@ namespace acpi {
 	}
 
 	template<class VAllocator>
-	std::tuple<std::vector<Cpu>> AcpiData<VAllocator>::parse_cpu_info(memory::IPhysicalAllocator& allocator) {
+	std::tuple<std::vector<Cpu>, Ioapics> AcpiData<VAllocator>::parse_cpu_info(memory::IPhysicalAllocator& allocator) {
 		using enum memory::paging::PageTableFlags;
 		constexpr auto lapic_flags = WRITEABLE | NO_EXECUTE | GLOBAL | IMPL_CACHE_WRITETHROUGH | IMPL_CACHE_DISABLE;
 		auto lapic_addr            = this->madt.value()->lapic_addr();
 		std::vector<Cpu> cpus;
+		Ioapics ioapics;
 
 		for (auto&& entry_raw : *this->madt.value()) {
 			switch (entry_raw.type) {
@@ -74,6 +76,7 @@ namespace acpi {
 					    entry.apic_id,
 					    static_cast<memory::paddr_t>(entry.ioapic_addr),
 					    entry.global_system_interrupt_base);
+					ioapics.add_ioapic({entry.ioapic_addr, entry.global_system_interrupt_base, allocator});
 					break;
 				}
 				case IOAPIC_INTERRUPT_SOURCE_OVERRIDE: {
@@ -84,6 +87,7 @@ namespace acpi {
 					    entry.irq_source,
 					    entry.gsi,
 					    entry.flags);
+					ioapics.add_iso(entry.irq_source, entry.gsi, entry.flags);
 					break;
 				}
 				case LAPIC_ADDR: {
@@ -101,7 +105,7 @@ namespace acpi {
 		                                                 lapic_flags,
 		                                                 allocator,
 		                                                 memory::paging::kas};
-		return std::make_tuple(std::move(cpus));
+		return std::make_tuple(std::move(cpus), std::move(ioapics));
 	}
 }   // namespace acpi
 

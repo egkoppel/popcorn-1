@@ -11,6 +11,7 @@
 #ifndef HUGOS_ACPI_HPP
 #define HUGOS_ACPI_HPP
 
+#include "ioapic.hpp"
 #include "sdts/apic.hpp"
 #include "sdts/rsdt.hpp"
 #include "sdts/sdt.hpp"
@@ -32,7 +33,7 @@ namespace acpi {
 		mmap_t<rsdt_t> rsdt;
 		std::optional<mmap_t<madt_t>> madt;
 
-		std::tuple<std::vector<Cpu>> parse_cpu_info(memory::IPhysicalAllocator& allocator);
+		std::tuple<std::vector<Cpu>, Ioapics> parse_cpu_info(memory::IPhysicalAllocator& allocator);
 	};
 
 	template<class VAllocator>
