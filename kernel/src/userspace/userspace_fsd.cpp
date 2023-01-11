@@ -8,10 +8,10 @@
  * limitations under the License.
  */
 
-#include "fsd.hpp"
+#include "userspace_fsd.hpp"
 
 #include "../memory/vm_map.hpp"
-#include "initramfs.hpp"
+#include "userspace_initramfs.hpp"
 #include "userspace_macros.hpp"
 
 #include <stdlib.h>
@@ -79,14 +79,14 @@ static inline fsd_command_response_t fsd_read(fsd_command_t *command_) {
 
 	// TODO
 	/*auto file_vm_region_handle =
-			vm_region_new_anon(command->size, VmMapping::PROT_READ | VmMapping::PROT_WRITE, VmMapping::PROT_READ);
+	        vm_region_new_anon(command->size, VmMapping::PROT_READ | VmMapping::PROT_WRITE, VmMapping::PROT_READ);
 	if (!file_vm_region_handle) return fsd_command_response_t{.return_code = -3};
 
 	auto res = vm_map_region(pointer, file_vm_region_handle, VmMapping::PROT_READ | VmMapping::PROT_WRITE);
 	if (res) return fsd_command_response_t{.return_code = -4};
 
 	if (file_descriptors[command->fd].read_addr + command->size > file_descriptors[command->fd].end_addr)
-		command->size = file_descriptors[command->fd].end_addr - file_descriptors[command->fd].read_addr;
+	    command->size = file_descriptors[command->fd].end_addr - file_descriptors[command->fd].read_addr;
 
 	memcpy(pointer, file_descriptors[command->fd].read_addr, command->size);
 	file_descriptors[command->fd].read_addr += command->size;
@@ -95,8 +95,8 @@ static inline fsd_command_response_t fsd_read(fsd_command_t *command_) {
 	vm_map_region(pointer2, file_vm_region_handle, VmMapping::PROT_READ | VmMapping::PROT_WRITE);
 	*pointer2 = '3';*/
 
-	return fsd_command_response_t{.return_code =
-	                                      -1};   //0, .data = {.read = {.mmap_vm_handle = file_vm_region_handle}}};
+	return fsd_command_response_t{.return_code = -1};   // 0, .data = {.read = {.mmap_vm_handle =
+	                                                    // file_vm_region_handle}}};
 }
 
 static inline fsd_command_response_t process_command(fsd_command_t& command) {

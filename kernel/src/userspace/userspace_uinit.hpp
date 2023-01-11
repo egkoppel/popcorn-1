@@ -11,8 +11,8 @@
 #ifndef HUGOS_UINIT_HPP_A
 #define HUGOS_UINIT_HPP_A
 
-#include "initramfs.hpp"
+#include "userspace_initramfs.hpp"
 
 [[noreturn, gnu::naked]] int uinit();
 
-#endif //HUGOS_UINIT_HPP_A
+#endif   // HUGOS_UINIT_HPP_A
