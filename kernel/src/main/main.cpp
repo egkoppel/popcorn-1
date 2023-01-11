@@ -358,6 +358,8 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	auto ktask = threads::Task::initialise(KStack<>{old_p4_table_page, 8 * constants::frame_size});
 	threads::GlobalScheduler::get().make_local_scheduler(std::move(ktask));
 
+	hal::enable_interrupts();
+
 	LOG(Log::DEBUG, "Locating AP processors");
 
 	auto acpi_context = acpi::parse_acpi_tables<general_allocator_t>(rsdp_tag->rsdt_addr(), null_allocator);
@@ -365,7 +367,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	if (acpi_context.madt) {
 		LOG(Log::DEBUG, "Located MADT");
 
-		auto [cpus]                           = acpi_context.parse_cpu_info(null_allocator);
+		auto [cpus, ioapics]                  = acpi_context.parse_cpu_info(null_allocator);
 		Cpu::lapic->spurious_interrupt_vector = 0x1FF;
 		for (auto&& cpu : cpus) {
 			if (cpu.id() == Cpu::lapic->id) {
@@ -378,6 +380,13 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 				cpu.boot();
 			}
 		}
+		
+		auto keyboard_int               = ioapics.redirection_entry(ioapics.pic_irq_to_gsi(1));
+		keyboard_int.vector()           = 0x96;
+		keyboard_int.delivery_mode()    = 0;
+		keyboard_int.destination_mode() = 0;
+		keyboard_int.destination()      = 0;
+		keyboard_int.mask()             = 0;
 	} else {
 		LOG(Log::WARNING, "No MADT found");
 	}
