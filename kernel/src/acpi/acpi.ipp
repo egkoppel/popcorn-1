@@ -96,11 +96,11 @@ namespace acpi {
 			}
 		}
 		LOG(Log::DEBUG, "LAPIC is at %lp", lapic_addr);
-		Cpu::lapic = memory::MemoryMap<volatile lapic>{lapic_addr,
-		                                               sizeof(volatile lapic),
-		                                               lapic_flags,
-		                                               allocator,
-		                                               memory::paging::kas};
+		Cpu::lapic = memory::MemoryMap<volatile lapic_t>{lapic_addr,
+		                                                 sizeof(volatile lapic_t),
+		                                                 lapic_flags,
+		                                                 allocator,
+		                                                 memory::paging::kas};
 		return std::make_tuple(std::move(cpus));
 	}
 }   // namespace acpi

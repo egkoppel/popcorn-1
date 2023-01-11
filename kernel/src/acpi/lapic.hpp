@@ -37,7 +37,7 @@ namespace acpi {
 		};
 	}   // namespace details
 
-	struct [[gnu::packed]] lapic {
+	struct [[gnu::packed]] lapic_t {
 		const u8 _pad0[0x020];
 		alignas(16) u32 id;
 		alignas(16) const u32 version;
@@ -120,21 +120,21 @@ namespace acpi {
 		void eoi() volatile noexcept { this->eoi_ = 0; }
 	};
 
-	static_assert(offsetof(lapic, id) == 0x020);
-	static_assert(offsetof(lapic, version) == 0x030);
-	static_assert(offsetof(lapic, task_priority) == 0x080);
-	static_assert(offsetof(lapic, arbitration_priority) == 0x090);
-	static_assert(offsetof(lapic, processor_priority) == 0x0A0);
-	static_assert(offsetof(lapic, eoi_) == 0x0B0);
-	static_assert(offsetof(lapic, remote_read) == 0x0C0);
-	static_assert(offsetof(lapic, logical_destination) == 0x0D0);
-	static_assert(offsetof(lapic, destination_format) == 0x0E0);
-	static_assert(offsetof(lapic, spurious_interrupt_vector) == 0x0F0);
-	static_assert(offsetof(lapic, error_status) == 0x280);
-	static_assert(offsetof(lapic, cmci) == 0x2F0);
-	static_assert(offsetof(lapic, interrupt_command_low) == 0x300);
-	static_assert(offsetof(lapic, interrupt_command_high) == 0x310);
-	static_assert(offsetof(lapic, timer_divide_configuration) == 0x3e0);
+	static_assert(offsetof(lapic_t, id) == 0x020);
+	static_assert(offsetof(lapic_t, version) == 0x030);
+	static_assert(offsetof(lapic_t, task_priority) == 0x080);
+	static_assert(offsetof(lapic_t, arbitration_priority) == 0x090);
+	static_assert(offsetof(lapic_t, processor_priority) == 0x0A0);
+	static_assert(offsetof(lapic_t, eoi_) == 0x0B0);
+	static_assert(offsetof(lapic_t, remote_read) == 0x0C0);
+	static_assert(offsetof(lapic_t, logical_destination) == 0x0D0);
+	static_assert(offsetof(lapic_t, destination_format) == 0x0E0);
+	static_assert(offsetof(lapic_t, spurious_interrupt_vector) == 0x0F0);
+	static_assert(offsetof(lapic_t, error_status) == 0x280);
+	static_assert(offsetof(lapic_t, cmci) == 0x2F0);
+	static_assert(offsetof(lapic_t, interrupt_command_low) == 0x300);
+	static_assert(offsetof(lapic_t, interrupt_command_high) == 0x310);
+	static_assert(offsetof(lapic_t, timer_divide_configuration) == 0x3e0);
 }   // namespace acpi
 
 #endif   // HUGOS_LAPIC_HPP
