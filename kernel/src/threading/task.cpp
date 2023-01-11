@@ -75,7 +75,8 @@ namespace threads {
 		                                allocator_wrapper{this}};
 		this->mmaps.push_back(std::move(map));
 		LOG(Log::DEBUG, "mmap backing at %lp", this->mmaps.back().pstart());
-		return this->mmaps.back().start();
+		if (downwards) return this->mmaps.back().end();
+		else return this->mmaps.back().start();
 	}
 
 	usize get_p4_table_frame(const Task *task) {
