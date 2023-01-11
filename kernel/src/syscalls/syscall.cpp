@@ -11,6 +11,8 @@
 
 #include "syscall.hpp"
 
+#include "irq.hpp"
+
 int64_t syscall_entry(SyscallVectors syscall_number,
                       int64_t arg1,
                       int64_t arg2,
@@ -26,6 +28,9 @@ int64_t syscall_entry(SyscallVectors syscall_number,
 		case SyscallVectors::resume: break;
 		case SyscallVectors::spawn: break;
 		case SyscallVectors::spawn2: break;
+		case SyscallVectors::make_stack:
+			LOG(Log::WARNING, "Make stack called");
+			while (1) __asm__ volatile("hlt");
 		case SyscallVectors::get_time_used: break;
 		case SyscallVectors::mailbox_new: break;
 		case SyscallVectors::mailbox_send: break;
@@ -40,6 +45,8 @@ int64_t syscall_entry(SyscallVectors syscall_number,
 		case SyscallVectors::set_flags: break;
 		case SyscallVectors::map_region: break;
 		case SyscallVectors::share_region: break;
+		case SyscallVectors::register_isa_irq: return syscall::register_isa_irq(arg1);
+		case SyscallVectors::unregister_isa_irq: return syscall::unregister_isa_irq(arg1);
 		case SyscallVectors::mutex_lock: break;
 		case SyscallVectors::mutex_try_lock: break;
 		case SyscallVectors::mutex_unlock: break;
