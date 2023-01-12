@@ -11,9 +11,18 @@
 
 #include "userspace_ps2_keyboard.hpp"
 
+#include "userspace_macros.hpp"
+
 namespace driver::ps2_keyboard {
 	int main() {
-		while (true) __asm__ volatile("nop");
-		return 0;
+		auto err = _syscall_new(SyscallVectors::register_isa_irq, 0x1);
+		if (err < 0) {
+			LOG(Log::CRITICAL, "failed to register keyboard irq");
+			while (true) __asm__ volatile("nop");
+		}
+		while (true) {
+			_syscall_new(SyscallVectors::suspend);
+			LOG(Log::WARNING, "keyboard irq");
+		}
 	}
 }   // namespace driver::ps2_keyboard
