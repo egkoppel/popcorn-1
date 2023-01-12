@@ -12,7 +12,14 @@
 #ifndef POPCORN_KERNEL_SRC_SYSCALLS_IRQ_HPP
 #define POPCORN_KERNEL_SRC_SYSCALLS_IRQ_HPP
 
+#include <functional>
 #include <popcorn_prelude.h>
+#include <threading/task.hpp>
+#include <utility>
+#include <vector>
+
+using bad_dict_irq = std::vector<std::pair<u8, std::reference_wrapper<threads::Task>>>;
+extern bad_dict_irq irq_list;
 
 namespace syscall {
 	i64 register_isa_irq(i64);
