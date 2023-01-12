@@ -47,9 +47,9 @@
 #include <userspace/userspace_driver.hpp>
 #include <userspace/userspace_ps2_keyboard.hpp>
 
-#define USER_ACCESS_FROM_KERNEL 0
-#if USER_ACCESS_FROM_KERNEL == 1
-	#warning USER_ACCESS_FROM_KERNEL is enabled - THIS IS A TERRIBLE TERRIBLE TERRIBLE IDEA FOR SECURITY
+#define KERNEL_ACCESS_FROM_USERSPACE 0
+#if KERNEL_ACCESS_FROM_USERSPACE == 1
+	#warning KERNEL_ACCESS_FROM_USERSPACE is enabled - THIS IS A TERRIBLE TERRIBLE TERRIBLE IDEA FOR SECURITY
 #endif
 
 kernel_allocators_t allocators = {};
@@ -229,7 +229,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 				using enum memory::paging::PageTableFlags;
 				auto flags = static_cast<paging::PageTableFlags>(0);
 				if (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_WRITE) flags = flags | WRITEABLE;
-				if (is_userspace || USER_ACCESS_FROM_KERNEL) flags = flags | USER;
+				if (is_userspace || KERNEL_ACCESS_FROM_USERSPACE) flags = flags | USER;
 				flags = flags | GLOBAL;
 				if (!(i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_EXECINSTR))
 					flags = flags | NO_EXECUTE;
@@ -256,7 +256,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	LOG(Log::DEBUG, "Map all the memory");
 	auto all_mem_flags = paging::PageTableFlags::WRITEABLE | memory::paging::PageTableFlags::GLOBAL
 	                     | memory::paging::PageTableFlags::NO_EXECUTE;
-	if (USER_ACCESS_FROM_KERNEL) all_mem_flags = all_mem_flags | memory::paging::PageTableFlags::USER;
+	if (KERNEL_ACCESS_FROM_USERSPACE) all_mem_flags = all_mem_flags | memory::paging::PageTableFlags::USER;
 
 	for (auto& entry : *mmap) {
 		if (entry.get_type() == multiboot::tags::MemoryMap::Type::AVAILABLE) {
@@ -288,7 +288,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	LOG(Log::DEBUG, "Map early mem_map region");
 	auto mem_map_flags = paging::PageTableFlags::WRITEABLE | memory::paging::PageTableFlags::GLOBAL
 	                     | memory::paging::PageTableFlags::NO_EXECUTE;
-	if (USER_ACCESS_FROM_KERNEL) mem_map_flags = mem_map_flags | memory::paging::PageTableFlags::USER;
+	if (KERNEL_ACCESS_FROM_USERSPACE) mem_map_flags = mem_map_flags | memory::paging::PageTableFlags::USER;
 	aligned<vaddr_t> page = vaddr_t{.address = constants::mem_map_start};
 	for (aligned<paddr_t> frame = real_initial_mem_map_start; frame < real_initial_mem_map_start + 0x400000;
 	     page++, frame++) {
@@ -310,6 +310,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	                         | memory::paging::PageTableFlags::IMPL_CACHE_DISABLE
 	                         | memory::paging::PageTableFlags::IMPL_CACHE_WRITETHROUGH
 	                         | memory::paging::PageTableFlags::GLOBAL;
+	if (KERNEL_ACCESS_FROM_USERSPACE) framebuffer_flags = framebuffer_flags | memory::paging::PageTableFlags::USER;
 
 	framebuffer_mapping = MemoryMap<char>{fb->begin(), fb->size(), framebuffer_flags, null_allocator, paging::kas};
 
