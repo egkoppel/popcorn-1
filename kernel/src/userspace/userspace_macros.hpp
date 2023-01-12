@@ -20,11 +20,11 @@ template<class R, class A1 = int64_t, class A2 = int64_t, class A3 = int64_t, cl
 }
 
 extern "C" [[gnu::naked]] inline i64 _syscall_new(SyscallVectors syscallNo,
-                                                  i64 arg1,
-                                                  i64 arg2,
-                                                  i64 arg3,
-                                                  i64 arg4,
-                                                  i64 arg5) {
+                                                  i64 arg1 = -1,
+                                                  i64 arg2 = -1,
+                                                  i64 arg3 = -1,
+                                                  i64 arg4 = -1,
+                                                  i64 arg5 = -1) {
 	__asm__ volatile(
 			"pushq %r12;"        // save clobber
 			"movq %rdi, %rax;"   // syscall number
