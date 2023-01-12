@@ -15,8 +15,22 @@
 #include <amd64_macros.hpp>
 #include <arch/interrupts.hpp>
 #include <main/debug.hpp>
+#include <smp/cpu.hpp>
+#include <syscalls/irq.hpp>
+#include <threading/scheduler.hpp>
+#include <threading/task.hpp>
 
 void unhandled_irq(arch::interrupt_info_t *info) noexcept {
+	bool handled = false;
+	for (auto&& irq : irq_list) {
+		if (irq.first == info->vector) {
+			handled = true;
+			threads::GlobalScheduler::get().unblock_task(irq.second.get());
+		}
+	}
+	if (true /* TODO: check if lapic irq */) Cpu::lapic->eoi();
+	if (handled) return;
+
 	usize rsp;
 	__asm__ volatile("mov %%rsp, %0" : "=r"(rsp));
 	LOG(Log::WARNING,
