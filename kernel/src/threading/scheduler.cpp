@@ -40,6 +40,10 @@ namespace threads {
 	}
 
 	void ILocalScheduler::block_task(Task::State reason) {
+		if (this->get_current_task()->pending_signals() > 0) {
+			this->get_current_task()->decrement_pending_signals();
+			return;
+		}
 		this->get_current_task()->set_state(reason);   // Can safely assume get_current_task is valid pointer as block
 		                                               // can only be called by current task
 		this->suspend_task();
