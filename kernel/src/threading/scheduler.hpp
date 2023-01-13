@@ -30,7 +30,8 @@ namespace threads {
 
 	private:
 		std::vector<std::unique_ptr<Task>> tasks;
-		std::vector<ILocalScheduler *> schedulers;
+		/*std::vector<*/ std::reference_wrapper<ILocalScheduler> /*>*/ schedulers
+				= std::reference_wrapper<ILocalScheduler>(*static_cast<ILocalScheduler *>(nullptr));
 		static std::unique_ptr<GlobalScheduler> instance;
 
 	public:
@@ -48,7 +49,13 @@ namespace threads {
 		 * Add a task to the global list of schedulable tasks
 		 * @param task The task to add
 		 */
-		void add_task(std::unique_ptr<Task> task) { this->tasks.push_back(std::move(task)); }
+		void add_task(std::unique_ptr<Task> task);
+
+		/**
+		 * Add a task to the global list of schedulable tasks
+		 * @param task The task to add
+		 */
+		void make_local_scheduler(std::unique_ptr<Task> current_task);
 
 		// void add_to_sleep_queue(Task& task, time_t handle) {}   // { this->sleep_queue.insert({handle, task}); }
 
