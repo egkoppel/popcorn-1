@@ -11,7 +11,7 @@
 
 #include "userspace_driver.hpp"
 
-void driver::_start(usize main_entry) {
+[[gnu::naked]] void driver::_start(usize main_entry) {
 	__asm__ volatile(
 			"movq %rdi, %rbx;"     // save entrypoint
 			"movq $0x100, %rax;"   // syscall number - 0x100 : make_stack
