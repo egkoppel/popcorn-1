@@ -380,10 +380,6 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 				cpu.boot();
 			}
 		}
-		Cpu::send_ipi(Cpu::ipi::SELF, 0x76, Cpu::ipi::FIXED, Cpu::ipi::PHYSICAL, Cpu::ipi::ASSERT, Cpu::ipi::EDGE);
-		Cpu::lapic->eoi();
-		Cpu::lapic->configure_timer(0x78, acpi::lapic::ONE_SHOT, acpi::lapic::DIV1);
-		Cpu::lapic->timer_initial_count = 1340;
 	} else {
 		LOG(Log::WARNING, "No MADT found");
 	}
