@@ -142,6 +142,7 @@ _start:
 	pop eax ; move flags into eax
 	mov ebx, eax ; save old flags
 	xor eax, 1<<21 ; flip bit 21
+	or eax, 3<<12 ; set iopl to ring 3
 	push eax
 	popfd ; write back flags
 
