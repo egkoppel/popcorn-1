@@ -33,7 +33,7 @@ namespace threads {
 	}
 
 	[[clang::no_sanitize("pointer-overflow")]] Task::Task(const char *name, usize argument, usize stack_offset)
-		: stack(memory::constants::frame_size),
+		: stack(memory::constants::frame_size * 2),
 		  address_space_(),
 		  stack_ptr_(vaddr_t(*this->stack.top()) - (stack_offset + 8) * 8),
 		  name_(name),

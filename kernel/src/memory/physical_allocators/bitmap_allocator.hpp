@@ -60,6 +60,8 @@ namespace memory::physical_allocators {
 
 	private:
 		std::tuple<u64, u64> frame_to_indices(const frame_t *frame);
+
+		frame_t *allocate_multi(u64 byte_length);
 	};
 }   // namespace memory::physical_allocators
 
