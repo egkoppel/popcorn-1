@@ -389,13 +389,11 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 		keyboard_int.destination()      = 0;
 		keyboard_int.mask()             = 0;
 
-		auto kb_task   = std::make_unique<threads::Task>("ps2kbd",
-                                                       driver::_start,
-                                                       reinterpret_cast<usize>(driver::ps2_keyboard::main),
-                                                       threads::user_task);
-		auto kbtaskptr = &*kb_task;
+		auto kb_task = std::make_unique<threads::Task>("ps2kbd",
+		                                               driver::_start,
+		                                               reinterpret_cast<usize>(driver::ps2_keyboard::main),
+		                                               threads::user_task);
 		threads::GlobalScheduler::get().add_task(std::move(kb_task));
-		threads::local_scheduler->acquire_task(*kbtaskptr, 0);
 	} else {
 		LOG(Log::WARNING, "No MADT found");
 	}
