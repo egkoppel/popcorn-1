@@ -60,6 +60,6 @@ namespace threads {
 	cpu_local std::unique_ptr<ILocalScheduler> local_scheduler;
 
 	void task_startup_scheduler_unlock() {
-		local_scheduler->unlock();
+		local_scheduler->unlock_structures();
 	}
 }   // namespace threads
