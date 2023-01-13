@@ -59,11 +59,11 @@ enum class SyscallVectors : uint64_t {
 	sem_destroy
 };
 
-int64_t syscall_entry(SyscallVectors syscall_number,
-                      int64_t arg1,
-                      int64_t arg2,
-                      int64_t arg3,
-                      int64_t arg4,
-                      int64_t arg5) noexcept;
+extern "C" int64_t syscall_entry(SyscallVectors syscall_number,
+                                 int64_t arg1,
+                                 int64_t arg2,
+                                 int64_t arg3,
+                                 int64_t arg4,
+                                 int64_t arg5) noexcept;
 
 #endif   // HUGOS_KERNEL_SRC_SYSCALLS_SYSCALL_HPP

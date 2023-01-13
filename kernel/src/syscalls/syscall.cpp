@@ -17,12 +17,12 @@
 #include <new>
 #include <threading/scheduler.hpp>
 
-int64_t syscall_entry(SyscallVectors syscall_number,
-                      int64_t arg1,
-                      int64_t arg2,
-                      int64_t arg3,
-                      int64_t arg4,
-                      int64_t arg5) noexcept try {
+extern "C" int64_t syscall_entry(SyscallVectors syscall_number,
+                                 int64_t arg1,
+                                 int64_t arg2,
+                                 int64_t arg3,
+                                 int64_t arg4,
+                                 int64_t arg5) noexcept try {
 	switch (syscall_number) {
 		case SyscallVectors::get_current_task: return -1;
 		case SyscallVectors::yield: return -1;
