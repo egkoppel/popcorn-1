@@ -16,11 +16,13 @@
 bad_dict_irq irq_list;
 
 namespace syscall {
+	/* TODO: Make this actually use irq line instead of preset cpu vector */
 	i64 register_isa_irq(i64 irq) {
-		auto gsi    = /* TODO */;
-		auto vector = /* TODO */;
-		irq_list.emplace_back({vector, *threads::local_scheduler->get_current_task()});
-		return -1;
+		// auto gsi    = /* TODO */;
+		// auto vector = /* TODO */;
+		if (irq != 1) return -10;
+		irq_list.emplace_back(0x96, *threads::local_scheduler->get_current_task());
+		return 0;
 	}
 
 	i64 unregister_isa_irq(i64) {
