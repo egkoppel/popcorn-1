@@ -28,7 +28,10 @@ extern "C" int64_t syscall_entry(SyscallVectors syscall_number,
 		case SyscallVectors::yield: return -1;
 		case SyscallVectors::exit: return -1;
 		case SyscallVectors::sleep: return -1;
-		case SyscallVectors::suspend: return -1;
+		case SyscallVectors::suspend: {
+			threads::local_scheduler->block_task(threads::Task::State::PAUSED);
+			return 0;
+		}
 		case SyscallVectors::resume: return -1;
 		case SyscallVectors::spawn: return -1;
 		case SyscallVectors::spawn2: return -1;
