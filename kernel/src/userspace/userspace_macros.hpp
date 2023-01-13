@@ -26,11 +26,11 @@ extern "C" [[gnu::naked]] inline i64 _syscall_new(SyscallVectors syscallNo,
                                                   i64 arg4 = -1,
                                                   i64 arg5 = -1) {
 	__asm__ volatile(
-			"pushq %r12;"        // save clobber
-			"movq %rdi, %rax;"   // syscall number
-			"movq %rsi, %rsi;"   // arg1
-			"movq %rdx, %rdi;"   // arg2
-			"movq %rcx, %rdx;"   // arg3
+			"pushq %r12;"       // save clobber
+			"mov %rdi, %rax;"   // syscall number
+			"mov %rsi, %rdi;"   // arg1
+			"mov %rdx, %rsi;"   // arg2
+			"mov %rcx, %rdx;"   // arg3
 			// arg4 and arg5 line up with C calling convention
 			"syscall;"
 			"popq %r12;"   // restore clobber
