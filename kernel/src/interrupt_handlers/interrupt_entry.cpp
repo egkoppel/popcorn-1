@@ -22,13 +22,16 @@
 
 void unhandled_irq(arch::interrupt_info_t *info) noexcept {
 	bool handled = false;
+	threads::local_scheduler->lock();
+	LOG(Log::DEBUG, "Waking tasks for irq %u", info->vector);
 	for (auto&& irq : irq_list) {
 		if (irq.first == info->vector) {
 			handled = true;
-			threads::GlobalScheduler::get().unblock_task(irq.second.get());
+			irq.second.get().send_signal();
 		}
 	}
 	if (true /* TODO: check if lapic irq */) Cpu::lapic->eoi();
+	threads::local_scheduler->unlock();
 	if (handled) return;
 
 	usize rsp;
@@ -66,6 +69,20 @@ void unhandled_irq(arch::interrupt_info_t *info) noexcept {
 
 extern "C" void exception_handler_entry(arch::interrupt_info_t *info, usize rbp) noexcept {
 	// trace_stack_trace(100, rbp);
+	LOG(Log::TRACE,
+	    "Irq at vector 0x%llx\n"
+	    "Error code %d\n"
+	    "IP: %lp\n"
+	    "Flags: 0x%08x\n"
+	    "SP: %lp\n"
+	    "Attempted access to: %lp\n"
+	    "New stack pointer: %lp",
+	    info->vector,
+	    info->error_code,
+	    info->ip,
+	    info->flags,
+	    info->sp,
+	    info->page_fault_memory_addr);
 	switch (info->vector) {
 		case 0xd: general_protection_fault(info); break;
 		case 0x8: interrupt_handlers::double_fault(info); break;
