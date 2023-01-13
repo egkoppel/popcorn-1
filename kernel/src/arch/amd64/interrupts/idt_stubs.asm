@@ -73,15 +73,14 @@ amd64_exception_handler_entry:
     mov rsi, cr2 ; load cr2 value
     mov [rdi], rsi
 
-    ; save current stack pointer and align the stack
-    mov rbx, rsp
-    and rsp, -16
+    ; realign stack
+    sub rsp, 8
 
     ; call kernel exception handler
     call exception_handler_entry
 
     ; reset stack
-    mov rsp, rbx
+    add rsp, 8
 
     pop qword r11
     pop qword r10
