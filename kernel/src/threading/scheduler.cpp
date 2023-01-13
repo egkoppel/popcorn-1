@@ -23,6 +23,7 @@ namespace threads {
 	}
 
 	void GlobalScheduler::unblock_task(Task& task) {
+		if (task.get_state() == Task::State::RUNNING) LOG(Log::DEBUG, "Waking already awake task");
 		task.set_state(Task::State::RUNNING);
 		this->schedulers.get().acquire_task(*this->tasks.back(), 0);
 	}
