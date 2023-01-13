@@ -20,46 +20,62 @@
 #include <utility/handle_table.hpp>
 
 namespace threads {
-	using time_t     = uint64_t;
-	using priority_t = uint64_t;
+	using time_t     = u64;
+	using priority_t = u64;
+
+	class ILocalScheduler;
 
 	class GlobalScheduler {
-	private:
-		/**
-		 * All tasks that exist
-		 */
-		/*SyscallHandleTable<std::unique_ptr<Task>, syscall_handle_type::syscall_handle_type::TASK> task_handles_list;
-		std::map<time_t, Task&> sleep_queue;*/
+		friend class ILocalScheduler;
 
+	private:
 		std::vector<std::unique_ptr<Task>> tasks;
+		/*std::vector<*/ std::reference_wrapper<ILocalScheduler> /*>*/ schedulers
+				= std::reference_wrapper<ILocalScheduler>(*static_cast<ILocalScheduler *>(nullptr));
 		static std::unique_ptr<GlobalScheduler> instance;
 
 	public:
 		GlobalScheduler() = default;
+
+		/**
+		 * Get the GlobalScheduler instance
+		 */
 		static GlobalScheduler& get() {
 			if (!instance) instance = std::make_unique<GlobalScheduler>();
 			return *instance;
 		}
 
 		/**
-		 * @brief Get a task object from a syscall handle
-		 * @param task Syscall handle for the task to find
-		 * @return Pointer to the found task - will return nullptr if handle is invalid
-		 * @note Task pointer is not invalidated while task is running
+		 * Add a task to the global list of schedulable tasks
+		 * @param task The task to add
 		 */
-		Task *get_task(syscall_handle_t task) {
-			return nullptr;   // task_handles_list.get_data_from_handle(task, std::unique_ptr<Task>()).get();
-		}
+		void add_task(std::unique_ptr<Task> task);
 
-		void add_task(std::unique_ptr<Task> t) { this->tasks.push_back(std::move(t)); }
+		/**
+		 * Add a task to the global list of schedulable tasks
+		 * @param task The task to add
+		 */
+		void make_local_scheduler(std::unique_ptr<Task> current_task);
 
-		void add_to_sleep_queue(Task& task, time_t handle) {}   // { this->sleep_queue.insert({handle, task}); }
+		// void add_to_sleep_queue(Task& task, time_t handle) {}   // { this->sleep_queue.insert({handle, task}); }
+
+		/**
+		 * Called when the global timer finishes counting down
+		 */
 		void irq_fired();
+
 		/**
 		 * @brief Unblocks the task and causes it to be scheduled, if it is currently blocked
 		 * @param task The task to unblock
 		 */
 		void unblock_task(Task& task);
+
+		/**
+		 * @brief Gets the current time in nanoseconds
+		 *
+		 * Returns the global time since an implementation defined point, counting each tick in nanoseconds
+		 * @return The time count
+		 */
 		time_t current_time();
 	};
 
@@ -72,21 +88,23 @@ namespace threads {
 		/**
 		 * @brief Called by the currently running task to suspend execution of itself
 		 * @remark Current implementations should immediately relinquish control of the task and not schedule until
-		 * `acquire_task()` is called on it, however future revisions may change this behaviour, for example to keep
-		 * tasks pinned to a specific core
+		 * `acquire_task()` is called on it again, however future revisions may change this behaviour, for example to
+		 * keep tasks pinned to a specific core
+		 * @see acquire_task()
 		 */
 		virtual void suspend_task() = 0;
 
+		///@{
 		/**
 		 * @brief Pair of functions for locking and unlocking the local scheduler, eg. to change the state of a task and
 		 * perform another associated action
 		 * @attention Between a call to lock() and a call to unlock(), the following actions may not take place:
 		 *   - Changes to task state
 		 *   - Task switches
+		 *
 		 * Upon calling unlock(), any actions that would have happened, eg. a context switch due to a task blocking,
 		 * should immediately take place
 		 */
-		///@{
 		virtual void lock()   = 0;
 		virtual void unlock() = 0;
 		///@}
@@ -97,62 +115,68 @@ namespace threads {
 		virtual ~ILocalScheduler() = default;
 
 		/**
-		 * @brief Causes the local scheduler to acquire the passed task, and optionally schedule it at the @p
-		 * recommended_priority
-		 * @note The task to acquire will always be in a `READY_TO_RUN` state
+		 * @brief Adds the task to the scheduler
+		 *
+		 * Adds the task to the scheduler's internal task list, and causes it to be a task that is able to be scheduled
+		 * by the scheduler
 		 * @param new_task The task to begin scheduling
-		 * @param recommended_priority Recommended priority to schedule the task at, likely based on its priority before
-		 * being last blocked
+		 * @param recommended_priority Recommended priority to schedule the task at
+		 * @note The task to acquire will always be in a `READY_TO_RUN` state
 		 */
 		virtual void acquire_task(Task& new_task, priority_t recommended_priority) = 0;
 
 		/**
-		 * @brief Called by the currently running task to suspend execution of itself
-		 * @param reason The state the task will change to
+		 * @brief Suspends execution of the currently running task
+		 * @param reason The reason the task is blocked
+		 * @warning \p reason should not be `READY_TO_RUN`
 		 */
 		void block_task(Task::State reason);
 
 		/**
-		 * @brief Retrieves the currently executing task
-		 * @return Pointer to the task currently executing - will return nullptr if scheduler is idle
+		 * @brief Gets the currently executing task
+		 * @return Pointer to the task currently executing - returns `nullptr` if currently idle
 		 */
 		virtual Task *get_current_task() = 0;
 
 		/**
 		 * @brief Pops a task off the execution queue, likely used to balance load between schedulers
-		 * @return Pointer to the popped task - will return nullptr if no available tasks
+		 * @return Pointer to the popped task - returns `nullptr` if no available tasks
 		 * @note Should modify scheduler internal state so the task is no longer scheduled by the current scheduler, but
 		 * should not adjust the state of the task
+		 * @remark Implementations should normally try to ensure the returned task is the task with the longest time
+		 * until being executed
 		 * @attention Should never return the currently running task
 		 */
 		virtual Task *pop_task() = 0;
 
 		/**
-		 * @brief Called when the scheduling timer fires
+		 * @brief Called when the local scheduler timer fires at its fixed frequency
 		 */
 		virtual void irq_fired() = 0;
 
 		/**
-		 * @brief Called by the currently running task to relinquish control to other tasks
+		 * @brief Yields execution of the currently running task
 		 * @note Should not cause the task to become blocked
 		 */
 		virtual void yield() = 0;
 
 		/**
-		 * @brief Called by the currently running task to suspend execution until the global time counter is equal to or
-		 * greater than a value
+		 * @brief Suspends execution of the current task until the global time reaches the requested time
 		 * @param time_ns The point at which to resume execution, in nanoseconds
+		 * @see GlobalScheduler::current_time()
 		 */
 		void sleep_until(time_t time_ns);
-		void sleep_ns(time_t time_ns) { this->sleep_until(GlobalScheduler::get().current_time() + time_ns); }
 
-		void perform_while_locked(auto&& f) {
-			this->lock();
-			f();
-			this->unlock();
-		}
+		/**
+		 * @brief Suspends execution for the requested amount of time
+		 * @param time_ns The amount of time to suspend execution for, in nanoseconds
+		 */
+		void sleep_ns(time_t time_ns) { this->sleep_until(GlobalScheduler::get().current_time() + time_ns); }
 	};
 
+	/**
+	 * The scheduler for the current CPU
+	 */
 	extern cpu_local std::unique_ptr<ILocalScheduler> local_scheduler;
 }   // namespace threads
 

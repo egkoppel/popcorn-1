@@ -357,10 +357,8 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	create_core_local_data(tls_size);
 
 	LOG(Log::DEBUG, "Initialising scheduler");
-	auto ktask    = threads::Task::initialise(KStack<>{old_p4_table_page, 8 * constants::frame_size});
-	auto ktaskptr = &*ktask;
-	threads::GlobalScheduler::get().add_task(std::move(ktask));
-	threads::ILocalScheduler::create_local_scheduler(ktaskptr);
+	auto ktask = threads::Task::initialise(KStack<>{old_p4_table_page, 8 * constants::frame_size});
+	threads::GlobalScheduler::get().make_local_scheduler(std::move(ktask));
 
 	LOG(Log::DEBUG, "Locating AP processors");
 
@@ -382,10 +380,6 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 				cpu.boot();
 			}
 		}
-		Cpu::send_ipi(Cpu::ipi::SELF, 0x76, Cpu::ipi::FIXED, Cpu::ipi::PHYSICAL, Cpu::ipi::ASSERT, Cpu::ipi::EDGE);
-		Cpu::lapic->eoi();
-		Cpu::lapic->configure_timer(0x78, acpi::lapic::ONE_SHOT, acpi::lapic::DIV1);
-		Cpu::lapic->timer_initial_count = 1340;
 	} else {
 		LOG(Log::WARNING, "No MADT found");
 	}

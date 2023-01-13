@@ -28,7 +28,7 @@ namespace threads {
 
 	class Task {
 	public:
-		enum class State { RUNNING, SLEEPING, FUTEX, PAUSED };
+		enum class State { RUNNING, SLEEPING, FUTEX, PAUSED, KILLED };
 
 	private:
 		struct allocator_wrapper {

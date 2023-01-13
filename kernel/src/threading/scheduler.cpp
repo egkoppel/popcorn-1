@@ -13,6 +13,25 @@
 #include "schedulers/roundrobin_nopriority_preemptive.hpp"
 
 namespace threads {
+	std::unique_ptr<GlobalScheduler> GlobalScheduler::instance = nullptr;
+
+	void GlobalScheduler::irq_fired() {}
+
+	void GlobalScheduler::add_task(std::unique_ptr<Task> task) {
+		this->tasks.push_back(std::move(task));
+		this->schedulers.get().acquire_task(*this->tasks.back(), 0);
+	}
+
+	void GlobalScheduler::unblock_task(Task& task) {
+		task.set_state(Task::State::RUNNING);
+		this->schedulers.get().acquire_task(*this->tasks.back(), 0);
+	}
+
+	void GlobalScheduler::make_local_scheduler(std::unique_ptr<Task> current_task) {
+		this->schedulers = ILocalScheduler::create_local_scheduler(current_task.get());
+		this->tasks.push_back(std::move(current_task));
+	}
+
 	ILocalScheduler& ILocalScheduler::create_local_scheduler(Task *currently_running_task) {
 		// TODO: some fancy cpuid thing to decide which scheduler to use
 		local_scheduler = std::make_unique<schedulers::RoundRobinNoPriorityPreemptive>(currently_running_task);
@@ -25,17 +44,13 @@ namespace threads {
 		this->suspend_task();
 	}
 
-	void ILocalScheduler::sleep_until(time_t time_ns) {
-		decltype(auto) global_scheduler = GlobalScheduler::get();
-		global_scheduler.add_to_sleep_queue(*this->get_current_task(), time_ns);   // Can safely assume get_current_task
-		                                                                           // is valid pointer as sleep can only
-		                                                                           // be called by current task
-		this->block_task(Task::State::SLEEPING);
-	}
-
-	std::unique_ptr<GlobalScheduler> GlobalScheduler::instance = nullptr;
-
-	void GlobalScheduler::irq_fired() {}
+	/*void ILocalScheduler::sleep_until(time_t time_ns) {
+	    decltype(auto) global_scheduler = GlobalScheduler::get();
+	    global_scheduler.add_to_sleep_queue(*this->get_current_task(), time_ns);   // Can safely assume get_current_task
+	                                                                               // is valid pointer as sleep can only
+	                                                                               // be called by current task
+	    this->block_task(Task::State::SLEEPING);
+	}*/
 
 	cpu_local std::unique_ptr<ILocalScheduler> local_scheduler;
 
