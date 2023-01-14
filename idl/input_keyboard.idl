@@ -1,0 +1,7 @@
+interface popcorn.input.keyboard {
+    type Scancode = u64
+
+    func key_down(scancode: Scancode) -> ()
+    func key_up(scancode: Scancode) -> ()
+    // TODO: signal set_leds() -> ()
+}
