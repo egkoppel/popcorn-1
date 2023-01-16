@@ -37,4 +37,11 @@ endif ()
 
 add_library(k++ STATIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/new.cpp)
+target_compile_options(k++ PRIVATE ${C_CXX_KERNEL_COMPILE_FLAGS})
+
+if (${ENABLE_LIBKPP_UBSAN})
+    target_compile_options(k++ PRIVATE ${UBSAN_FLAG})
+endif ()
+
 target_include_directories(k++ PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(k++ PUBLIC k)
