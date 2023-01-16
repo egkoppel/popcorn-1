@@ -1,15 +1,12 @@
-project("libk")
+project(libk
+        LANGUAGES C
+        VERSION 1.0.0)
 
-set(SRCROOT ${PROJECT_SOURCE_DIR})
-
-include_directories(${SRCROOT}/include ${SRCROOT}/../kernel/include)
-
-add_library(hugos_libk STATIC)
-
-target_sources(hugos_libk PRIVATE
-        src/malloc.c
-        src/stdio.c
-        src/stdlib.c
-        src/string.c
-        src/errno.c)
-        
+add_library(k STATIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/malloc.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/stdio.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/stdlib.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/string.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/errno.c)
+target_include_directories(k PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(k PRIVATE ${CMAKE_SOURCE_DIR}/kernel/include)
