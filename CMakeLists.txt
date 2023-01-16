@@ -81,6 +81,9 @@ target_compile_options(cxxrt-static PRIVATE ${C_CXX_KERNEL_COMPILE_FLAGS})
 target_include_directories(cxxrt-static BEFORE PRIVATE $<TARGET_PROPERTY:k,INCLUDE_DIRECTORIES>)
 # ============================================
 
+include(RamdiskGenerate)
+include(IsoGenerate)
+
 return()
 
 configure_file(grub.cfg.in grub.cfg)
