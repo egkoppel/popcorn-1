@@ -17,6 +17,9 @@ add_custom_command(
 add_executable(convolution
         fonts.o)
 target_compile_options(convolution PRIVATE ${C_CXX_KERNEL_COMPILE_FLAGS})
+target_compile_options(convolution PRIVATE $<$<COMPILE_LANGUAGE:CXX>:
+        -Wall -Werror=return-type -Werror=implicit-fallthrough -Wno-address-of-packed-member -Wno-gnu-zero-variadic-macro-arguments
+        >)
 
 if (${ENABLE_KERNEL_UBSAN})
     target_compile_options(convolution PRIVATE ${UBSAN_FLAG})
@@ -37,19 +40,3 @@ target_link_libraries(convolution
         ${CMAKE_CURRENT_SOURCE_DIR}/extern/libunwind.a)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src)
-
-return()
-
-if (NOT ${CMAKE_CROSSCOMPILING})
-    add_subdirectory(${PROJECT_SOURCE_DIR}/test)
-endif ()
-
-add_custom_command(
-        OUTPUT ${PROJECT_BINARY_DIR}/kernel.bin
-        OUTPUT ${PROJECT_BINARY_DIR}/convolution.map
-        DEPENDS hugos_core_kernel hugos_libk cxxrt-static ${PROJECT_SOURCE_DIR}/src/linker.ld ${PROJECT_SOURCE_DIR}/extern/libunwind.a
-        COMMAND ${CMAKE_CXX_LINK_EXECUTABLE} --eh-frame-hdr --error-limit=0 -T ${PROJECT_SOURCE_DIR}/src/linker.ld -o ${PROJECT_BINARY_DIR}/kernel.bin --whole-archive $<TARGET_FILE:convolution::core> --no-whole-archive $<TARGET_FILE:hugos_libk> $<TARGET_FILE:cxxrt-static>
-        ${PROJECT_SOURCE_DIR}/extern/libunwind.a
-        COMMAND ${CMAKE_NM} -C ${PROJECT_BINARY_DIR}/kernel.bin > ${PROJECT_BINARY_DIR}/convolution.map
-)
-add_custom_target(convolution DEPENDS ${PROJECT_BINARY_DIR}/kernel.bin)
