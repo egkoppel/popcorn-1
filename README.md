@@ -10,24 +10,28 @@ Please don't yet
 
 ```shell
 mkdir build && cd build
-cmake .. -DHUGOS_ARCH=amd64 -DCMAKE_TOOLCHAIN_FILE=../cmake/cross-amd64.cmake
+cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/cross-amd64.cmake
 ```
 
-Then build with your favourite backend (Only `make` and `ninja` have been tested)
+Then build with your favourite backend (Only `ninja` has been tested)
 
 ### Targets:
 
-- `popcorn_iso` produces a live ISO called `popcorn.iso` in the build root
-- `initramfs` generates an initramfs file called `initramfs.tar.gz` in the build root
-- `Sphinx` produces Sphinx docs in `docs/docs/sphinx` inside the build root
+- `popcorn` produces a live ISO called `popcorn.iso` in the build root
+- `docs` produces Sphinx docs in `docs/docs/sphinx` inside the build root
 - `convolution` builds the core kernel
-- `hugos_libk` builds the kernel C standard library
+- `libk.a` builds the kernel C standard library
+- `libk++.a` builds the kernel C++ standard library
 
 Building the kernel will also download and build `libcxxrt` and `libunwind`
 
 ### Additional CMake options:
 
-- `-DENABLE_UBSAN` enables or disables clang UBSan - off by default
+- `-DENABLE_KERNEL_UBSAN` enables or disables clang UBSan - off by default
+    - `-DENABLE_LIBK_UBSAN` enables or disabled UBSan within libk - on by default if UBSan is on
+    - `-DENABLE_LIBKPP_UBSAN` enables or disabled UBSan within libk++ - on by default if UBSan is on
+- `-DRAMDISK_INCLUDED_DRIVERS` semicolon separated list of drivers and servers to include in the ramdisk (unused for
+  now)
 - `-DCMAKE_BUILD_TYPE` change build type between `Debug`, `Release`, `RelWithDebInfo` and `MinSizeRel` - defaults
   to `Debug`
 
