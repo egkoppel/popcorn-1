@@ -56,3 +56,6 @@ index 8e9881b..8c3ce6e 100644
 +set_target_properties(cxxrt-static PROPERTIES
 +        OUTPUT_NAME "cxxrt"
 +        )
+
+
+
