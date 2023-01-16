@@ -2,6 +2,7 @@ if (${CMAKE_CROSSCOMPILING})
     ExternalProject_Add(codesign
             SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
             CMAKE_ARGS -U CMAKE_TOOLCHAIN_FILE
+            INSTALL_COMMAND ""
             )
     return()
 endif ()
