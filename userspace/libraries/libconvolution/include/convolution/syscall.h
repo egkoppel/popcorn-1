@@ -18,7 +18,7 @@
 extern "C" {
 #endif
 
-typedef uint64_t convolution_handle;
+typedef int64_t convolution_handle;
 
 enum convolution_syscall_vectors {
 	convolution_get_current_task_vector = 0x000, /* syscall_handle_t get_current_task() */
@@ -67,9 +67,19 @@ enum convolution_syscall_vectors {
 	convolution_ipc_notify_vector
 };
 
-static inline void convolution_syscall(uint64_t vector) {}
-static inline convolution_handle convolution_syscall_handle(uint64_t vector) {}
-static inline void *convolution_syscall_ptr(uint64_t vector) {}
+__attribute__((naked)) static inline void convolution_syscall_void_void(uint64_t vector) {}
+__attribute__((naked)) static inline convolution_handle convolution_syscall_handle_void(uint64_t vector) {}
+__attribute__((naked)) static inline convolution_handle convolution_syscall_handle_ptr_ptr(uint64_t vector,
+                                                                                           void *,
+                                                                                           void *) {}
+__attribute__((naked)) static inline void *convolution_syscall_ptr_ptr(uint64_t vector, void *) {}
+__attribute__((naked)) static inline void convolution_syscall_void_ptr(uint64_t vector, void *) {}
+__attribute__((naked)) static inline void *convolution_syscall_ptr_void(uint64_t vector) {}
+__attribute__((naked)) static inline void *convolution_syscall_ptr_handle_flags_ptr(uint64_t vector,
+                                                                                    convolution_handle,
+                                                                                    uint64_t,
+                                                                                    void *) {}
+__attribute__((naked)) static inline int64_t convolution_syscall_code_ptr(uint64_t vector, void *) {}
 
 #ifdef __cplusplus
 };

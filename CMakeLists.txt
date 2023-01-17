@@ -65,6 +65,9 @@ add_subdirectory(libk)
 add_subdirectory(libk++)
 add_subdirectory(codesign)
 add_subdirectory(kernel)
+add_subdirectory(userspace/libraries/libconvolution)
+add_subdirectory(userspace/libraries/libipc)
+add_subdirectory(userspace/drivers/ps2)
 
 # =========== Install dependencies ===========
 FetchContent_Declare(

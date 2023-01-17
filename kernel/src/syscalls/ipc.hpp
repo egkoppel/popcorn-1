@@ -12,4 +12,16 @@
 #ifndef HUGOS_IPC_HPP
 #define HUGOS_IPC_HPP
 
-#endif //HUGOS_IPC_HPP
+#include <popcorn_prelude.h>
+
+namespace syscalls::ipc {
+	enum ipc_wait_flags { RET_ON_OPEN = 1 << 0, RET_ON_CLOSE = 1 << 1 };
+
+	i64 register_address(const char *address, void *);
+	void *open(const char *address);
+	void close(void *channel);
+	void *wait(i64 handle, ipc_wait_flags flags, usize ret);
+	void notify(void *channel);
+}   // namespace syscalls::ipc
+
+#endif   // HUGOS_IPC_HPP

@@ -17,17 +17,23 @@
 namespace convolution::ipc {
 	class Receiver {
 	public:
-		Receiver(const char* address, void*) : handle(convolution_ipc_register(address, nullptr)) {
-			if (this->handle <= 0) throw std::runtime_error("Failed to register IPC receiver");
+		Receiver(const char *address, void *) : handle(convolution_ipc_register(address, nullptr)) {
+			// TODO: if (this->handle <= 0) throw std::runtime_error("Failed to register IPC receiver");
 		}
 
-		void wait() {
-			convolution_ipc_wait(this->handle, );
+		enum class wait_return_reason { new_message, opened_channel, closed_channel };
+
+		wait_return_reason wait(bool return_on_channel_change = false) const {
+			uint64_t ret;
+			void *ptr = convolution_ipc_wait(this->handle, return_on_channel_change ? 3 : 0, &ret);
+			if (ret & 1) return wait_return_reason::opened_channel;
+			else if (ret & 2) return wait_return_reason::closed_channel;
+			else return wait_return_reason::new_message;
 		}
 
 	private:
 		convolution_handle handle;
 	};
-}   // namespace convolution
+}   // namespace convolution::ipc
 
 #endif   // POPCORN_LIBCONVOLUTION_INCLUDE_CONVOLUTION_IPC_HPP
