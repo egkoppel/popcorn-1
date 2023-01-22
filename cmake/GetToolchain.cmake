@@ -27,9 +27,9 @@ else ()
             -DLLVM_ENABLE_PROJECTS=clang\;lld
             -DLLVM_ENABLE_RUNTIMES=
             -DCMAKE_BUILD_TYPE=Release
-            -DDEFAULT_SYSROOT="/System"
+            -DDEFAULT_SYSROOT=/System
             -DLLVM_TARGETS_TO_BUILD=X86
-            -DLLVM_DEFAULT_TARGET_TRIPLE="x86_64-unknown-popcorn"
+            -DLLVM_DEFAULT_TARGET_TRIPLE=x86_64-unknown-popcorn
             -DCLANG_ENABLE_BOOTSTRAP=Off
             INSTALL_COMMAND ""
             )
