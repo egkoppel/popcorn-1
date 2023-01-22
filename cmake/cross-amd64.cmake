@@ -3,7 +3,7 @@ set(CMAKE_SYSTEM_PROCESSOR amd64)
 
 unset(CMAKE_SYSROOT)
 
-set(triple x86_64-unknown-none-elf)
+set(triple x86_64-unknown-popcorn)
 
 set(CMAKE_C_COMPILER clang)
 set(CMAKE_C_COMPILER_TARGET ${triple})
@@ -28,6 +28,3 @@ find_program(CMAKE_AR llvm-ar)
 find_program(CMAKE_RANLIB llvm-ranlib)
 find_program(CMAKE_OBJCOPY llvm-objcopy)
 find_program(CMAKE_STRIP llvm-strip)
-
-set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
-set(CMAKE_C_LINK_EXECUTABLE "<CMAKE_LINKER> <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")

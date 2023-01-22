@@ -30,8 +30,10 @@ target_include_directories(convolution PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 target_link_options(convolution PRIVATE
-        --eh-frame-hdr
-        -T ${CMAKE_CURRENT_SOURCE_DIR}/src/linker.ld)
+        ${C_CXX_KERNEL_COMPILE_FLAGS}
+        LINKER:SHELL:--dynamic-linker=""
+        LINKER:--eh-frame-hdr
+        LINKER:SHELL:-T ${CMAKE_CURRENT_SOURCE_DIR}/src/linker.ld)
 
 target_link_libraries(convolution
         k
