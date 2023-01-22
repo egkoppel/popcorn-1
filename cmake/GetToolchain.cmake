@@ -31,6 +31,7 @@ else ()
             -DLLVM_TARGETS_TO_BUILD=X86
             -DLLVM_DEFAULT_TARGET_TRIPLE=x86_64-unknown-popcorn
             -DCLANG_ENABLE_BOOTSTRAP=Off
+            -DLLVM_BUILD_TESTS=OFF
             INSTALL_COMMAND ""
             )
 
