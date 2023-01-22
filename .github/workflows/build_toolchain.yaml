@@ -1,6 +1,8 @@
 name: Build toolchain
 
-on: workflow_dispatch
+on:
+  - workflow_dispatch
+  - push
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
