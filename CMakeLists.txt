@@ -19,6 +19,7 @@ cmake_dependent_option(BUILD_TESTS "Build libk/++ tests" OFF "${CMAKE_SYSTEM_NAM
 set(RAMDISK_INCLUDED_DRIVERS "" CACHE STRING "Drivers to include the the ramdisk - usually disk drivers")
 option(TOOLCHAIN_FROM_ARTIFACT "Download toolchain if available rather than building LLVM from source" ON)
 set(TOOLCHAIN_LLVM_VERSION "15.0.7" CACHE STRING "Version of LLVM to build the toolchain from")
+option(TOOLCHAIN_ONLY "Only build toolchain" OFF)
 # =====================================
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/toolchain-build)
@@ -47,6 +48,10 @@ execute_process(
 )
 if (ret AND NOT ret EQUAL 0)
     message(FATAL_ERROR "Failed to get toolchain")
+endif ()
+
+if (${TOOLCHAIN_ONLY})
+    return()
 endif ()
 
 return()
