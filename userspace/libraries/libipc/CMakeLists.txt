@@ -11,4 +11,4 @@ target_sources(ipc PRIVATE
         src/serialization.cpp
         src/server.cpp)
 target_compile_options(ipc PRIVATE -fno-exceptions -fno-rtti)
-target_link_libraries(ipc PUBLIC libc)
+add_dependencies(ipc libc)

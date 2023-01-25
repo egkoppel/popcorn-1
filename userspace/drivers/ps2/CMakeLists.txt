@@ -6,5 +6,6 @@ set(CMAKE_CXX_STANDARD 17)
 add_executable(driver_ps2)
 target_sources(driver_ps2 PRIVATE
         main.cpp)
-target_link_libraries(driver_ps2 PRIVATE ipc libc)
+target_link_libraries(driver_ps2 PRIVATE ipc)
+add_dependencies(driver_ps2 libc)
 target_compile_options(driver_ps2 PRIVATE -fno-exceptions -fno-rtti)

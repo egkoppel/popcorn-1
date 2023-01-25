@@ -8,5 +8,6 @@ target_sources(server_input PRIVATE
         src/main.cpp
         src/keyboard_client.cpp
         src/keyboard_server.cpp)
-target_link_libraries(server_input PRIVATE ipc libc)
+target_link_libraries(server_input PRIVATE ipc)
+add_dependencies(server_input libc)
 target_compile_options(server_input PRIVATE -fno-exceptions -fno-rtti)
