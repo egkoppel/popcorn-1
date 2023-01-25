@@ -21,7 +21,8 @@ enum class SyscallVectors : uint64_t {
 	sleep            = 0x003, /* int64_t sleep(uint64_t) */
 	suspend          = 0x004, /* int64_t suspend() */
 	resume           = 0x005, /* int64_t resume(syscall_handle_t) */
-	spawn = 0x006, /* syscall_handle_t spawn(char*, void(*)(uint64_t, uint64_t, uint64_t), uint64_t, uint64_t, uint64_t) */
+	spawn = 0x006, /* syscall_handle_t spawn(char*, void(*)(uint64_t, uint64_t, uint64_t), uint64_t, uint64_t, uint64_t)
+	                */
 	spawn2        = 0x007, /* syscall_handle_t spawn(char*, char**, char**) */
 	get_time_used = 0x008, /* int64_t get_time_used() */
 
@@ -50,14 +51,22 @@ enum class SyscallVectors : uint64_t {
 	sem_wait,
 	sem_get_count,
 	sem_new,
-	sem_destroy
+	sem_destroy,
+
+	ipc_register,
+	ipc_open,
+	ipc_close,
+	ipc_wait,
+	ipc_notify
 };
 
-int64_t syscall_entry(SyscallVectors syscall_number,
-                      int64_t arg1,
-                      int64_t arg2,
-                      int64_t arg3,
-                      int64_t arg4,
-                      int64_t arg5) noexcept;
+namespace syscalls {
+	int64_t syscall_entry(SyscallVectors syscall_number,
+	                      int64_t arg1,
+	                      int64_t arg2,
+	                      int64_t arg3,
+	                      int64_t arg4,
+	                      int64_t arg5) noexcept;
+}
 
-#endif   //HUGOS_KERNEL_SRC_SYSCALLS_SYSCALL_HPP
+#endif   // HUGOS_KERNEL_SRC_SYSCALLS_SYSCALL_HPP

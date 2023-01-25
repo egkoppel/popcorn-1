@@ -13,21 +13,26 @@
 #define POPCORN_IDL_LIBIPC_SRC_SERVER_HPP
 
 #include "ipc.hpp"
+#include "stddef.h"
 
 namespace ipc {
 	class ServerImpl {
+	public:
+		ServerImpl() = delete;
+
+		[[noreturn]] void main_loop();
+
 	protected:
-		uint64_t extract_header();
-		template<class... Args> bool extract_rpc_args(Args& ...args);
+		explicit ServerImpl(const char *address) : receiver(address, nullptr) {}
+		virtual void handle_function(size_t function_hash, RecvChannel&) = 0;
+
+		template<class... Args> static bool extract_rpc_args(RecvChannel& channel, Args&...args) {
+			(channel >> ... >> args) >> packet_end;
+		}
 
 	private:
-		RecvChannel channel;
+		convolution::ipc::Receiver receiver;
 	};
-
-	template<class... Args> bool ServerImpl::extract_rpc_args(Args&...args) {
-		(this->channel >> ... >> args)
-				>> packet_end;
-	}
 }   // namespace ipc
 
 #endif   // POPCORN_IDL_LIBIPC_SRC_SERVER_HPP

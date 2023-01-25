@@ -14,9 +14,21 @@
 #include <convolution/ipc.hpp>
 
 namespace ipc {
-	uint64_t ServerImpl::extract_header() {
-		uint64_t function_hash;
-		this->channel >> packet_start >> function_hash;
-		return function_hash;
+	namespace {
+		uint64_t extract_header(RecvChannel& channel) {
+			uint64_t function_hash;
+			channel >> packet_start >> function_hash;
+			return function_hash;
+		}
+	}   // namespace
+
+	void ServerImpl::main_loop() {
+		while (true) {
+			this->receiver.wait();
+			void *buffer_ptr = 0 /* TODO */;
+			RecvChannel buffer{buffer_ptr};
+			uint64_t function_hash = extract_header(buffer);
+			this->handle_function(function_hash, buffer);
+		}
 	}
 }   // namespace ipc

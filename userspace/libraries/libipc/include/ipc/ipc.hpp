@@ -14,6 +14,8 @@
 
 #include "serialization.hpp"
 
+#include <convolution/ipc.hpp>
+
 namespace ipc {
 	class SendChannel {
 		friend SendChannel& operator<<(SendChannel&, bool);
@@ -29,7 +31,10 @@ namespace ipc {
 		friend SendChannel& operator<<(SendChannel&, packet_end_t);
 
 	public:
-		SendChannel() = delete;
+		explicit SendChannel(const char *address) : sender(address) {}
+
+	private:
+		convolution::ipc::Sender sender;
 	};
 
 	class RecvChannel {
@@ -46,7 +51,10 @@ namespace ipc {
 		friend RecvChannel& operator>>(RecvChannel&, packet_end_t);
 
 	public:
-		RecvChannel() = delete;
+		explicit RecvChannel(void *start) : start(start) {}
+
+	protected:
+		void *start;
 	};
 }   // namespace ipc
 
