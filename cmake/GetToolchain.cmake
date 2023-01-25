@@ -11,7 +11,7 @@ if (${TOOLCHAIN_FROM_ARTIFACT})
             toolchain
             SOURCE_DIR ${CLANG_INSTALL}
             URL https://github.com/egkoppel/popcorn/raw/toolchain/toolchain-${TOOLCHAIN_OS}.tar.gz
-            URL_HASH SHA256=7232310dbdc6cde545549daddd671b17970edae18a77cd4bc40622f1f9c573df
+            URL_HASH SHA256=8597c21af31f17f9e6a13051554709ccfb5229738d3e6dbfb4df812d12d12f3a
     )
     FetchContent_Populate(toolchain)
 else ()
