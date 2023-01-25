@@ -155,7 +155,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	usize tls_size  = 0;
 	for (auto& i : *sections) {
 		if ((i.type() != decltype(i.type())::SHT_NULL) && (i.type() != decltype(i.type())::SHT_NOTE)
-		    && (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_ALLOC) != 0) {
+		    && (i.flags() & +Elf64::section_flags::SHF_ALLOC) != 0) {
 			/* TODO
 			stdserial << i;
 			stdout << i;
@@ -172,9 +172,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 			if (i.start() - offset < kernel_min) kernel_min = i.start() - offset;
 			if (i.end() - offset > kernel_max) kernel_max = i.end() - offset;
 
-			if (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_TLS) {
-				tls_size = i.end().address - i.start().address;
-			}
+			if (i.flags() & +Elf64::section_flags::SHF_TLS) { tls_size = i.end().address - i.start().address; }
 		}
 	}
 	LOG(Log::DEBUG, "Kernel executable: %lp -> %lp", kernel_min, kernel_max);
@@ -218,9 +216,8 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 
 	// Map the kernel with section flags
 	for (auto& i : *sections) {
-		if ((i.type() != multiboot::tags::ElfSections::Entry::Type::SHT_NULL)
-		    && (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_ALLOC) != 0
-		    && (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_TLS) == 0) {
+		if ((i.type() != Elf64::section_type::SHT_NULL) && (i.flags() & +Elf64::section_flags::SHF_ALLOC) != 0
+		    && (i.flags() & +Elf64::section_flags::SHF_TLS) == 0) {
 			auto name         = i.name(*sections);
 			auto is_userspace = strncmp(name, ".userspace", 10) == 0;
 
@@ -233,11 +230,10 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 			     phys_frame++) {
 				using enum memory::paging::PageTableFlags;
 				auto flags = static_cast<paging::PageTableFlags>(0);
-				if (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_WRITE) flags = flags | WRITEABLE;
+				if (i.flags() & +Elf64::section_flags::SHF_WRITE) flags = flags | WRITEABLE;
 				if (is_userspace || USER_ACCESS_FROM_KERNEL) flags = flags | USER;
 				flags = flags | GLOBAL;
-				if (!(i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_EXECINSTR))
-					flags = flags | NO_EXECUTE;
+				if (!(i.flags() & +Elf64::section_flags::SHF_EXECINSTR)) flags = flags | NO_EXECUTE;
 
 				LOG(Log::TRACE,
 				    "Kexe - Mapping %p -> %p",

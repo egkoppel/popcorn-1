@@ -14,6 +14,7 @@
 
 #include "multiboot.hpp"
 
+#include <elf/elf64.hpp>
 #include <memory/types.hpp>
 #include <popcorn_prelude.h>
 
@@ -21,43 +22,6 @@ namespace multiboot::tags {
 	class [[gnu::packed]] ElfSections : public Tag {
 	public:
 		class [[gnu::packed]] Entry {
-		public:
-			enum class Type : u32 {
-				SHT_NULL,
-				SHT_PROGBITS,
-				SHT_SYMTAB,
-				SHT_STRTAB,
-				SHT_RELA,
-				SHT_HASH,
-				SHT_DYNAMIC,
-				SHT_NOTE,
-				SHT_NOBITS,
-				SHT_REL,
-				SHT_SHLIB,
-				SHT_DYNSYM,
-				SHT_INIT_ARRAY,
-				SHT_FINI_ARRAY,
-				SHT_PREINIT_ARRAY,
-				SHT_GROUP,
-				SHT_SYMTAB_SHNDX,
-				SHT_NUM
-			};
-
-			enum class Flags : u64 {
-				SHF_WRITE            = 0x1,
-				SHF_ALLOC            = 0x2,
-				SHF_EXECINSTR        = 0x4,
-				SHF_MERGE            = 0x10,
-				SHF_STRINGS          = 0x20,
-				SHF_INFO_LINK        = 0x40,
-				SHF_LINK_ORDER       = 0x80,
-				SHF_OS_NONCONFORMING = 0x100,
-				SHF_GROUP            = 0x200,
-				SHF_TLS              = 0x400,
-				SHF_MASKOS           = 0x0ff00000,
-				SHF_MASKPROC         = 0xf0000000
-			};
-
 		private:
 			u32 name_index;
 			u32 _type;
@@ -75,7 +39,7 @@ namespace multiboot::tags {
 			bool operator!=(const Entry&) const  = default;
 			inline memory::paddr_t start() const { return addr; }
 			inline memory::paddr_t end() const { return addr + size; }
-			inline Type type() const { return static_cast<Type>(this->_type); }
+			inline Elf64::section_type type() const { return static_cast<Elf64::section_type>(this->_type); }
 			inline u64 flags() const { return this->_flags; }
 			char *name(ElfSections& sections) {
 				return static_cast<char *>(sections.find_strtab()->start().virtualise() + this->name_index);
@@ -124,7 +88,7 @@ namespace multiboot::tags {
 	};
 }   // namespace multiboot::tags
 
-u64 operator+(multiboot::tags::ElfSections::Entry::Flags lhs) {
+u64 operator+(Elf64::section_flags lhs) {
 	return static_cast<uint64_t>(lhs);
 }
 
