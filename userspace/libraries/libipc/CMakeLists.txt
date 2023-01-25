@@ -10,4 +10,5 @@ target_sources(ipc PRIVATE
         src/ipc.cpp
         src/serialization.cpp
         src/server.cpp)
-target_link_libraries(ipc PRIVATE libconvolution)
+target_compile_options(ipc PRIVATE -fno-exceptions -fno-rtti)
+target_link_libraries(ipc PUBLIC libc)

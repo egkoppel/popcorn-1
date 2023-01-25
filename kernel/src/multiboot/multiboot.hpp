@@ -11,7 +11,6 @@
 #ifndef HUGOS_MULTIBOOT_HPP
 #define HUGOS_MULTIBOOT_HPP
 
-#include "memory.h"
 #include "memory/types.hpp"
 #include "utils.h"
 
@@ -71,4 +70,4 @@ namespace multiboot {
 	};
 }   // namespace multiboot
 
-#endif   //HUGOS_MULTIBOOT_HPP
+#endif   // HUGOS_MULTIBOOT_HPP

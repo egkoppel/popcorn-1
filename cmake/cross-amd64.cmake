@@ -1,14 +1,13 @@
-set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_NAME Popcorn)
 set(CMAKE_SYSTEM_PROCESSOR amd64)
-
-unset(CMAKE_SYSROOT)
 
 set(triple x86_64-unknown-popcorn)
 
-set(CMAKE_C_COMPILER clang)
+set(CMAKE_C_COMPILER ${CLANG_INSTALL}/bin/clang)
 set(CMAKE_C_COMPILER_TARGET ${triple})
-set(CMAKE_CXX_COMPILER clang++)
+set(CMAKE_CXX_COMPILER ${CLANG_INSTALL}/bin/clang++)
 set(CMAKE_CXX_COMPILER_TARGET ${triple})
+set(CMAKE_SYSROOT ${CLANG_INSTALL})
 set(CMAKE_ASM_NASM_OBJECT_FORMAT elf64)
 set(CMAKE_ASM_NASM_FLAGS_DEBUG "-g -Fdwarf")
 
@@ -22,9 +21,8 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE NEVER)
 
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
-find_program(CMAKE_LINKER ld.lld)
-find_program(CMAKE_NM llvm-nm)
-find_program(CMAKE_AR llvm-ar)
-find_program(CMAKE_RANLIB llvm-ranlib)
-find_program(CMAKE_OBJCOPY llvm-objcopy)
-find_program(CMAKE_STRIP llvm-strip)
+find_program(CMAKE_NM ${CLANG_INSTALL}/bin/llvm-nm)
+find_program(CMAKE_AR ${CLANG_INSTALL}/bin/llvm-ar)
+find_program(CMAKE_RANLIB ${CLANG_INSTALL}/bin/llvm-ranlib)
+find_program(CMAKE_OBJCOPY ${CLANG_INSTALL}/bin/llvm-objcopy)
+find_program(CMAKE_STRIP ${CLANG_INSTALL}/bin/llvm-strip)
