@@ -48,8 +48,8 @@ namespace memory::physical_allocators {
 			decltype(auto) addr = this->bitmap[i];
 
 			for (usize j = 0; j < 63; j++) {
-				if (addr & (3ull << j)) {
-					addr &= ~(3ull << j);   // Clear bit to mark it as allocated
+				if ((addr & (3ull << j)) == (3ull << j)) {   // All bits have to be set to be able to allocate
+					addr &= ~(3ull << j);                    // Clear bit to mark it as allocated
 					u64 bits_to_start_of_iteration = i * 64;
 					frame_t *ret_frame             = this->start_frame + (bits_to_start_of_iteration + j - 1);
 					return ret_frame;
@@ -79,6 +79,7 @@ namespace memory::physical_allocators {
 	}
 
 	template<class VAllocator> void BitmapAllocator<VAllocator>::deallocate_(const frame_t *frames, u64 size) noexcept {
+		LOG(Log::DEBUG, "BitmapAllocator deallocate %lp", frames->addr());
 		auto frame_count = IDIV_ROUND_UP(size, constants::frame_size);
 		for (auto f = frames; f < frames + frame_count; f++) {
 			auto [bitmap_index, bit_index] = this->frame_to_indices(f);
@@ -114,6 +115,10 @@ namespace memory::physical_allocators {
 		}
 		for (auto i = monotonic_allocator.get_multiboot_start_frame();
 		     i < monotonic_allocator.get_multiboot_end_frame();
+		     i++) {
+			allocator.mark_frame(i.frame(), allocated);
+		}
+		for (auto i = monotonic_allocator.get_ramdisk_start_frame(); i < monotonic_allocator.get_ramdisk_end_frame();
 		     i++) {
 			allocator.mark_frame(i.frame(), allocated);
 		}
