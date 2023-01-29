@@ -51,7 +51,7 @@ namespace memory::physical_allocators {
 				if ((addr & (3ull << j)) == (3ull << j)) {   // All bits have to be set to be able to allocate
 					addr &= ~(3ull << j);                    // Clear bit to mark it as allocated
 					u64 bits_to_start_of_iteration = i * 64;
-					frame_t *ret_frame             = this->start_frame + (bits_to_start_of_iteration + j - 1);
+					frame_t *ret_frame             = this->start_frame + (bits_to_start_of_iteration + j);
 					return ret_frame;
 				}
 			}
@@ -68,10 +68,11 @@ namespace memory::physical_allocators {
 
 			u64 first_set_bit = __builtin_ffsll(addr);
 			if (first_set_bit != 0) {
-				addr &= ~(1ull << (first_set_bit - 1));   // Clear bit to mark it as allocated
+				first_set_bit -= 1;                 // Since builtin offsets by 1
+				addr &= ~(1ull << first_set_bit);   // Clear bit to mark it as allocated
 
 				u64 bits_to_start_of_iteration = i * 64;
-				frame_t *ret_frame             = this->start_frame + (bits_to_start_of_iteration + first_set_bit - 1);
+				frame_t *ret_frame             = this->start_frame + (bits_to_start_of_iteration + first_set_bit);
 				return ret_frame;
 			}
 		}
@@ -115,10 +116,6 @@ namespace memory::physical_allocators {
 		}
 		for (auto i = monotonic_allocator.get_multiboot_start_frame();
 		     i < monotonic_allocator.get_multiboot_end_frame();
-		     i++) {
-			allocator.mark_frame(i.frame(), allocated);
-		}
-		for (auto i = monotonic_allocator.get_ramdisk_start_frame(); i < monotonic_allocator.get_ramdisk_end_frame();
 		     i++) {
 			allocator.mark_frame(i.frame(), allocated);
 		}
