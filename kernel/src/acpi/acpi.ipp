@@ -11,6 +11,7 @@
 #ifndef POPCORN_KERNEL_SRC_ACPI_ACPI_IPP
 #define POPCORN_KERNEL_SRC_ACPI_ACPI_IPP
 
+#include "ioapic.hpp"
 #include "sdts/apic.hpp"
 
 #include <tuple>
@@ -52,11 +53,12 @@ namespace acpi {
 	}
 
 	template<class VAllocator>
-	std::tuple<std::vector<Cpu>> AcpiData<VAllocator>::parse_cpu_info(memory::IPhysicalAllocator& allocator) {
+	std::tuple<std::vector<Cpu>, Ioapics> AcpiData<VAllocator>::parse_cpu_info(memory::IPhysicalAllocator& allocator) {
 		using enum memory::paging::PageTableFlags;
 		constexpr auto lapic_flags = WRITEABLE | NO_EXECUTE | GLOBAL | IMPL_CACHE_WRITETHROUGH | IMPL_CACHE_DISABLE;
 		auto lapic_addr            = this->madt.value()->lapic_addr();
 		std::vector<Cpu> cpus;
+		Ioapics ioapics;
 
 		for (auto&& entry_raw : *this->madt.value()) {
 			switch (entry_raw.type) {
@@ -68,11 +70,29 @@ namespace acpi {
 					break;
 				}
 				case IO_APIC: {
-					auto entry = static_cast<madt::ioapic_entry_t&>(entry_raw);
+					auto entry = *static_cast<madt::ioapic_entry_t *>(&entry_raw);
+					LOG(Log::INFO,
+					    "Found IOAPIC with APIC ID: %u at %lp\nGSI base: %d",
+					    entry.apic_id,
+					    static_cast<memory::paddr_t>(entry.ioapic_addr),
+					    entry.global_system_interrupt_base);
+					ioapics.add_ioapic({entry.ioapic_addr, entry.global_system_interrupt_base, allocator});
+					break;
+				}
+				case IOAPIC_INTERRUPT_SOURCE_OVERRIDE: {
+					auto entry = static_cast<madt::ioapic_source_override_entry_t&>(entry_raw);
+					LOG(Log::INFO,
+					    "Found IOAPIC ISO\nBus: %d, IRQ: %d, GSI: %d\nFlags: %b",
+					    entry.bus_source,
+					    entry.irq_source,
+					    entry.gsi,
+					    entry.flags);
+					ioapics.add_iso(entry.irq_source, entry.gsi, entry.flags);
 					break;
 				}
 				case LAPIC_ADDR: {
 					auto entry = static_cast<madt::lapic_addr_entry_t&>(entry_raw);
+					LOG(Log::INFO, "LAPIC addr override to %lp", entry.addr);
 					lapic_addr = entry.addr;
 					break;
 				}
@@ -80,12 +100,12 @@ namespace acpi {
 			}
 		}
 		LOG(Log::DEBUG, "LAPIC is at %lp", lapic_addr);
-		Cpu::lapic = memory::MemoryMap<volatile lapic>{lapic_addr,
-		                                               sizeof(volatile lapic),
-		                                               lapic_flags,
-		                                               allocator,
-		                                               memory::paging::kas};
-		return std::make_tuple(std::move(cpus));
+		Cpu::lapic = memory::MemoryMap<volatile lapic_t>{lapic_addr,
+		                                                 sizeof(volatile lapic_t),
+		                                                 lapic_flags,
+		                                                 allocator,
+		                                                 memory::paging::kas};
+		return std::make_tuple(std::move(cpus), std::move(ioapics));
 	}
 }   // namespace acpi
 

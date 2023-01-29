@@ -41,9 +41,27 @@ namespace memory::physical_allocators {
 		return allocated; /* If bit outside of index then return allocated to imply unusable */
 	}
 
+	template<class VAllocator> frame_t *BitmapAllocator<VAllocator>::allocate_multi(u64 byte_length) {
+		if (byte_length != constants::frame_size * 2) THROW(std::bad_alloc());
+
+		for (usize i = 0; i < this->bitmap.size() / 8; i++) {
+			decltype(auto) addr = this->bitmap[i];
+
+			for (usize j = 0; j < 63; j++) {
+				if (addr & (3ull << j)) {
+					addr &= ~(3ull << j);   // Clear bit to mark it as allocated
+					u64 bits_to_start_of_iteration = i * 64;
+					frame_t *ret_frame             = this->start_frame + (bits_to_start_of_iteration + j - 1);
+					return ret_frame;
+				}
+			}
+		}
+		THROW(std::bad_alloc());
+	}
+
 	template<class VAllocator> frame_t *BitmapAllocator<VAllocator>::allocate_(u64 byte_length) {
 		/* TODO: Take byte length into account */
-		if (byte_length > constants::frame_size) THROW(std::bad_alloc());
+		if (byte_length > constants::frame_size) return this->allocate_multi(byte_length);
 
 		for (usize i = 0; i < this->bitmap.size() / 8; i++) {
 			decltype(auto) addr = this->bitmap[i];

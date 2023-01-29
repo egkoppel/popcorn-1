@@ -94,6 +94,10 @@ namespace threads {
 		 */
 		virtual void suspend_task() = 0;
 
+		virtual void lock_structures() =0;
+		virtual void unlock_structures() =0;
+
+	public:
 		///@{
 		/**
 		 * @brief Pair of functions for locking and unlocking the local scheduler, eg. to change the state of a task and

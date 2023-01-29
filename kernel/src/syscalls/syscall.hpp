@@ -21,9 +21,12 @@ enum class SyscallVectors : uint64_t {
 	sleep            = 0x003, /* int64_t sleep(uint64_t) */
 	suspend          = 0x004, /* int64_t suspend() */
 	resume           = 0x005, /* int64_t resume(syscall_handle_t) */
-	spawn = 0x006, /* syscall_handle_t spawn(char*, void(*)(uint64_t, uint64_t, uint64_t), uint64_t, uint64_t, uint64_t) */
+	spawn = 0x006, /* syscall_handle_t spawn(char*, void(*)(uint64_t, uint64_t, uint64_t), uint64_t, uint64_t, uint64_t)
+	                */
 	spawn2        = 0x007, /* syscall_handle_t spawn(char*, char**, char**) */
 	get_time_used = 0x008, /* int64_t get_time_used() */
+
+	make_stack = 0x100,
 
 	mailbox_new             = 0x200,
 	mailbox_send            = 0x201,
@@ -40,6 +43,9 @@ enum class SyscallVectors : uint64_t {
 	map_region      = 0x304,
 	share_region    = 0x306,
 
+	register_isa_irq   = 0x400,
+	unregister_isa_irq = 0x401,
+
 	mutex_lock,
 	mutex_try_lock,
 	mutex_unlock,
@@ -53,11 +59,11 @@ enum class SyscallVectors : uint64_t {
 	sem_destroy
 };
 
-int64_t syscall_entry(SyscallVectors syscall_number,
-                      int64_t arg1,
-                      int64_t arg2,
-                      int64_t arg3,
-                      int64_t arg4,
-                      int64_t arg5) noexcept;
+extern "C" int64_t syscall_entry(SyscallVectors syscall_number,
+                                 int64_t arg1,
+                                 int64_t arg2,
+                                 int64_t arg3,
+                                 int64_t arg4,
+                                 int64_t arg5) noexcept;
 
-#endif   //HUGOS_KERNEL_SRC_SYSCALLS_SYSCALL_HPP
+#endif   // HUGOS_KERNEL_SRC_SYSCALLS_SYSCALL_HPP

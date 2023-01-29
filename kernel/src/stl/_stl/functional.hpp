@@ -12,6 +12,7 @@
 #ifndef HUGOS_KERNEL_SRC_STL__STL_FUNCTIONAL_HPP
 #define HUGOS_KERNEL_SRC_STL__STL_FUNCTIONAL_HPP
 
+#include <cstdint>
 #include <utility>
 
 HUGOS_STL_BEGIN_NAMESPACE
@@ -77,6 +78,63 @@ HUGOS_STL_BEGIN_NAMESPACE
 	};
 
 	template<class T> reference_wrapper(T&) -> reference_wrapper<T>;
+
+	HUGOS_STL_BEGIN_PRIVATE_NAMESPACE
+		template<class Key> struct HashImpl;
+		template<> struct HashImpl<bool> {
+			std::size_t operator()(bool key) const { return key; }
+		};
+		template<> struct HashImpl<char> {
+			std::size_t operator()(char key) const { return key; }
+		};
+		template<> struct HashImpl<signed char> {
+			std::size_t operator()(signed char key) const { return key; }
+		};
+		template<> struct HashImpl<unsigned char> {
+			std::size_t operator()(unsigned char key) const { return key; }
+		};
+		template<> struct HashImpl<short> {
+			std::size_t operator()(short key) const { return key; }
+		};
+		template<> struct HashImpl<unsigned short> {
+			std::size_t operator()(unsigned short key) const { return key; }
+		};
+		template<> struct HashImpl<int> {
+			std::size_t operator()(int key) const { return key; }
+		};
+		template<> struct HashImpl<unsigned int> {
+			std::size_t operator()(unsigned int key) const { return key; }
+		};
+		template<> struct HashImpl<long> {
+			std::size_t operator()(long key) const { return key; }
+		};
+		template<> struct HashImpl<unsigned long> {
+			std::size_t operator()(unsigned long key) const { return key; }
+		};
+		template<> struct HashImpl<long long> {
+			std::size_t operator()(long long key) const { return key; }
+		};
+		template<> struct HashImpl<unsigned long long> {
+			std::size_t operator()(unsigned long long key) const { return key; }
+		};
+		template<> struct HashImpl<float>;
+		template<> struct HashImpl<double>;
+		template<> struct HashImpl<long double>;
+		template<> struct HashImpl<decltype(nullptr)> {
+			std::size_t operator()(decltype(nullptr) key) const { return 0; }
+		};
+		template<class T> struct HashImpl<T *> {
+			std::size_t operator()(T *key) const { return reinterpret_cast<std::uintptr_t>(key); }
+		};
+		template<class T> requires(std::is_enum_v<T>)
+		struct HashImpl<T> {
+			using U = std::underlying_type_t<T>;
+
+			std::size_t operator()(T key) const { return HashImpl<U>{}(static_cast<U>(key)); }
+		};
+	HUGOS_STL_END_PRIVATE_NAMESPACE
+
+	template<class T> using hash = HUGOS_STL_PRIVATE_NAMESPACE::HashImpl<T>;
 
 HUGOS_STL_END_NAMESPACE
 

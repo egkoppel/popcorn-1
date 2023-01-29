@@ -10,11 +10,11 @@
 
 #define HUGOS_USERSPACE
 
-#include "uinit.hpp"
+#include "userspace_uinit.hpp"
 
 #include "../memory/vm_map.hpp"
-#include "fsd.hpp"
-#include "initramfs.hpp"
+#include "userspace_fsd.hpp"
+#include "userspace_initramfs.hpp"
 #include "userspace_macros.hpp"
 
 #include <stdarg.h>
@@ -80,8 +80,8 @@ char *pointer = (char *)0xfc000000;
 	memcpy(fsd_command.data, &read_ramfs_command, sizeof(read_ramfs_command));
 	send_msg_with_reply(fsd_mbox, UINT64_MAX, &fsd_command);
 	auto read_command_response = reinterpret_cast<fsd_command_response_t *>(&fsd_command);
-	//vm_map_region(pointer, read_command_response->data.read.mmap_vm_handle, VmMapping::PROT_READ);
-	// TODO: Check contents reads `Help I'm stuck in a universe factory`
+	// vm_map_region(pointer, read_command_response->data.read.mmap_vm_handle, VmMapping::PROT_READ);
+	//  TODO: Check contents reads `Help I'm stuck in a universe factory`
 
 	// [TARGET BOOTSTRAPPED]
 	// TODO: Call `exec(` or `spawn2("initramfs:/bin/init")`

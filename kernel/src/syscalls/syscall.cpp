@@ -11,45 +11,64 @@
 
 #include "syscall.hpp"
 
-int64_t syscall_entry(SyscallVectors syscall_number,
-                      int64_t arg1,
-                      int64_t arg2,
-                      int64_t arg3,
-                      int64_t arg4,
-                      int64_t arg5) noexcept {
+#include "irq.hpp"
+
+#include <limits>
+#include <new>
+#include <threading/scheduler.hpp>
+
+extern "C" int64_t syscall_entry(SyscallVectors syscall_number,
+                                 int64_t arg1,
+                                 int64_t arg2,
+                                 int64_t arg3,
+                                 int64_t arg4,
+                                 int64_t arg5) noexcept try {
 	switch (syscall_number) {
-		case SyscallVectors::get_current_task: break;
-		case SyscallVectors::yield: break;
-		case SyscallVectors::exit: break;
-		case SyscallVectors::sleep: break;
-		case SyscallVectors::suspend: break;
-		case SyscallVectors::resume: break;
-		case SyscallVectors::spawn: break;
-		case SyscallVectors::spawn2: break;
-		case SyscallVectors::get_time_used: break;
-		case SyscallVectors::mailbox_new: break;
-		case SyscallVectors::mailbox_send: break;
-		case SyscallVectors::mailbox_recv: break;
-		case SyscallVectors::mailbox_destroy: break;
-		case SyscallVectors::mailbox_transfer: break;
-		case SyscallVectors::mailbox_reply: break;
-		case SyscallVectors::mailbox_send_with_reply: break;
-		case SyscallVectors::region_new: break;
-		case SyscallVectors::region_new_anon: break;
-		case SyscallVectors::region_new_dma: break;
-		case SyscallVectors::set_flags: break;
-		case SyscallVectors::map_region: break;
-		case SyscallVectors::share_region: break;
-		case SyscallVectors::mutex_lock: break;
-		case SyscallVectors::mutex_try_lock: break;
-		case SyscallVectors::mutex_unlock: break;
-		case SyscallVectors::mutex_new: break;
-		case SyscallVectors::mutex_destroy: break;
-		case SyscallVectors::sem_post: break;
-		case SyscallVectors::sem_wait: break;
-		case SyscallVectors::sem_get_count: break;
-		case SyscallVectors::sem_new: break;
-		case SyscallVectors::sem_destroy: break;
+		case SyscallVectors::get_current_task: return -1;
+		case SyscallVectors::yield: return -1;
+		case SyscallVectors::exit: return -1;
+		case SyscallVectors::sleep: return -1;
+		case SyscallVectors::suspend: {
+			threads::local_scheduler->block_task(threads::Task::State::PAUSED);
+			return 0;
+		}
+		case SyscallVectors::resume: return -1;
+		case SyscallVectors::spawn: return -1;
+		case SyscallVectors::spawn2: return -1;
+		case SyscallVectors::make_stack: {
+			auto stack_top = threads::local_scheduler->get_current_task()->new_mmap(memory::vaddr_t{.address = 0},
+			                                                                        4096,
+			                                                                        true);
+			return std::bit_cast<i64>(stack_top.address);
+		}
+		case SyscallVectors::get_time_used: return -1;
+		case SyscallVectors::mailbox_new: return -1;
+		case SyscallVectors::mailbox_send: return -1;
+		case SyscallVectors::mailbox_recv: return -1;
+		case SyscallVectors::mailbox_destroy: return -1;
+		case SyscallVectors::mailbox_transfer: return -1;
+		case SyscallVectors::mailbox_reply: return -1;
+		case SyscallVectors::mailbox_send_with_reply: return -1;
+		case SyscallVectors::region_new: return -1;
+		case SyscallVectors::region_new_anon: return -1;
+		case SyscallVectors::region_new_dma: return -1;
+		case SyscallVectors::set_flags: return -1;
+		case SyscallVectors::map_region: return -1;
+		case SyscallVectors::share_region: return -1;
+		case SyscallVectors::register_isa_irq: return syscall::register_isa_irq(arg1);
+		case SyscallVectors::unregister_isa_irq: return syscall::unregister_isa_irq(arg1);
+		case SyscallVectors::mutex_lock: return -1;
+		case SyscallVectors::mutex_try_lock: return -1;
+		case SyscallVectors::mutex_unlock: return -1;
+		case SyscallVectors::mutex_new: return -1;
+		case SyscallVectors::mutex_destroy: return -1;
+		case SyscallVectors::sem_post: return -1;
+		case SyscallVectors::sem_wait: return -1;
+		case SyscallVectors::sem_get_count: return -1;
+		case SyscallVectors::sem_new: return -1;
+		case SyscallVectors::sem_destroy: return -1;
+		default: return -2;
 	}
-	return INT64_MIN;
+} catch (std::bad_alloc&) { return -3; } catch (...) {
+	return std::numeric_limits<i64>::min();
 }

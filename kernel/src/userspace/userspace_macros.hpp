@@ -19,6 +19,24 @@ template<class R, class A1 = int64_t, class A2 = int64_t, class A3 = int64_t, cl
 	__asm__ volatile("mov %r9, %rax; mov %r8, %r9; mov %rcx, %r8; syscall; ret;");
 }
 
+extern "C" [[gnu::naked]] inline i64 _syscall_new(SyscallVectors syscallNo,
+                                                  i64 arg1 = -1,
+                                                  i64 arg2 = -1,
+                                                  i64 arg3 = -1,
+                                                  i64 arg4 = -1,
+                                                  i64 arg5 = -1) {
+	__asm__ volatile(
+			"pushq %r12;"       // save clobber
+			"mov %rdi, %rax;"   // syscall number
+			"mov %rsi, %rdi;"   // arg1
+			"mov %rdx, %rsi;"   // arg2
+			"mov %rcx, %rdx;"   // arg3
+			// arg4 and arg5 line up with C calling convention
+			"syscall;"
+			"popq %r12;"   // restore clobber
+			"ret;");
+}
+
 #define sys_spawn_0(name, entry_func)                                                                                  \
 	_syscall5<int64_t>(SyscallVectors::spawn, (uint64_t)(name), (uint64_t)((void (*)())entry_func), 0, 0, 0)
 #define sys_spawn_1(name, entry_func, a1)                                                                              \
@@ -60,4 +78,4 @@ template<class R, class A1 = int64_t, class A2 = int64_t, class A3 = int64_t, cl
 
 #define yield() _syscall5<int64_t>(SyscallVectors::yield, 0, 0, 0, 0, 0)
 
-#endif   //HUGOS_USERSPACE_MACROS_HPP
+#endif   // HUGOS_USERSPACE_MACROS_HPP

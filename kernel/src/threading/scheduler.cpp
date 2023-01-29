@@ -23,6 +23,7 @@ namespace threads {
 	}
 
 	void GlobalScheduler::unblock_task(Task& task) {
+		if (task.get_state() == Task::State::RUNNING) LOG(Log::DEBUG, "Waking already awake task");
 		task.set_state(Task::State::RUNNING);
 		this->schedulers.get().acquire_task(*this->tasks.back(), 0);
 	}
@@ -39,6 +40,10 @@ namespace threads {
 	}
 
 	void ILocalScheduler::block_task(Task::State reason) {
+		if (this->get_current_task()->pending_signals() > 0) {
+			this->get_current_task()->decrement_pending_signals();
+			return;
+		}
 		this->get_current_task()->set_state(reason);   // Can safely assume get_current_task is valid pointer as block
 		                                               // can only be called by current task
 		this->suspend_task();
@@ -55,6 +60,6 @@ namespace threads {
 	cpu_local std::unique_ptr<ILocalScheduler> local_scheduler;
 
 	void task_startup_scheduler_unlock() {
-		local_scheduler->unlock();
+		local_scheduler->unlock_structures();
 	}
 }   // namespace threads

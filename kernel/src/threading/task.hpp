@@ -45,9 +45,10 @@ namespace threads {
 		memory::vaddr_t stack_ptr_;
 		uint64_t pid = atomic_fetch_add(&next_pid, 1);
 		State state  = State::RUNNING;
-		const char *name;
+		const char *name_;
 		memory::virtual_allocators::MonotonicAllocator allocator;
 		std::vector<memory::MemoryMap<void, allocator_wrapper>> mmaps;
+		atomic_uint_fast64_t pending_wake_count = 0;
 
 		explicit Task(const char *name, memory::KStack<>&& stack);
 		Task(const char *name, usize argument, usize stack_offset);
@@ -75,6 +76,10 @@ namespace threads {
 		const memory::vaddr_t& stack_ptr() const { return this->stack_ptr_; }
 		const memory::KStack<>& kernel_stack() const { return this->stack; }
 		memory::vaddr_t new_mmap(memory::vaddr_t hint, usize size, bool downwards);
+		const char *name() { return this->name_; }
+		void send_signal();
+		u64 pending_signals() { return this->pending_wake_count; }
+		void decrement_pending_signals() { atomic_fetch_sub(&this->pending_wake_count, 1); }
 	};
 
 	extern "C" usize get_p4_table_frame(const Task *);

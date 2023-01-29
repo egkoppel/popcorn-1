@@ -21,16 +21,25 @@ namespace arch {
 
 	namespace amd64 {
 		namespace {
-			[[gnu::naked]] u64 syscall_long_mode_entry() {
-				// TODO: ****** should really switch to kernel stack here ******
-				__asm__ volatile("swapgs");       // Switch to kernel gs
-				__asm__ volatile("pushq %rcx");   // stores rip
-				__asm__ volatile("pushq %r11");   // stores rflags
-				__asm__ volatile("mov %r8, %rcx; mov %r9, %r8; mov %rax, %r9;");
-				__asm__ volatile("call *%0" : : "rm"(handler));
+			// Called as   rax(*)(rax, rdi, rsi, rdx, r8, r9)
+			// System V is rax(*)(rdi, rsi, rdx, rcx, r8, r9)
+			[[gnu::naked, clang::no_sanitize("undefined")]] u64 syscall_long_mode_entry() {
+				__asm__ volatile("movq %rsp, %r12");   // save userspace stack ptr
+				__asm__ volatile("movq %0, %%rsp"
+				                 :
+				                 : "m"(task_state_segment.privilege_stack_table[0].address));   // load kernel stack
+				__asm__ volatile("pushq %r12");                                                 // stores stack pointer
+				__asm__ volatile("pushq %rcx");                                                 // stores rip
+				__asm__ volatile("pushq %r11");                                                 // stores rflags
+				__asm__ volatile(
+						"mov %rdx, %rcx;"   // See register mappings above
+						"mov %rsi, %rdx;"
+						"mov %rdi, %rsi;"
+						"mov %rax, %rdi;");
+				__asm__ volatile("call *%0" : : "m"(handler));
 				__asm__ volatile("popq %r11");
 				__asm__ volatile("popq %rcx");
-				__asm__ volatile("swapgs");   // Switch back to user gs
+				__asm__ volatile("popq %rsp");
 				__asm__ volatile("sysretq");
 			}
 
@@ -55,5 +64,7 @@ namespace arch {
 		}
 	}   // namespace amd64
 
-	void load_syscall_handler(syscall_handler_t handler_func) noexcept { handler = handler_func; }
+	void load_syscall_handler(syscall_handler_t handler_func) noexcept {
+		handler = handler_func;
+	}
 }   // namespace arch

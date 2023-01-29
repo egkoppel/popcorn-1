@@ -13,3 +13,8 @@ start               end
 GRUB controlled                   Multiboot info struct
 GRUB controlled                   Ramdisk and kernel modules
 ================ == ========= === ===========================
+
+Syscall calling convention
+--------------------------
+
+Syscalls are called through the `syscall` instruction. The syscall number is passed in `rax`. Arguments are passed in `rdi`, `rsi`, `rdx`, `r8`, `r9`. `rcx`, `r11` and `r12` are clobbered. Return value is passed back in `rax`.

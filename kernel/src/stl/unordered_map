@@ -1,0 +1,21 @@
+
+/*
+ * Copyright (c) 2023 Eliyahu Gluschove-Koppel.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef POPCORN_KERNEL_SRC_STL_UNORDERED_MAP_
+#define POPCORN_KERNEL_SRC_STL_UNORDERED_MAP_
+
+// clang-format off
+#include "_stl/prelude.hpp"
+#include "_stl/unordered_map.hpp"
+#include "_stl/epilog.hpp"
+// clang-format on
+
+#endif   // POPCORN_KERNEL_SRC_STL_UNORDERED_MAP_

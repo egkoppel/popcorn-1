@@ -47,6 +47,13 @@ namespace acpi {
 			u32 global_system_interrupt_base;
 		};
 
+		struct [[gnu::packed]] ioapic_source_override_entry_t : entry_t {
+			u8 bus_source;
+			u8 irq_source;
+			u32 gsi;
+			u16 flags;
+		};
+
 		struct [[gnu::packed]] lapic_addr_entry_t : entry_t {
 			memory::paddr_t addr;
 		};
@@ -76,9 +83,9 @@ namespace acpi {
 
 	private:
 		memory::paddr32_t lapic_address;
-		uint32_t flags;
+		u32 flags;
 		madt::entry_t entries[];
 	};
 }   // namespace acpi
 
-#endif   //HUGOS_APIC_HPP
+#endif   // HUGOS_APIC_HPP

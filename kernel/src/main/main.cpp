@@ -44,13 +44,12 @@
 #include <threading/scheduler.hpp>
 #include <threading/task.hpp>
 #include <tuple>
-#include <userspace/fsd.hpp>
-#include <userspace/initramfs.hpp>
-#include <userspace/uinit.hpp>
+#include <userspace/userspace_driver.hpp>
+#include <userspace/userspace_ps2_keyboard.hpp>
 
-#define USER_ACCESS_FROM_KERNEL 0
-#if USER_ACCESS_FROM_KERNEL == 1
-	#warning USER_ACCESS_FROM_KERNEL is enabled - THIS IS A TERRIBLE TERRIBLE TERRIBLE IDEA FOR SECURITY
+#define KERNEL_ACCESS_FROM_USERSPACE 0
+#if KERNEL_ACCESS_FROM_USERSPACE == 1
+	#warning KERNEL_ACCESS_FROM_USERSPACE is enabled - THIS IS A TERRIBLE TERRIBLE TERRIBLE IDEA FOR SECURITY
 #endif
 
 kernel_allocators_t allocators = {};
@@ -122,10 +121,8 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 		LOG(Log::WARNING, "Multiboot magic: 0x%x (incorrect)", multiboot_magic);
 	}
 
-	// FIXME: why the flip does this not work
-	paddr_t _a        = multiboot_addr;
-	decltype(auto) mb = *static_cast<const multiboot::Data *>(_a.virtualise());
-	LOG(Log::DEBUG, "Multiboot info struct loaded at %lp", _a);
+	decltype(auto) mb = *static_cast<const multiboot::Data *>(static_cast<memory::paddr_t>(multiboot_addr).virtualise());
+	LOG(Log::DEBUG, "Multiboot info struct loaded at %lp", static_cast<memory::paddr_t>(multiboot_addr));
 
 	parse_cli_args(mb);
 	parse_bootloader(mb);
@@ -141,6 +138,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	arch::set_interrupt_perms(0x3, true, 0);
 	arch::set_interrupt_perms(0xE, false, 0);
 	arch::set_interrupt_perms(0x8, false, 1);
+	arch::load_syscall_handler(syscall_entry);
 	/*arch::load_interrupt_handler(arch::InterruptVectors::PAGE_FAULT, false, 0, interrupt_handlers::page_fault);
 	arch::load_interrupt_handler(arch::InterruptVectors::DOUBLE_FAULT, false, 1, interrupt_handlers::double_fault);
 	arch::load_interrupt_handler(arch::InterruptVectors::CORE_TIMER, false, 0, [](arch::interrupt_info_t *) noexcept {
@@ -231,7 +229,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 				using enum memory::paging::PageTableFlags;
 				auto flags = static_cast<paging::PageTableFlags>(0);
 				if (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_WRITE) flags = flags | WRITEABLE;
-				if (is_userspace || USER_ACCESS_FROM_KERNEL) flags = flags | USER;
+				if (is_userspace || KERNEL_ACCESS_FROM_USERSPACE) flags = flags | USER;
 				flags = flags | GLOBAL;
 				if (!(i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_EXECINSTR))
 					flags = flags | NO_EXECUTE;
@@ -258,7 +256,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	LOG(Log::DEBUG, "Map all the memory");
 	auto all_mem_flags = paging::PageTableFlags::WRITEABLE | memory::paging::PageTableFlags::GLOBAL
 	                     | memory::paging::PageTableFlags::NO_EXECUTE;
-	if (USER_ACCESS_FROM_KERNEL) all_mem_flags = all_mem_flags | memory::paging::PageTableFlags::USER;
+	if (KERNEL_ACCESS_FROM_USERSPACE) all_mem_flags = all_mem_flags | memory::paging::PageTableFlags::USER;
 
 	for (auto& entry : *mmap) {
 		if (entry.get_type() == multiboot::tags::MemoryMap::Type::AVAILABLE) {
@@ -290,7 +288,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	LOG(Log::DEBUG, "Map early mem_map region");
 	auto mem_map_flags = paging::PageTableFlags::WRITEABLE | memory::paging::PageTableFlags::GLOBAL
 	                     | memory::paging::PageTableFlags::NO_EXECUTE;
-	if (USER_ACCESS_FROM_KERNEL) mem_map_flags = mem_map_flags | memory::paging::PageTableFlags::USER;
+	if (KERNEL_ACCESS_FROM_USERSPACE) mem_map_flags = mem_map_flags | memory::paging::PageTableFlags::USER;
 	aligned<vaddr_t> page = vaddr_t{.address = constants::mem_map_start};
 	for (aligned<paddr_t> frame = real_initial_mem_map_start; frame < real_initial_mem_map_start + 0x400000;
 	     page++, frame++) {
@@ -312,6 +310,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	                         | memory::paging::PageTableFlags::IMPL_CACHE_DISABLE
 	                         | memory::paging::PageTableFlags::IMPL_CACHE_WRITETHROUGH
 	                         | memory::paging::PageTableFlags::GLOBAL;
+	if (KERNEL_ACCESS_FROM_USERSPACE) framebuffer_flags = framebuffer_flags | memory::paging::PageTableFlags::USER;
 
 	framebuffer_mapping = MemoryMap<char>{fb->begin(), fb->size(), framebuffer_flags, null_allocator, paging::kas};
 
@@ -360,6 +359,8 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	auto ktask = threads::Task::initialise(KStack<>{old_p4_table_page, 8 * constants::frame_size});
 	threads::GlobalScheduler::get().make_local_scheduler(std::move(ktask));
 
+	hal::enable_interrupts();
+
 	LOG(Log::DEBUG, "Locating AP processors");
 
 	auto acpi_context = acpi::parse_acpi_tables<general_allocator_t>(rsdp_tag->rsdt_addr(), null_allocator);
@@ -367,7 +368,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	if (acpi_context.madt) {
 		LOG(Log::DEBUG, "Located MADT");
 
-		auto [cpus]                           = acpi_context.parse_cpu_info(null_allocator);
+		auto [cpus, ioapics]                  = acpi_context.parse_cpu_info(null_allocator);
 		Cpu::lapic->spurious_interrupt_vector = 0x1FF;
 		for (auto&& cpu : cpus) {
 			if (cpu.id() == Cpu::lapic->id) {
@@ -380,6 +381,19 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 				cpu.boot();
 			}
 		}
+		
+		auto keyboard_int               = ioapics.redirection_entry(ioapics.pic_irq_to_gsi(1));
+		keyboard_int.vector()           = 0x96;
+		keyboard_int.delivery_mode()    = 0;
+		keyboard_int.destination_mode() = 0;
+		keyboard_int.destination()      = 0;
+		keyboard_int.mask()             = 0;
+
+		auto kb_task = std::make_unique<threads::Task>("ps2kbd",
+		                                               driver::_start,
+		                                               reinterpret_cast<usize>(driver::ps2_keyboard::main),
+		                                               threads::user_task);
+		threads::GlobalScheduler::get().add_task(std::move(kb_task));
 	} else {
 		LOG(Log::WARNING, "No MADT found");
 	}

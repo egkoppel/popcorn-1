@@ -19,9 +19,9 @@ using namespace threads::schedulers;
 
 #define SCHED_LOCK(f)                                                                                                  \
 	{                                                                                                                  \
-		this->lock();                                                                                                  \
+		this->lock_structures();                                                                                       \
 		{ f }                                                                                                          \
-		this->unlock();                                                                                                \
+		this->unlock_structures();                                                                                     \
 	}
 
 void RoundRobinNoPriorityPreemptive::acquire_task(Task& new_task, priority_t) {
@@ -89,7 +89,24 @@ void RoundRobinNoPriorityPreemptive::yield_internal() {
 	}
 }
 
+void RoundRobinNoPriorityPreemptive::unlock_structures() {
+	this->IRQ_disable_counter--;
+	if (this->IRQ_disable_counter == 0) hal::enable_interrupts();
+}
+
+void RoundRobinNoPriorityPreemptive::lock_structures() {
+	hal::disable_interrupts();
+	this->IRQ_disable_counter++;
+}
+
 void RoundRobinNoPriorityPreemptive::unlock() {
+	this->task_switch_disable_counter--;
+	if (this->task_switch_disable_counter == 0) {
+		if (this->task_switch_postponed != 0) {
+			this->task_switch_postponed = false;
+			this->yield_internal();
+		}
+	}
 	this->IRQ_disable_counter--;
 	if (this->IRQ_disable_counter == 0) hal::enable_interrupts();
 }
@@ -97,6 +114,7 @@ void RoundRobinNoPriorityPreemptive::unlock() {
 void RoundRobinNoPriorityPreemptive::lock() {
 	hal::disable_interrupts();
 	this->IRQ_disable_counter++;
+	this->task_switch_disable_counter++;
 }
 
 void RoundRobinNoPriorityPreemptive::task_switch(Task *task) {

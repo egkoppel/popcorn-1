@@ -11,6 +11,8 @@
 
 #include "task.hpp"
 
+#include "scheduler.hpp"
+
 #include <arch/threading.hpp>
 
 using namespace memory;
@@ -22,7 +24,7 @@ namespace threads {
 		: stack(std::move(stack)),
 		  address_space_(),
 		  stack_ptr_(0_va),
-		  name(name),
+		  name_(name),
 		  allocator(vaddr_t{.address = constants::userspace_end / 2}, vaddr_t{.address = constants::userspace_end}) {}
 
 	std::unique_ptr<Task> Task::initialise(memory::KStack<>&& current_stack) {
@@ -31,10 +33,10 @@ namespace threads {
 	}
 
 	[[clang::no_sanitize("pointer-overflow")]] Task::Task(const char *name, usize argument, usize stack_offset)
-		: stack(memory::constants::frame_size),
+		: stack(memory::constants::frame_size * 2),
 		  address_space_(),
 		  stack_ptr_(vaddr_t(*this->stack.top()) - (stack_offset + 8) * 8),
-		  name(name),
+		  name_(name),
 		  allocator(vaddr_t{.address = constants::userspace_end / 2}, vaddr_t{.address = constants::userspace_end}) {
 		auto stack_top               = static_cast<u64 *>((*this->stack.top()).address);
 		stack_top[-2 - stack_offset] = reinterpret_cast<u64>(arch::task_startup);
@@ -75,7 +77,16 @@ namespace threads {
 		                                allocator_wrapper{this}};
 		this->mmaps.push_back(std::move(map));
 		LOG(Log::DEBUG, "mmap backing at %lp", this->mmaps.back().pstart());
-		return this->mmaps.back().start();
+		if (downwards) return this->mmaps.back().end();
+		else return this->mmaps.back().start();
+	}
+
+	void Task::send_signal() {
+		if (this->state != State::RUNNING) {
+			threads::GlobalScheduler::get().unblock_task(*this);
+		} else {
+			atomic_fetch_add(&this->pending_wake_count, 1);
+		}
 	}
 
 	usize get_p4_table_frame(const Task *task) {

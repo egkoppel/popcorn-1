@@ -38,7 +38,7 @@ public:
 	                     ipi::level,
 	                     ipi::trigger_mode);
 
-	static memory::MemoryMap<volatile acpi::lapic> lapic;
+	static memory::MemoryMap<volatile acpi::lapic_t> lapic;
 
 private:
 	usize id_;
@@ -53,4 +53,4 @@ private:
 
 extern cpu_local Cpu *local_cpu;
 
-#endif   //POPCORN_KERNEL_SRC_SMP_CPU_HPP
+#endif   // POPCORN_KERNEL_SRC_SMP_CPU_HPP

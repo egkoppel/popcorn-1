@@ -38,8 +38,13 @@ namespace threads::schedulers {
 
 		void yield_internal();
 
+		void lock_structures() override;
+		void unlock_structures() override;
+
 	protected:
 		void suspend_task() override;
+
+	public:
 		void lock() override;
 		void unlock() override;
 

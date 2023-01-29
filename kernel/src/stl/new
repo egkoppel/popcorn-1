@@ -11,17 +11,17 @@
 #ifndef _HUGOS_NEW_H
 #define _HUGOS_NEW_H
 
-#include <stddef.h>
 #include <exception>
+#include <stddef.h>
 
 namespace std {
 	class bad_alloc : public exception {
 	public:
-		bad_alloc() noexcept = default;
+		bad_alloc() noexcept                       = default;
 		bad_alloc(const bad_alloc& other) noexcept = default;
 		const char *what() const noexcept override { return "std::bad_alloc"; }
 	};
-}
+}   // namespace std
 
 void *operator new(size_t size) noexcept(false);
 void *operator new[](size_t size) noexcept(false);
@@ -29,8 +29,18 @@ void *operator new[](size_t size) noexcept(false);
 void operator delete(void *p) noexcept;
 void operator delete[](void *p) noexcept;
 
-inline void *operator new(size_t, void *p) { return p; }
-inline void *operator new[](size_t, void *p) { return p; }
+inline void *operator new(size_t, void *p) {
+	return p;
+}
+inline void *operator new(size_t, volatile void *p) {
+	return const_cast<void *>(p);
+}
+inline void *operator new[](size_t, void *p) {
+	return p;
+}
+inline void *operator new[](size_t, volatile void *p) {
+	return const_cast<void *>(p);
+}
 
 inline void operator delete(void *, void *) {}
 inline void operator delete[](void *, void *) {}
