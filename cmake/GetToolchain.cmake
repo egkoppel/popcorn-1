@@ -1,5 +1,19 @@
 if (${TOOLCHAIN_FROM_ARTIFACT})
-    message(FATAL_ERROR "Downloading toolchain")
+    message(STATUS "Downloading toolchain")
+
+    if (APPLE)
+        set(TOOLCHAIN_OS darwin)
+    else ()
+        message(FATAL_ERROR No toolchain available for ${CMAKE_SYSTEM_NAME})
+    endif ()
+
+    FetchContent_Declare(
+            toolchain
+            SOURCE_DIR ${CLANG_INSTALL}
+            URL https://github.com/egkoppel/popcorn/raw/toolchain/toolchain-${TOOLCHAIN_OS}.tar.gz
+            URL_HASH SHA256=7232310dbdc6cde545549daddd671b17970edae18a77cd4bc40622f1f9c573df
+    )
+    FetchContent_Populate(toolchain)
 else ()
     message(STATUS "Building LLVM version ${LLVM_VERSION}")
     list(APPEND CMAKE_MESSAGE_INDENT "  ")
@@ -12,12 +26,10 @@ else ()
             GIT_TAG llvmorg-${LLVM_VERSION}
             GIT_SHALLOW TRUE
             GIT_PROGRESS TRUE
+            SOURCE_DIR ${LLVM_SOURCES_SOURCES_DIR}
+            BINARY_DIR ${LLVM_SOURCES_BINARY_DIR}
     )
     FetchContent_Populate(llvm-sources)
-    FetchContent_GetProperties(llvm-sources
-            SOURCE_DIR LLVM_SOURCES_SOURCE_DIR
-            BINARY_DIR LLVM_SOURCES_BINARY_DIR)
-
 
     message(STATUS "Configuring clang")
     ExternalProject_Add(clang-bootstrap
