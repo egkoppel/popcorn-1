@@ -152,12 +152,15 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	auto kernel_min = 0xffff'ffff'ffff'ffff_pa;
 	usize tls_size  = 0;
 	for (auto& i : *sections) {
-		if ((i.type() != decltype(i.type())::SHT_NULL)
+		if ((i.type() != decltype(i.type())::SHT_NULL) && (i.type() != decltype(i.type())::SHT_NOTE)
 		    && (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_ALLOC) != 0) {
 			/* TODO
 			stdserial << i;
 			stdout << i;
 			*/
+			char s[256] = {0};
+			s << i;
+			LOG(Log::TRACE, s);
 
 			auto name            = i.name(*sections);
 			auto is_ap_bootstrap = strncmp(name, ".ap_bootstrap", 13) == 0;

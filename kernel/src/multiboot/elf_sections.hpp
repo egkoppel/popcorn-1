@@ -90,6 +90,16 @@ namespace multiboot::tags {
 				        entry.flags());
 				return f;
 			}
+
+			friend char *operator<<(char *c, const multiboot::tags::ElfSections::Entry& entry) {
+				sprintf(c,
+				        "ElfSection { PhysAddr=%lp, VirtAddr=%lp, Size=%llu, Flags=0x%llx }\n",
+				        (entry.addr.address > 0xFFFFFFFF80000000 ? entry.addr - 0xFFFFFFFF80000000 : entry.addr),
+				        entry.addr,
+				        entry.size,
+				        entry.flags());
+				return c;
+			}
 		};
 
 	private:
