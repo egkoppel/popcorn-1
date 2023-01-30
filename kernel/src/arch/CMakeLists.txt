@@ -1,7 +1,5 @@
-set(SRCROOT ${SRCROOT}/arch)
-
-if(DEFINED HUGOS_ARCH)
-    add_subdirectory(${SRCROOT}/${HUGOS_ARCH})
-else()
-    message(FATAL_ERROR "No arch defined")
-endif()
+#if (${CMAKE_SYSTEM_PROCESSOR} EQUAL amd64)
+add_subdirectory(${PROJECT_SOURCE_DIR}/src/arch/${CMAKE_SYSTEM_PROCESSOR})
+#else ()
+#    message(FATAL_ERROR "No arch defined")
+#endif ()

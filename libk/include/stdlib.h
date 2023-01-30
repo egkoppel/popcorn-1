@@ -11,14 +11,14 @@
 #ifndef _HUG_STDLIB_H
 #define _HUG_STDLIB_H
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #define EXIT_FAILURE -1
 #define EXIT_SUCCESS 0
-#define MB_CUR_MAX 1
+#define MB_CUR_MAX   1
 #ifndef NULL
-#define NULL ((void*)0)
+	#define NULL ((void *)0)
 #endif
 #define RAND_MAX 6
 
@@ -68,9 +68,9 @@ void qsort(void *base, size_t num, size_t size, int (*compar)(const void *, cons
 
 int abs(int n);
 div_t div(int numer, int denom);
-int labs(long n);
+long labs(long n);
 ldiv_t ldiv(long numer, long denom);
-int llabs(long long n);
+long long llabs(long long n);
 lldiv_t lldiv(long long numer, long long denom);
 
 int mblen(const char *pmb, size_t max);

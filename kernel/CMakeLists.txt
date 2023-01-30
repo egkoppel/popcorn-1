@@ -1,52 +1,42 @@
-project("Core kernel")
+cmake_minimum_required(VERSION 3.14)
+project(convolution LANGUAGES NONE VERSION 0.2.0)
 
-set(SRCROOT ${PROJECT_SOURCE_DIR})
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_C_STANDARD 23)
+enable_language(ASM_NASM)
+enable_language(C)
+enable_language(CXX)
 
-function(check_builtin source_file function_name)
-    message(CHECK_START "Checking for " ${function_name})
-    try_compile(CHECK_RESULT ${PROJECT_BINARY_DIR} SOURCES ${source_file} OUTPUT_VARIABLE CHECK_RESULT_OUT)
-    if(${CHECK_RESULT})
-        message(CHECK_PASS "found")
-    else()
-        message(CHECK_FAIL "not found")
-        list(APPEND CMAKE_MESSAGE_INDENT "  ")
-        message(VERBOSE "Failed with output:\n" ${CHECK_RESULT_OUT})
-        list(APPEND missingComponents ${function_name})
-        set(missingComponents ${missingComponents} PARENT_SCOPE)
-    endif()
-endfunction()
+add_custom_command(
+        OUTPUT fonts.o
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/fonts/font.psf
+        COMMAND ${CMAKE_OBJCOPY} -O elf64-x86-64 -I binary --prefix-alloc-sections=.font
+        --rename-section .data=.rodata ${CMAKE_CURRENT_SOURCE_DIR}/src/fonts/font.psf fonts.o
+)
 
-message(CHECK_START "Checking builtins")
-list(APPEND CMAKE_MESSAGE_INDENT "  ")
-unset(missingComponents)
+add_executable(convolution
+        fonts.o)
+target_compile_options(convolution PRIVATE ${C_CXX_KERNEL_COMPILE_FLAGS})
+target_compile_options(convolution PRIVATE $<$<COMPILE_LANGUAGE:CXX>:
+        -Wall -Werror=return-type -Werror=implicit-fallthrough -Wno-address-of-packed-member -Wno-gnu-zero-variadic-macro-arguments
+        >)
 
-check_builtin(${SRCROOT}/cmake/checks/ffsll.cpp "__builtin_ffsll()")
-check_builtin(${SRCROOT}/cmake/checks/bitcast.cpp "__builtin_bit_cast()")
-check_builtin(${SRCROOT}/cmake/checks/integer_seq.cpp "__make_integer_seq()")
-check_builtin(${SRCROOT}/cmake/checks/underlying_type.cpp "__underlying_type()")
-check_builtin(${SRCROOT}/cmake/checks/constructible.cpp "__is_constructible()")
-check_builtin(${SRCROOT}/cmake/checks/trivially_constructible.cpp "__is_trivially_constructible()")
-check_builtin(${SRCROOT}/cmake/checks/nothrow_constructible.cpp "__is_nothrow_constructible()")
-check_builtin(${SRCROOT}/cmake/checks/trivially_copyable.cpp "__is_trivially_copyable()")
-check_builtin(${SRCROOT}/cmake/checks/is_void.cpp "__is_void()")
-check_builtin(${SRCROOT}/cmake/checks/is_integral.cpp "__is_integral()")
-check_builtin(${SRCROOT}/cmake/checks/is_enum.cpp "__is_enum()")
-check_builtin(${SRCROOT}/cmake/checks/is_union.cpp "__is_union()")
-check_builtin(${SRCROOT}/cmake/checks/is_class.cpp "__is_class()")
-check_builtin(${SRCROOT}/cmake/checks/is_empty.cpp "__is_empty()")
-check_builtin(${SRCROOT}/cmake/checks/is_base_of.cpp "__is_base_of()")
-check_builtin(${SRCROOT}/cmake/checks/is_convertible_to.cpp "__is_convertible_to()")
+if (${ENABLE_KERNEL_UBSAN})
+    target_compile_options(convolution PRIVATE ${UBSAN_FLAG})
+endif ()
 
-list(POP_BACK CMAKE_MESSAGE_INDENT)
-if(missingComponents)
-    message(CHECK_FAIL "missing builtins: ${missingComponents}")
-    message(SEND_ERROR "builtins check failed")
-else()
-    message(CHECK_PASS "all required builtins found")
-endif()
+target_include_directories(convolution PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-add_subdirectory(${SRCROOT}/src)
+target_link_options(convolution PRIVATE
+        --eh-frame-hdr
+        -T ${CMAKE_CURRENT_SOURCE_DIR}/src/linker.ld)
 
-if(NOT ${CMAKE_CROSSCOMPILING})
-    add_subdirectory(${SRCROOT}/test)
-endif()
+target_link_libraries(convolution
+        k
+        k++
+        cxxrt-static
+        ${CMAKE_CURRENT_SOURCE_DIR}/extern/libunwind.a)
+
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src)

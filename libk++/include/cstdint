@@ -20,7 +20,7 @@ HUGOS_STL_BEGIN_NAMESPACE
 using ::uint8_t;
 using ::uint16_t;
 using ::uint32_t;
-using ::uint16_t;
+using ::uint64_t;
 using ::uintptr_t;
 using ::int8_t;
 using ::int16_t;
@@ -31,4 +31,4 @@ HUGOS_STL_END_NAMESPACE
 #include "_stl/epilog.hpp"
 // clang-format on
 
-#endif   //HUGOS_KERNEL_SRC_STL_CSTDINT_
+#endif   // HUGOS_KERNEL_SRC_STL_CSTDINT_
