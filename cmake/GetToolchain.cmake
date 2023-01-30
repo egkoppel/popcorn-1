@@ -24,7 +24,7 @@ else ()
             BINARY_DIR ${LLVM_SOURCES_BINARY_DIR}/stage1
             SOURCE_DIR ${LLVM_SOURCES_SOURCE_DIR}/llvm
             CMAKE_ARGS
-            -DLLVM_ENABLE_PROJECTS=clang\;lld
+            -DLLVM_ENABLE_PROJECTS=clang
             -DLLVM_ENABLE_RUNTIMES=
             -DCMAKE_BUILD_TYPE=Release
             -DDEFAULT_SYSROOT=/System
@@ -32,6 +32,8 @@ else ()
             -DLLVM_DEFAULT_TARGET_TRIPLE=x86_64-unknown-popcorn
             -DCLANG_ENABLE_BOOTSTRAP=Off
             -DLLVM_BUILD_TESTS=OFF
+            -DCMAKE_INSTALL_PREFIX=${CLANG_INSTALL}
+            BUILD_COMMAND ${CMAKE_COMMAND} --build . --target clang -j${TOOLCHAIN_BUILD_PARALLEL}
             INSTALL_COMMAND ""
             )
 
