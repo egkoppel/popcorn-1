@@ -1,4 +1,9 @@
 cmake_minimum_required(VERSION 3.14)
+
+set(LLVM_SOURCES_SOURCES_DIR llvm-sources-sources)
+set(LLVM_SOURCES_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/toolchain-build/llvm-sources-binary)
+set(CLANG_INSTALL ${LLVM_SOURCES_BINARY_DIR}/stage1_install)
+
 project(Popcorn LANGUAGES NONE VERSION 0.2.0)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 include(ExternalProject)
@@ -12,6 +17,8 @@ if (EXISTS "${PROJECT_BINARY_DIR}/CMakeLists.txt")
 endif ()
 
 if (${DO_GET_TOOLCHAIN})
+    set(LLVM_SOURCES_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/llvm-sources-binary)
+    set(CLANG_INSTALL ${LLVM_SOURCES_BINARY_DIR}/stage1_install)
     include(GetToolchain)
     return()
 endif ()
@@ -24,6 +31,8 @@ cmake_dependent_option(BUILD_TESTS "Build libk/++ tests" OFF "${CMAKE_SYSTEM_NAM
 set(RAMDISK_INCLUDED_DRIVERS "" CACHE STRING "Drivers to include the the ramdisk - usually disk drivers")
 option(TOOLCHAIN_FROM_ARTIFACT "Download toolchain if available rather than building LLVM from source" ON)
 set(TOOLCHAIN_LLVM_VERSION "15.0.7" CACHE STRING "Version of LLVM to build the toolchain from")
+option(TOOLCHAIN_ONLY "Only build toolchain" OFF)
+set(TOOLCHAIN_BUILD_PARALLEL "12" CACHE STRING "Number of parallel threads to use for building toolchain")
 # =====================================
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/toolchain-build)
@@ -38,6 +47,7 @@ execute_process(
         -DTOOLCHAIN_FROM_ARTIFACT=${TOOLCHAIN_FROM_ARTIFACT}
         -DLLVM_VERSION=${TOOLCHAIN_LLVM_VERSION}
         -DSYSROOT=${CMAKE_CURRENT_BINARY_DIR}/sysroot
+        -DTOOLCHAIN_BUILD_PARALLEL=${TOOLCHAIN_BUILD_PARALLEL}
         -G${CMAKE_GENERATOR}
         ${CMAKE_CURRENT_SOURCE_DIR}
         RESULT_VARIABLE ret
@@ -45,16 +55,22 @@ execute_process(
 if (ret AND NOT ret EQUAL 0)
     message(FATAL_ERROR "Failed to get toolchain")
 endif ()
-execute_process(
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/toolchain-build
-        COMMAND ${CMAKE_COMMAND} --build . --target build_toolchain
-        RESULT_VARIABLE ret
-)
-if (ret AND NOT ret EQUAL 0)
-    message(FATAL_ERROR "Failed to get toolchain")
+
+if (NOT TOOLCHAIN_FROM_ARTIFACT)
+    message(STATUS "Building toolchain")
+    execute_process(
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/toolchain-build
+            COMMAND ${CMAKE_COMMAND} --build . --target build_toolchain -j${TOOLCHAIN_BUILD_PARALLEL}
+            RESULT_VARIABLE ret
+    )
+    if (ret AND NOT ret EQUAL 0)
+        message(FATAL_ERROR "Failed to build toolchain")
+    endif ()
 endif ()
 
-return()
+if (${TOOLCHAIN_ONLY})
+    return()
+endif ()
 
 # =========== Optimization flags ===========
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g")
@@ -108,6 +124,9 @@ FetchContent_MakeAvailable(libcxxrt)
 target_compile_definitions(cxxrt-static PUBLIC LIBCXXRT_WEAK_LOCKS)
 target_compile_options(cxxrt-static PRIVATE ${C_CXX_KERNEL_COMPILE_FLAGS})
 target_include_directories(cxxrt-static BEFORE PRIVATE $<TARGET_PROPERTY:k,INCLUDE_DIRECTORIES>)
+# TODO: Fix this - currently a bit of a hack to get around include files
+target_compile_options(cxxrt-static PRIVATE "-isystem${INSTALL_DIR}/include")
+add_dependencies(cxxrt-static libc)
 # ============================================
 
 # Subdirectories
