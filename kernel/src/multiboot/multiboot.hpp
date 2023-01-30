@@ -11,7 +11,6 @@
 #ifndef HUGOS_MULTIBOOT_HPP
 #define HUGOS_MULTIBOOT_HPP
 
-#include "memory.h"
 #include "memory/types.hpp"
 #include "utils.h"
 

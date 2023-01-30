@@ -1,7 +1,11 @@
 cmake_minimum_required(VERSION 3.14)
-project(Popcorn LANGUAGES NONE VERSION 0.2.0)
-set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
+set(LLVM_SOURCES_SOURCES_DIR llvm-sources-sources)
+set(LLVM_SOURCES_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/toolchain-build/llvm-sources-binary)
+set(CLANG_INSTALL ${LLVM_SOURCES_BINARY_DIR}/stage1_install)
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+
+project(Popcorn LANGUAGES NONE VERSION 0.2.0)
 include(ExternalProject)
 include(CMakeDependentOption)
 include(FetchContent)
@@ -10,6 +14,62 @@ set(FETCHCONTENT_QUIET FALSE)
 # Ensure build is out of source
 if (EXISTS "${PROJECT_BINARY_DIR}/CMakeLists.txt")
     message(FATAL_ERROR "Out of source build is required")
+endif ()
+
+if (${DO_GET_TOOLCHAIN})
+    set(LLVM_SOURCES_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/llvm-sources-binary)
+    set(CLANG_INSTALL ${LLVM_SOURCES_BINARY_DIR}/stage1_install)
+    include(GetToolchain)
+    return()
+endif ()
+
+# =========== Build options ===========
+option(ENABLE_KERNEL_UBSAN "Enable UBSan in the kernel" OFF)
+cmake_dependent_option(ENABLE_LIBK_UBSAN "Enable UBSan within libk" ON ${ENABLE_KERNEL_UBSAN} OFF)
+cmake_dependent_option(ENABLE_LIBKPP_UBSAN "Enable UBSan within libk++" ON ${ENABLE_KERNEL_UBSAN} OFF)
+cmake_dependent_option(BUILD_TESTS "Build libk/++ tests" OFF "${CMAKE_SYSTEM_NAME} STREQUAL HOST" OFF)
+set(RAMDISK_INCLUDED_DRIVERS "" CACHE STRING "Drivers to include the the ramdisk - usually disk drivers")
+option(TOOLCHAIN_FROM_ARTIFACT "Download toolchain if available rather than building LLVM from source" ON)
+set(TOOLCHAIN_LLVM_VERSION "15.0.7" CACHE STRING "Version of LLVM to build the toolchain from")
+option(TOOLCHAIN_ONLY "Only build toolchain" OFF)
+set(TOOLCHAIN_BUILD_PARALLEL "12" CACHE STRING "Number of parallel threads to use for building toolchain")
+# =====================================
+
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/toolchain-build)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/sysroot)
+list(APPEND ADDITIONAL_CLEAN_FILES ${CMAKE_CURRENT_BINARY_DIR}/toolchain-build)
+list(APPEND ADDITIONAL_CLEAN_FILES ${CMAKE_CURRENT_BINARY_DIR}/sysroot)
+execute_process(
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/toolchain-build
+        COMMAND ${CMAKE_COMMAND}
+        -UCMAKE_TOOLCHAIN_FILE
+        -DDO_GET_TOOLCHAIN=ON
+        -DTOOLCHAIN_FROM_ARTIFACT=${TOOLCHAIN_FROM_ARTIFACT}
+        -DLLVM_VERSION=${TOOLCHAIN_LLVM_VERSION}
+        -DSYSROOT=${CMAKE_CURRENT_BINARY_DIR}/sysroot
+        -DTOOLCHAIN_BUILD_PARALLEL=${TOOLCHAIN_BUILD_PARALLEL}
+        -G${CMAKE_GENERATOR}
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        RESULT_VARIABLE ret
+)
+if (ret AND NOT ret EQUAL 0)
+    message(FATAL_ERROR "Failed to get toolchain")
+endif ()
+
+if (NOT TOOLCHAIN_FROM_ARTIFACT)
+    message(STATUS "Building toolchain")
+    execute_process(
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/toolchain-build
+            COMMAND ${CMAKE_COMMAND} --build . --target build_toolchain -j${TOOLCHAIN_BUILD_PARALLEL}
+            RESULT_VARIABLE ret
+    )
+    if (ret AND NOT ret EQUAL 0)
+        message(FATAL_ERROR "Failed to build toolchain")
+    endif ()
+endif ()
+
+if (${TOOLCHAIN_ONLY})
+    return()
 endif ()
 
 # =========== Optimization flags ===========
@@ -24,19 +84,14 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO ${CMAKE_C_FLAGS_RELWITHDEBINFO})
 set(CMAKE_CXX_FLAGS_MINSIZEREL ${CMAKE_C_FLAGS_MINSIZEREL})
 # ==========================================
 
+
+set(PATH_WRAP ${CMAKE_CURRENT_SOURCE_DIR}/cmake/path_wrapper.sh)
+
 # Check for crosscompile
 if ((NOT ${CMAKE_CROSSCOMPILING}) OR (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Generic"))
     set(ARCHITECTURE "HOST")
     message(WARNING "Architecture is set to HOST, rather than a native build")
 endif ()
-
-# =========== Build options ===========
-option(ENABLE_KERNEL_UBSAN "Enable UBSan in the kernel" OFF)
-cmake_dependent_option(ENABLE_LIBK_UBSAN "Enable UBSan within libk" ON ${ENABLE_KERNEL_UBSAN} OFF)
-cmake_dependent_option(ENABLE_LIBKPP_UBSAN "Enable UBSan within libk++" ON ${ENABLE_KERNEL_UBSAN} OFF)
-cmake_dependent_option(BUILD_TESTS "Build libk/++ tests" OFF "${CMAKE_SYSTEM_NAME} STREQUAL HOST" OFF)
-set(RAMDISK_INCLUDED_DRIVERS "" CACHE STRING "Drivers to include the the ramdisk - usually disk drivers")
-# =====================================
 
 # =========== Generate extra compiler options ===========
 set(C_CXX_KERNEL_COMPILE_FLAGS
@@ -59,14 +114,28 @@ set(UBSAN_FLAG
         "-fsanitize=undefined" >)
 # =======================================================
 
-# Subdirectories
-add_subdirectory(docs)
-add_subdirectory(libk)
-add_subdirectory(libk++)
-add_subdirectory(codesign)
-add_subdirectory(kernel)
-
 # =========== Install dependencies ===========
+ExternalProject_Add(
+        libc-source
+        GIT_REPOSITORY https://github.com/egkoppel/mlibc.git
+        GIT_TAG popcorn-latest
+        GIT_SHALLOW TRUE
+        GIT_PROGRESS TRUE
+        BUILD_IN_SOURCE true
+        INSTALL_DIR ${PROJECT_BINARY_DIR}/popcornroot/System
+        CONFIGURE_COMMAND
+        ${PATH_WRAP} ${CMAKE_SYSROOT}/bin meson setup --prefix=<INSTALL_DIR> -Dc_args=-fno-stack-protector -Dcpp_args=-fno-stack-protector -Dbuild_tests=false -Ddefault_library=static --cross-file ci/popcorn-clang.cross-file popcorn-build
+        BUILD_COMMAND ${PATH_WRAP} ${CMAKE_SYSROOT}/bin ninja -C popcorn-build
+        INSTALL_COMMAND ${PATH_WRAP} ${CMAKE_SYSROOT}/bin ninja -C popcorn-build install
+)
+ExternalProject_Get_property(libc-source INSTALL_DIR SOURCE_DIR)
+list(APPEND ADDITIONAL_CLEAN_FILES ${SOURCE_DIR}/popcorn-build)
+list(APPEND ADDITIONAL_CLEAN_FILES ${INSTALL_DIR})
+add_library(libc INTERFACE)
+target_link_libraries(libc INTERFACE "${INSTALL_DIR}/lib/libc.a")
+target_include_directories(libc INTERFACE "${INSTALL_DIR}/include")
+add_dependencies(libc libc-source)
+
 FetchContent_Declare(
         libcxxrt
         GIT_REPOSITORY https://github.com/libcxxrt/libcxxrt.git
@@ -79,7 +148,17 @@ FetchContent_MakeAvailable(libcxxrt)
 target_compile_definitions(cxxrt-static PUBLIC LIBCXXRT_WEAK_LOCKS)
 target_compile_options(cxxrt-static PRIVATE ${C_CXX_KERNEL_COMPILE_FLAGS})
 target_include_directories(cxxrt-static BEFORE PRIVATE $<TARGET_PROPERTY:k,INCLUDE_DIRECTORIES>)
+# TODO: Fix this - currently a bit of a hack to get around include files
+target_compile_options(cxxrt-static PRIVATE "-isystem${INSTALL_DIR}/include")
+add_dependencies(cxxrt-static libc)
 # ============================================
+
+# Subdirectories
+add_subdirectory(docs)
+add_subdirectory(libk)
+add_subdirectory(libk++)
+add_subdirectory(kernel)
+add_subdirectory(codesign)
 
 include(RamdiskGenerate)
 include(IsoGenerate)
