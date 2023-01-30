@@ -84,6 +84,9 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO ${CMAKE_C_FLAGS_RELWITHDEBINFO})
 set(CMAKE_CXX_FLAGS_MINSIZEREL ${CMAKE_C_FLAGS_MINSIZEREL})
 # ==========================================
 
+
+set(PATH_WRAP ${CMAKE_CURRENT_SOURCE_DIR}/cmake/path_wrapper.sh)
+
 # Check for crosscompile
 if ((NOT ${CMAKE_CROSSCOMPILING}) OR (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Generic"))
     set(ARCHITECTURE "HOST")
@@ -112,6 +115,27 @@ set(UBSAN_FLAG
 # =======================================================
 
 # =========== Install dependencies ===========
+ExternalProject_Add(
+        libc-source
+        GIT_REPOSITORY https://github.com/egkoppel/mlibc.git
+        GIT_TAG popcorn-latest
+        GIT_SHALLOW TRUE
+        GIT_PROGRESS TRUE
+        BUILD_IN_SOURCE true
+        INSTALL_DIR ${PROJECT_BINARY_DIR}/popcornroot/System
+        CONFIGURE_COMMAND
+        ${PATH_WRAP} ${CMAKE_SYSROOT}/bin meson setup --prefix=<INSTALL_DIR> -Dc_args=-fno-stack-protector -Dcpp_args=-fno-stack-protector -Dbuild_tests=false -Ddefault_library=static --cross-file ci/popcorn-clang.cross-file popcorn-build
+        BUILD_COMMAND ${PATH_WRAP} ${CMAKE_SYSROOT}/bin ninja -C popcorn-build
+        INSTALL_COMMAND ${PATH_WRAP} ${CMAKE_SYSROOT}/bin ninja -C popcorn-build install
+)
+ExternalProject_Get_property(libc-source INSTALL_DIR SOURCE_DIR)
+list(APPEND ADDITIONAL_CLEAN_FILES ${SOURCE_DIR}/popcorn-build)
+list(APPEND ADDITIONAL_CLEAN_FILES ${INSTALL_DIR})
+add_library(libc INTERFACE)
+target_link_libraries(libc INTERFACE "${INSTALL_DIR}/lib/libc.a")
+target_include_directories(libc INTERFACE "${INSTALL_DIR}/include")
+add_dependencies(libc libc-source)
+
 FetchContent_Declare(
         libcxxrt
         GIT_REPOSITORY https://github.com/libcxxrt/libcxxrt.git
@@ -133,8 +157,8 @@ add_dependencies(cxxrt-static libc)
 add_subdirectory(docs)
 add_subdirectory(libk)
 add_subdirectory(libk++)
-add_subdirectory(codesign)
 add_subdirectory(kernel)
+add_subdirectory(codesign)
 
 include(RamdiskGenerate)
 include(IsoGenerate)
