@@ -48,10 +48,10 @@ namespace memory::physical_allocators {
 			decltype(auto) addr = this->bitmap[i];
 
 			for (usize j = 0; j < 63; j++) {
-				if (addr & (3ull << j)) {
-					addr &= ~(3ull << j);   // Clear bit to mark it as allocated
+				if ((addr & (3ull << j)) == (3ull << j)) {   // All bits have to be set to be able to allocate
+					addr &= ~(3ull << j);                    // Clear bit to mark it as allocated
 					u64 bits_to_start_of_iteration = i * 64;
-					frame_t *ret_frame             = this->start_frame + (bits_to_start_of_iteration + j - 1);
+					frame_t *ret_frame             = this->start_frame + (bits_to_start_of_iteration + j);
 					return ret_frame;
 				}
 			}
@@ -68,10 +68,11 @@ namespace memory::physical_allocators {
 
 			u64 first_set_bit = __builtin_ffsll(addr);
 			if (first_set_bit != 0) {
-				addr &= ~(1ull << (first_set_bit - 1));   // Clear bit to mark it as allocated
+				first_set_bit -= 1;                 // Since builtin offsets by 1
+				addr &= ~(1ull << first_set_bit);   // Clear bit to mark it as allocated
 
 				u64 bits_to_start_of_iteration = i * 64;
-				frame_t *ret_frame             = this->start_frame + (bits_to_start_of_iteration + first_set_bit - 1);
+				frame_t *ret_frame             = this->start_frame + (bits_to_start_of_iteration + first_set_bit);
 				return ret_frame;
 			}
 		}
@@ -79,6 +80,7 @@ namespace memory::physical_allocators {
 	}
 
 	template<class VAllocator> void BitmapAllocator<VAllocator>::deallocate_(const frame_t *frames, u64 size) noexcept {
+		LOG(Log::DEBUG, "BitmapAllocator deallocate %lp", frames->addr());
 		auto frame_count = IDIV_ROUND_UP(size, constants::frame_size);
 		for (auto f = frames; f < frames + frame_count; f++) {
 			auto [bitmap_index, bit_index] = this->frame_to_indices(f);
