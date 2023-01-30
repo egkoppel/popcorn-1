@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 project(Popcorn LANGUAGES NONE VERSION 0.2.0)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
-
 include(ExternalProject)
 include(CMakeDependentOption)
 include(FetchContent)
@@ -11,6 +10,51 @@ set(FETCHCONTENT_QUIET FALSE)
 if (EXISTS "${PROJECT_BINARY_DIR}/CMakeLists.txt")
     message(FATAL_ERROR "Out of source build is required")
 endif ()
+
+if (${DO_GET_TOOLCHAIN})
+    include(GetToolchain)
+    return()
+endif ()
+
+# =========== Build options ===========
+option(ENABLE_KERNEL_UBSAN "Enable UBSan in the kernel" OFF)
+cmake_dependent_option(ENABLE_LIBK_UBSAN "Enable UBSan within libk" ON ${ENABLE_KERNEL_UBSAN} OFF)
+cmake_dependent_option(ENABLE_LIBKPP_UBSAN "Enable UBSan within libk++" ON ${ENABLE_KERNEL_UBSAN} OFF)
+cmake_dependent_option(BUILD_TESTS "Build libk/++ tests" OFF "${CMAKE_SYSTEM_NAME} STREQUAL HOST" OFF)
+set(RAMDISK_INCLUDED_DRIVERS "" CACHE STRING "Drivers to include the the ramdisk - usually disk drivers")
+option(TOOLCHAIN_FROM_ARTIFACT "Download toolchain if available rather than building LLVM from source" ON)
+set(TOOLCHAIN_LLVM_VERSION "15.0.7" CACHE STRING "Version of LLVM to build the toolchain from")
+# =====================================
+
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/toolchain-build)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/sysroot)
+list(APPEND ADDITIONAL_CLEAN_FILES ${CMAKE_CURRENT_BINARY_DIR}/toolchain-build)
+list(APPEND ADDITIONAL_CLEAN_FILES ${CMAKE_CURRENT_BINARY_DIR}/sysroot)
+execute_process(
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/toolchain-build
+        COMMAND ${CMAKE_COMMAND}
+        -UCMAKE_TOOLCHAIN_FILE
+        -DDO_GET_TOOLCHAIN=ON
+        -DTOOLCHAIN_FROM_ARTIFACT=${TOOLCHAIN_FROM_ARTIFACT}
+        -DLLVM_VERSION=${TOOLCHAIN_LLVM_VERSION}
+        -DSYSROOT=${CMAKE_CURRENT_BINARY_DIR}/sysroot
+        -G${CMAKE_GENERATOR}
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        RESULT_VARIABLE ret
+)
+if (ret AND NOT ret EQUAL 0)
+    message(FATAL_ERROR "Failed to get toolchain")
+endif ()
+execute_process(
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/toolchain-build
+        COMMAND ${CMAKE_COMMAND} --build . --target build_toolchain
+        RESULT_VARIABLE ret
+)
+if (ret AND NOT ret EQUAL 0)
+    message(FATAL_ERROR "Failed to get toolchain")
+endif ()
+
+return()
 
 # =========== Optimization flags ===========
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g")
@@ -29,14 +73,6 @@ if ((NOT ${CMAKE_CROSSCOMPILING}) OR (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Generic
     set(ARCHITECTURE "HOST")
     message(WARNING "Architecture is set to HOST, rather than a native build")
 endif ()
-
-# =========== Build options ===========
-option(ENABLE_KERNEL_UBSAN "Enable UBSan in the kernel" OFF)
-cmake_dependent_option(ENABLE_LIBK_UBSAN "Enable UBSan within libk" ON ${ENABLE_KERNEL_UBSAN} OFF)
-cmake_dependent_option(ENABLE_LIBKPP_UBSAN "Enable UBSan within libk++" ON ${ENABLE_KERNEL_UBSAN} OFF)
-cmake_dependent_option(BUILD_TESTS "Build libk/++ tests" OFF "${CMAKE_SYSTEM_NAME} STREQUAL HOST" OFF)
-set(RAMDISK_INCLUDED_DRIVERS "" CACHE STRING "Drivers to include the the ramdisk - usually disk drivers")
-# =====================================
 
 # =========== Generate extra compiler options ===========
 set(C_CXX_KERNEL_COMPILE_FLAGS
