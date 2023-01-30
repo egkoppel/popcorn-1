@@ -59,13 +59,6 @@ set(UBSAN_FLAG
         "-fsanitize=undefined" >)
 # =======================================================
 
-# Subdirectories
-add_subdirectory(docs)
-add_subdirectory(libk)
-add_subdirectory(libk++)
-add_subdirectory(codesign)
-add_subdirectory(kernel)
-
 # =========== Install dependencies ===========
 FetchContent_Declare(
         libcxxrt
@@ -80,6 +73,13 @@ target_compile_definitions(cxxrt-static PUBLIC LIBCXXRT_WEAK_LOCKS)
 target_compile_options(cxxrt-static PRIVATE ${C_CXX_KERNEL_COMPILE_FLAGS})
 target_include_directories(cxxrt-static BEFORE PRIVATE $<TARGET_PROPERTY:k,INCLUDE_DIRECTORIES>)
 # ============================================
+
+# Subdirectories
+add_subdirectory(docs)
+add_subdirectory(libk)
+add_subdirectory(libk++)
+add_subdirectory(codesign)
+add_subdirectory(kernel)
 
 include(RamdiskGenerate)
 include(IsoGenerate)
