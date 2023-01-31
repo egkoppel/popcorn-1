@@ -32,7 +32,7 @@ public:
 
 	explicit runtime_error(const char *what_arg) :
 		data{
-				new data_t{.what_string = what_arg, .refcount = 1}
+				new data_t{.what_string = std::string{what_arg}, .refcount = 1}
     } {}
 
 	runtime_error(const runtime_error& other) noexcept {
