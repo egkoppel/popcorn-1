@@ -62,27 +62,27 @@ HUGOS_STL_BEGIN_NAMESPACE
 
 		constexpr optional(const optional<T>& other) requires(std::is_copy_constructible_v<T>)
 			: is_some(other.is_some) {
-			if (this->is_some) new (&this->inner) T(other.inner);
+			if (this->is_some) ::new (&this->inner) T(other.inner);
 		}
 		constexpr optional(const optional<T>& other) requires(!std::is_copy_constructible_v<T>)
 		= delete;
 
 		constexpr optional(const optional<T>&& other) noexcept requires(std::is_move_constructible_v<T>)
 			: is_some(other.is_some) {
-			if (this->is_some) new (&this->inner) T(std::move(*other));
+			if (this->is_some) ::new (&this->inner) T(std::move(*other));
 		}
 		constexpr optional(const optional<T>&& other) noexcept requires(!std::is_move_constructible_v<T>)
 		= delete;
 
 		template<class... Args> constexpr explicit optional(std::in_place_t, Args&&...args) : is_some(true) {
-			new (&this->inner) T(args...);
+			::new (&this->inner) T(args...);
 		}
 
 		template<class U = T>
 		constexpr optional(U&& value) requires(!std::same_as<std::remove_reference_t<U>, optional<T>>
 		                                       && !std::same_as<std::remove_reference_t<U>, std::in_place_t>)
 			: is_some(true) {
-			new (&this->inner) T(std::forward<U>(value));
+			::new (&this->inner) T(std::forward<U>(value));
 		}
 
 		constexpr ~optional() {
@@ -183,7 +183,7 @@ HUGOS_STL_BEGIN_NAMESPACE
 		template<class U = T> constexpr optional& operator=(const optional<U>& other) {
 			if (this->is_some) this->inner.~T();
 			this->is_some = other.is_some;
-			if (this->is_some) new (&this->inner) T(other.value());
+			if (this->is_some) ::new (&this->inner) T(other.value());
 			return *this;
 		}
 
@@ -192,7 +192,7 @@ HUGOS_STL_BEGIN_NAMESPACE
 			this->is_some = other.is_some;
 
 			if (other.is_some) {
-				new (&this->inner) T(std::move(other.value()));
+				::new (&this->inner) T(std::move(other.value()));
 				other.inner.~T();
 				other.is_some = false;
 			}
@@ -211,7 +211,7 @@ HUGOS_STL_BEGIN_NAMESPACE
 				requires(!std::is_same_v<std::remove_cv_t<U>, optional<T>> && std::is_constructible_v<T, U>)
 		{
 			if (this->is_some) this->inner = std::forward<U>(value);
-			else new (&this->inner) T(std::forward<U>(value));
+			else ::new (&this->inner) T(std::forward<U>(value));
 			this->is_some = true;
 			return *this;
 		}
