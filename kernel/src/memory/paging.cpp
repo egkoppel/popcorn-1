@@ -22,7 +22,7 @@
 
 namespace memory::paging {
 	void PageTableEntryImpl::set_pointed_frame(const frame_t *frame) noexcept {
-		LOG(Log::TRACE, "pfn: %d", frame->number());
+		LOG(Log::TRACE, "pfn: %zu", frame->number());
 		this->data = (this->data & static_cast<std::underlying_type_t<PageTableFlags>>(PageTableFlags::IMPL_FLAG_BITS))
 		             | ((frame->addr())
 		                & static_cast<std::underlying_type_t<PageTableFlags>>(PageTableFlags::IMPL_ADDR_BITS));
@@ -40,7 +40,7 @@ namespace memory::paging {
 		auto frame_addr = this->data
 		                  & static_cast<std::underlying_type_t<PageTableFlags>>(PageTableFlags::IMPL_ADDR_BITS);
 		auto frame_num = frame_addr / constants::frame_size;
-		LOG(Log::TRACE, "pfn: %llu", frame_num);
+		LOG(Log::TRACE, "pfn: %lu", frame_num);
 		return &mem_map[frame_num];
 	}
 	PageTableFlags PageTableEntryImpl::get_flags() const noexcept {
@@ -52,7 +52,7 @@ namespace memory::paging {
 	}
 
 	void AddressSpaceBase::map_page_to(aligned<vaddr_t> page, const frame_t *frame, PageTableFlags flags) {
-		LOG(Log::DEBUG, "map %llx to pfn %llu", page, frame->number());
+		LOG(Log::DEBUG, "map %llx to pfn %zu", page, frame->number());
 
 		auto l1_table = (*(*(*this->l4_table)[page.address.page_table_index<4>()]
 		                            .child_table_or_create(this->allocator))[page.address.page_table_index<3>()]
@@ -63,7 +63,7 @@ namespace memory::paging {
 		l1_entry.set_flags(flags | PageTableFlags::PRESENT);
 		l1_entry.set_pointed_frame(frame);
 
-		LOG(Log::DEBUG, "mapped %llx to pfn %llu", page, frame->number());
+		LOG(Log::DEBUG, "mapped %llx to pfn %zu", page, frame->number());
 	}
 
 	bool AddressSpaceBase::unmap_page(aligned<vaddr_t> page) {
@@ -82,7 +82,7 @@ namespace memory::paging {
 		auto flags = l1_entry.get_flags();
 		if (!static_cast<bool>(flags & PageTableFlags::PRESENT)) return false;
 
-		LOG(Log::DEBUG, "unmapped %llx from pfn %llu", page, l1_entry.pointed_frame().value()->number());
+		LOG(Log::DEBUG, "unmapped %llx from pfn %zu", page, l1_entry.pointed_frame().value()->number());
 		l1_entry.set_flags(flags & ~PageTableFlags::PRESENT);
 		__asm__ volatile("invlpg %0" : : "m"(page));
 

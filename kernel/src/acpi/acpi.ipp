@@ -29,7 +29,7 @@ namespace acpi {
 		                                                      memory::paging::kas}
         };
 
-		LOG(Log::DEBUG, "RSDT has length %llu", data.rsdt->length);
+		LOG(Log::DEBUG, "RSDT has length %u", data.rsdt->length);
 		data.rsdt.resize_to(data.rsdt->length);
 
 		for (auto&& sdt_ptr : *data.rsdt) {
