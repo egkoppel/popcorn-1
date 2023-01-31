@@ -19,7 +19,12 @@ namespace Log {
 
 	void set_log_level(level_t level);
 	void set_screen_log_level(level_t level);
-	void log(level_t level, const char *message, const char *file_name, int line, const char *func_name, ...);
+	void log [[gnu::format(printf, 2, 6)]] (level_t level,
+	                                        const char *message,
+	                                        const char *file_name,
+	                                        int line,
+	                                        const char *func_name,
+	                                        ...);
 	void off();
 	void on();
 };   // namespace Log
@@ -27,4 +32,4 @@ namespace Log {
 #define LOG(level, fmt, ...)                                                                                           \
 	{ Log::log(level, fmt, __FILE__, __LINE__, __PRETTY_FUNCTION__, ##__VA_ARGS__); }
 
-#endif   //POPCORN_KERNEL_SRC_LOG_HPP
+#endif   // POPCORN_KERNEL_SRC_LOG_HPP
