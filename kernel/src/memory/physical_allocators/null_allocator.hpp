@@ -20,6 +20,7 @@ namespace memory::physical_allocators {
 		frame_t *allocate_(u64) override { THROW(std::bad_alloc()); }
 		frame_t *allocate_at_(aligned<paddr_t> start, u64) override { return start.frame(); }
 		void deallocate_(const frame_t *frame, u64) noexcept override {}
+		const char *name() noexcept override { return "NullAllocator"; }
 	};
 }   // namespace memory::physical_allocators
 

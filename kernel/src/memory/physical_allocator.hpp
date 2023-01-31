@@ -74,6 +74,8 @@ namespace memory {
 		 * bob
 		 */
 		virtual void deallocate_(const frame_t *, u64) noexcept = 0;
+
+		virtual const char *name() noexcept = 0;
 	};
 
 }   // namespace memory

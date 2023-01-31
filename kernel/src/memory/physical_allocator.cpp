@@ -15,7 +15,7 @@
 
 namespace memory {
 	frame_t *IPhysicalAllocator::allocate(u64 size) {
-		LOG(Log::DEBUG, "Physical allocation requested of size %llx", size);
+		LOG(Log::DEBUG, "Physical allocation requested of size %llx, from allocator %s", size, this->name());
 		auto ret = this->allocate_(size);
 		LOG(Log::DEBUG, "Allocated at %lp", ret->addr());
 		ret->allocated_by = this;
@@ -24,7 +24,7 @@ namespace memory {
 	}
 
 	frame_t *IPhysicalAllocator::allocate(aligned<paddr_t> at, u64 size) {
-		LOG(Log::DEBUG, "Physical allocation requested of size %llx at %lp", size, at);
+		LOG(Log::DEBUG, "Physical allocation requested of size %llx at %lp, from allocator %s", size, at, this->name());
 		auto ret = this->allocate_at_(at, size);
 		LOG(Log::DEBUG, "Allocated at %llx", (ret - mem_map) * constants::frame_size);
 		ret->allocated_by = this;

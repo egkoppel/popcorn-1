@@ -62,6 +62,9 @@ namespace memory::physical_allocators {
 		std::tuple<u64, u64> frame_to_indices(const frame_t *frame);
 
 		frame_t *allocate_multi(u64 byte_length);
+
+	protected:
+		const char *name() noexcept override {return "BitmapAllocator"; }
 	};
 }   // namespace memory::physical_allocators
 
