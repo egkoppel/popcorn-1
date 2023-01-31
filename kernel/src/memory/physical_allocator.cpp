@@ -26,7 +26,7 @@ namespace memory {
 	frame_t *IPhysicalAllocator::allocate(aligned<paddr_t> at, u64 size) {
 		LOG(Log::DEBUG, "Physical allocation requested of size %llx at %lp", size, at);
 		auto ret = this->allocate_at_(at, size);
-		LOG(Log::DEBUG, "Allocated at %llx", (ret - mem_map) * constants::frame_size);
+		LOG(Log::DEBUG, "Allocated at %zx", (ret - mem_map) * constants::frame_size);
 		ret->allocated_by = this;
 		ret->ref_count++;
 		return ret;

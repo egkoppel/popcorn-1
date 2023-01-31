@@ -176,7 +176,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 		}
 	}
 	LOG(Log::DEBUG, "Kernel executable: %lp -> %lp", kernel_min, kernel_max);
-	LOG(Log::DEBUG, "TLS size: %llu", tls_size);
+	LOG(Log::DEBUG, "TLS size: %zu", tls_size);
 
 	uint64_t available_ram = 0;
 	uint64_t total_ram     = 0;

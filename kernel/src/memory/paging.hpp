@@ -257,7 +257,7 @@ namespace memory::paging {
 			        .page_map_region_to_frame();
 		}
 		const frame_t *l4_table_frame() const {
-			LOG(Log::DEBUG, "%lp %lp", this->l4_table, reinterpret_cast<usize>(this->l4_table));
+			LOG(Log::DEBUG, "%lp %zu", this->l4_table, reinterpret_cast<usize>(this->l4_table));
 			auto a = aligned<vaddr_t>{vaddr_t{.address = reinterpret_cast<usize>(this->l4_table)}};
 			return a.page_map_region_to_frame();
 		}
