@@ -14,6 +14,8 @@
 
 #include "multiboot.hpp"
 
+#include <cstddef>
+
 namespace multiboot::tags {
 	class [[gnu::packed]] Rsdp : public Tag {
 	public:
@@ -25,7 +27,7 @@ namespace multiboot::tags {
 		u32 length;
 		memory::paddr_t xsdt_addr_;
 		u8 extended_checksum;
-		u8 _reserved[3];
+		std::byte _reserved[3];
 
 		memory::paddr_t rsdt_addr() const {
 			if (this->revision == 0) return this->rsdt_addr_;
@@ -34,4 +36,4 @@ namespace multiboot::tags {
 	};
 }   // namespace multiboot::tags
 
-#endif   //HUGOS_RSDP_HPP
+#endif   // HUGOS_RSDP_HPP
