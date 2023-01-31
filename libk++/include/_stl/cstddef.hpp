@@ -15,7 +15,11 @@
 #include <stddef.h>
 
 HUGOS_STL_BEGIN_NAMESPACE
+
 using ::size_t;
+
+enum class byte : unsigned char {};
+
 HUGOS_STL_END_NAMESPACE
 
 #endif   //HUGOS_KERNEL_SRC_STL__STL_CSTDDEF_HPP
