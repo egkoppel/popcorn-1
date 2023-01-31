@@ -207,6 +207,8 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	                                                                                        kernel_max,
 	                                                                                        mb.begin().devirtualise(),
 	                                                                                        mb.end().devirtualise(),
+	                                                                                        boot_module->begin(),
+	                                                                                        boot_module->end(),
 	                                                                                        mmap);
 	allocators.general_frame_allocator_   = &kernel_monotonic_frame_allocator;
 
