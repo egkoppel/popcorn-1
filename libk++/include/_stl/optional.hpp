@@ -89,15 +89,15 @@ HUGOS_STL_BEGIN_NAMESPACE
 			if (this->is_some) this->inner.~T();
 		}
 
-		[[gnu::warning("Check .has_value()")]] constexpr T *operator->() const noexcept { return &this->inner; }
+		constexpr T *operator->() const noexcept { return &this->inner; }
 
-		[[gnu::warning("Check .has_value()")]] constexpr T& operator*() & noexcept { return this->inner; }
+		constexpr T& operator*() & noexcept { return this->inner; }
 
-		[[gnu::warning("Check .has_value()")]] constexpr T&& operator*() && noexcept { return this->inner; }
+		constexpr T&& operator*() && noexcept { return this->inner; }
 
-		[[gnu::warning("Check .has_value()")]] constexpr T& operator*() const& noexcept { return this->inner; }
+		constexpr T& operator*() const& noexcept { return this->inner; }
 
-		[[gnu::warning("Check .has_value()")]] constexpr T&& operator*() const&& noexcept { return this->inner; }
+		constexpr T&& operator*() const&& noexcept { return this->inner; }
 
 		constexpr T& value() & {
 			if (*this) return this->inner;
@@ -231,9 +231,9 @@ HUGOS_STL_BEGIN_NAMESPACE
 
 		constexpr optional(T *value) : inner(value) {}
 
-		[[gnu::warning("Check .has_value()")]] constexpr T *operator->() const noexcept { return this->inner; }
+		constexpr T *operator->() const noexcept { return this->inner; }
 
-		[[gnu::warning("Check .has_value()")]] constexpr T *operator*() const noexcept { return this->inner; }
+		constexpr T *operator*() const noexcept { return this->inner; }
 
 		constexpr explicit operator bool() const noexcept { return this->inner; }
 
