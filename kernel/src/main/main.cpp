@@ -80,7 +80,7 @@ void parse_cli_args(const multiboot::Data& multiboot) {
 	if (log_level_ptr) {
 		auto log_level = strtol(log_level_ptr + sizeof(log_level_str) - 1, nullptr, 10);
 		Log::set_log_level(static_cast<Log::level_t>(log_level));
-		LOG(Log::DEBUG, "Set log level to %d", log_level);
+		LOG(Log::DEBUG, "Set log level to %ld", log_level);
 		LOG(Log::TRACE, "%s", log_level_ptr + sizeof(log_level_str) - 1);
 	}
 }
@@ -196,7 +196,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	}
 
 	LOG(Log::DEBUG,
-	    "Detected %d MiB of available memory (%d MiB total)",
+	    "Detected %lu MiB of available memory (%lu MiB total)",
 	    available_ram / (1024 * 1024),
 	    total_ram / (1024 * 1024));
 	//}

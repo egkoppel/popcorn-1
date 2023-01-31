@@ -40,7 +40,7 @@ namespace memory::paging {
 		auto frame_addr = this->data
 		                  & static_cast<std::underlying_type_t<PageTableFlags>>(PageTableFlags::IMPL_ADDR_BITS);
 		auto frame_num = frame_addr / constants::frame_size;
-		LOG(Log::TRACE, "pfn: %llu", frame_num);
+		LOG(Log::TRACE, "pfn: %lu", frame_num);
 		return &mem_map[frame_num];
 	}
 	PageTableFlags PageTableEntryImpl::get_flags() const noexcept {
