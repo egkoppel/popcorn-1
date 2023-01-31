@@ -84,6 +84,7 @@ namespace memory::paging {
 
 		LOG(Log::DEBUG, "unmapped %llx from pfn %llu", page, l1_entry.pointed_frame().value()->number());
 		l1_entry.set_flags(flags & ~PageTableFlags::PRESENT);
+		__asm__ volatile("invlpg %0" : : "m"(page));
 
 		return true;
 	}
