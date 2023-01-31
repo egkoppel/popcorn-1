@@ -44,13 +44,13 @@ namespace memory::physical_allocators {
 		                VAllocator allocator) noexcept
 			: start_frame(aligned<paddr_t>::aligned_down(start_addr).frame()),
 			  bitmap(size, flags, page_allocator, paging::kas, allocator) {
-			memset(this->bitmap.operator->(), 0, size);
+			memset(this->bitmap.get(), 0, size);
 		}
 
 		BitmapAllocator() noexcept : start_frame(nullptr), bitmap() {}
 
 	public:
-        BitmapAllocator(const BitmapAllocator&)            = delete;
+		BitmapAllocator(const BitmapAllocator&)                    = delete;
 		BitmapAllocator(BitmapAllocator&& rhs) noexcept            = default;
 		BitmapAllocator& operator=(BitmapAllocator&& rhs) noexcept = default;
 
