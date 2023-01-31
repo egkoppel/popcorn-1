@@ -279,7 +279,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 
 				if (++i % one_percent == 0) {
 					Log::on();
-					LOG(Log::DEBUG, "%d%%", i / one_percent);
+					LOG(Log::DEBUG, "%zu%%", i / one_percent);
 					Log::off();
 				}
 			}
@@ -373,10 +373,10 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 			if (cpu.id() == Cpu::lapic->id) {
 				/* Processor running this check will always be the BSP
 				 * => current processor's ID == BSP's ID */
-				LOG(Log::INFO, "Processor %u is BSP", cpu.id());
+				LOG(Log::INFO, "Processor %zu is BSP", cpu.id());
 				local_cpu = &cpu;
 			} else {
-				LOG(Log::INFO, "Booting processor %u", cpu.id());
+				LOG(Log::INFO, "Booting processor %zu", cpu.id());
 				cpu.boot();
 			}
 		}
