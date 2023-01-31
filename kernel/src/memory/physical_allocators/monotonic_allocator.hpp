@@ -60,7 +60,10 @@ namespace memory::physical_allocators {
 		aligned<paddr_t> get_multiboot_start_frame() const { return this->multiboot_start_frame; }
 		aligned<paddr_t> get_multiboot_end_frame() const { return this->multiboot_end_frame; }
 		multiboot::tags::MemoryMap *get_mem_map() const { return this->mem_map; }
+
+	protected:
+		const char *name() noexcept override {return "MonotonicAllocator"; }
 	};
 }   // namespace memory::physical_allocators
 
-#endif   //HUGOS_KERNEL_SRC_MEMORY_PHYSICAL_ALLOCATORS_MONOTONIC_ALLOCATOR
+#endif   // HUGOS_KERNEL_SRC_MEMORY_PHYSICAL_ALLOCATORS_MONOTONIC_ALLOCATOR
