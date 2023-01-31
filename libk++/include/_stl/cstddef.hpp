@@ -13,12 +13,43 @@
 #define HUGOS_KERNEL_SRC_STL__STL_CSTDDEF_HPP
 
 #include <stddef.h>
+#include <type_traits>
 
 HUGOS_STL_BEGIN_NAMESPACE
 
 using ::size_t;
 
+template<class T> struct is_integral;
+
 enum class byte : unsigned char {};
+
+template<class IT> requires(typename std::is_integral<IT>::type) constexpr IT to_integer(std::byte b) noexcept { return IT(b); }
+constexpr byte operator&(byte lhs, byte rhs) noexcept {
+	return byte(
+        	static_cast<unsigned char>(lhs) & static_cast<unsigned char>(rhs)
+	);
+}
+constexpr byte operator|(byte lhs, byte rhs) noexcept {
+        return byte(
+                static_cast<unsigned char>(lhs) | static_cast<unsigned char>(rhs)
+        );
+}
+constexpr byte operator^(byte lhs, byte rhs) noexcept {
+        return byte(
+                static_cast<unsigned char>(lhs) ^ static_cast<unsigned char>(rhs)
+        );
+}
+constexpr byte operator~(byte b) noexcept { return byte(~static_cast<unsigned char>(b)); }
+
+template<class IT> requires(typename std::is_integral<IT>::type) constexpr byte& operator&=(byte& lhs, byte rhs) noexcept { return lhs = lhs & rhs; }
+template<class IT> requires(typename std::is_integral<IT>::type) constexpr byte& operator|=(byte& lhs, byte rhs) noexcept { return lhs = lhs | rhs; }
+template<class IT> requires(typename std::is_integral<IT>::type) constexpr byte& operator^=(byte& lhs, byte rhs) noexcept { return lhs = lhs ^ rhs; }
+
+template<class IT> requires(typename std::is_integral<IT>::type) constexpr byte operator<<(byte lhs, IT rhs) noexcept { return byte(static_cast<unsigned char>(lhs) << rhs); }
+template<class IT> requires(typename std::is_integral<IT>::type) constexpr byte operator>>(byte lhs, IT rhs) noexcept { return byte(static_cast<unsigned char>(lhs) >> rhs); }
+
+template<class IT> requires(typename std::is_integral<IT>::type) constexpr byte& operator<<=(byte& lhs, IT rhs) noexcept { return lhs = lhs << rhs; }
+template<class IT> requires(typename std::is_integral<IT>::type) constexpr byte& operator>>=(byte& lhs, IT rhs) noexcept { return lhs = lhs >> rhs; }
 
 HUGOS_STL_END_NAMESPACE
 
