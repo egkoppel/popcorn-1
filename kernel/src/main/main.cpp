@@ -129,10 +129,9 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 
 	auto fb = mb.find_tag<multiboot::tags::Framebuffer>(multiboot::TagType::FRAMEBUFFER).value();
 
-	auto sections = mb.find_tag<multiboot::tags::ElfSections>(multiboot::TagType::ELF_SECTIONS).value();
-	/*TODO
-	 * auto boot_module = mb.find_tag<multiboot::tags::BootModule>(multiboot::TagType::BOOT_MODULE).value();
-	 * if (strcmp(boot_module->name(), "initramfs") != 0) panic("No initramfs found");*/
+	auto sections    = mb.find_tag<multiboot::tags::ElfSections>(multiboot::TagType::ELF_SECTIONS).value();
+	auto boot_module = mb.find_tag<multiboot::tags::BootModule>(multiboot::TagType::BOOT_MODULE).value();
+	if (strcmp(boot_module->name(), "initramfs") != 0) panic("No initramfs found");
 
 	arch::arch_specific_early_init();
 	arch::set_interrupt_perms(0x3, true, 0);
