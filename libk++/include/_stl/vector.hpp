@@ -87,17 +87,17 @@ HUGOS_STL_BEGIN_NAMESPACE
 			other.buffer_end_   = nullptr;
 			other.item_count_   = 0;
 		}
-		vector(std::initializer_list<T> init) : vector(init.begin(), init.end()) {}
+		constexpr vector(std::initializer_list<T> init) : vector(init.begin(), init.end()) {}
 
 		template<class InputIt>
-		vector(InputIt begin, InputIt end) requires(requires() { *begin++; })
+		constexpr vector(InputIt begin, InputIt end) requires(requires() { *begin++; })
 			: buffer_start_(nullptr),
 			  buffer_end_(nullptr),
 			  item_count_(0) {
 			for (; begin < end; begin++) this->push_back(*begin);
 		}
 
-		~vector() {
+		constexpr ~vector() {
 			for (size_type i = 0; i < this->size(); i++) { this->buffer_start_[i].~T(); }
 			operator delete(this->buffer_start_);
 		}
