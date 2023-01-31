@@ -317,7 +317,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 
 	framebuffer_mapping = MemoryMap<char>{fb->begin(), fb->size(), framebuffer_flags, null_allocator, paging::kas};
 
-	FRAMEBUFFER = framebuffer_mapping.operator->();
+	FRAMEBUFFER = framebuffer_mapping.get();
 	Log::set_screen_log_level(Log::INFO);
 	LOG(Log::WARNING, "hello???");
 
