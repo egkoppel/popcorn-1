@@ -14,6 +14,7 @@
 
 #include "sdt.hpp"
 
+#include <cstddef>
 #include <memory/types.hpp>
 #include <utils.h>
 
@@ -42,7 +43,7 @@ namespace acpi {
 
 		struct [[gnu::packed]] ioapic_entry_t : entry_t {
 			u8 apic_id;
-			u8 _reserved;
+			std::byte _reserved;
 			memory::paddr32_t ioapic_addr;
 			u32 global_system_interrupt_base;
 		};
@@ -81,4 +82,4 @@ namespace acpi {
 	};
 }   // namespace acpi
 
-#endif   //HUGOS_APIC_HPP
+#endif   // HUGOS_APIC_HPP

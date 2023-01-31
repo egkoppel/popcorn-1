@@ -38,10 +38,10 @@ namespace acpi {
 	}   // namespace details
 
 	struct [[gnu::packed]] lapic {
-		const u8 _pad0[0x020];
+		const std::byte _pad0[0x020];
 		alignas(16) u32 id;
 		alignas(16) const u32 version;
-		const u8 _pad1[76];
+		const std::byte _pad1[76];
 		alignas(16) u32 task_priority;
 		alignas(16) const u32 arbitration_priority;
 		alignas(16) const u32 processor_priority;
@@ -75,7 +75,7 @@ namespace acpi {
 		alignas(16) const u32 irr6;
 		alignas(16) const u32 irr7;
 		alignas(16) u32 error_status;
-		const u8 _pad2[96];
+		const std::byte _pad2[96];
 		alignas(16) u32 cmci;
 		alignas(16) u32 interrupt_command_low;
 		alignas(16) u32 interrupt_command_high;
@@ -87,7 +87,7 @@ namespace acpi {
 		alignas(16) u32 lvt_error;
 		alignas(16) u32 timer_initial_count;
 		alignas(16) const u32 timer_current_count;
-		const u8 _pad3[64];
+		const std::byte _pad3[64];
 		alignas(16) u32 timer_divide_configuration;
 
 		/* TODO when clang supports it

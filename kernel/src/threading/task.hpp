@@ -12,6 +12,7 @@
 #ifndef HUGOS_KERNEL_SRC_THREADING_TASK_HPP
 #define HUGOS_KERNEL_SRC_THREADING_TASK_HPP
 
+#include <cstddef>
 #include <functional>
 #include <memory/memory_map.hpp>
 #include <memory/paging.hpp>
@@ -47,7 +48,7 @@ namespace threads {
 		State state  = State::RUNNING;
 		const char *name;
 		memory::virtual_allocators::MonotonicAllocator allocator;
-		std::vector<memory::MemoryMap<void, allocator_wrapper>> mmaps;
+		std::vector<memory::MemoryMap<std::byte, allocator_wrapper>> mmaps;
 
 		explicit Task(const char *name, memory::KStack<>&& stack);
 		Task(const char *name, usize argument, usize stack_offset);
