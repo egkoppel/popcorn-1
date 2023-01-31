@@ -72,6 +72,15 @@ public:
 };
 
 using string = basic_string<char>;
+
+	inline namespace literals {
+		inline namespace string_literals {
+			constexpr std::string operator""s(const char *str, std::size_t len) {
+				return {str, len};
+			}
+		}   // namespace string_literals
+	}       // namespace literals
+
 HUGOS_STL_END_NAMESPACE
 
-#endif   //HUGOS_KERNEL_SRC_STL__STL_STRING_HPP
+#endif   // HUGOS_KERNEL_SRC_STL__STL_STRING_HPP
