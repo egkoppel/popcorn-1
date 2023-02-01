@@ -23,10 +23,10 @@ void *operator new[](size_t size) {
 	return r;
 }
 
-void operator delete(void *p) {
+void operator delete(void *p) noexcept {
 	free(p);
 }
 
-void operator delete[](void *p) {
+void operator delete[](void *p) noexcept {
 	free(p);
 }
