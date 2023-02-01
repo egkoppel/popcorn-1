@@ -26,13 +26,14 @@ namespace memory::virtual_allocators {
 
 	public:
 		MonotonicAllocator(aligned<vaddr_t> start, aligned<vaddr_t> end) : current_(start), end_(end) {}
-		MonotonicAllocator(const MonotonicAllocator&)                 = delete;
-		MonotonicAllocator(MonotonicAllocator&& other) noexcept = default;
-		MonotonicAllocator& operator=(const MonotonicAllocator&)      = delete;
-		MonotonicAllocator& operator=(MonotonicAllocator&&)     = default;
+		MonotonicAllocator(const MonotonicAllocator&)            = delete;
+		MonotonicAllocator(MonotonicAllocator&& other) noexcept  = default;
+		MonotonicAllocator& operator=(const MonotonicAllocator&) = delete;
+		MonotonicAllocator& operator=(MonotonicAllocator&&)      = default;
 
 		aligned<vaddr_t> allocate_(uint64_t byte_length) override;
+		aligned<vaddr_t> allocate_at_(aligned<vaddr_t> start, uint64_t byte_length) override;
 		void deallocate_(aligned<vaddr_t> start, uint64_t byte_length) noexcept override {}
 	};
 }   // namespace memory::virtual_allocators
-#endif   //HUGOS_KERNEL_SRC_MEMORY_VIRTUAL_ALLOCATORS_MONOTONIC_ALLOCATOR_HPP
+#endif   // HUGOS_KERNEL_SRC_MEMORY_VIRTUAL_ALLOCATORS_MONOTONIC_ALLOCATOR_HPP
