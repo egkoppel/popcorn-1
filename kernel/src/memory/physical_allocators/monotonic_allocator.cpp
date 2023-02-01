@@ -11,6 +11,7 @@
 #include "monotonic_allocator.hpp"
 
 #include <cstdio>
+#include <log.hpp>
 #include <utils.h>
 
 namespace memory::physical_allocators {
@@ -18,23 +19,24 @@ namespace memory::physical_allocators {
 		while (true) {
 			auto allocation_end_frame = this->next_frame + IDIV_ROUND_UP(byte_length, constants::frame_size);
 
-			// fprintf(stdserial, "Attempt alloc at %p\n", attempt);
+			LOG(Log::TRACE, "Physical MonotonicAllocator attempt alloc at %p", this->next_frame);
 			if ((this->next_frame >= this->kernel_start_frame && this->next_frame < this->kernel_end_frame)
 			    || (this->next_frame >= allocation_end_frame && allocation_end_frame < this->kernel_end_frame)) {
-				// fprintf(stdserial, "bump alloc kernel jump\n");
+				LOG(Log::TRACE, "monotonic allocator kernel jump");
 				this->next_frame = this->kernel_end_frame;
 				continue;
 			}
 
 			if ((this->next_frame >= this->multiboot_start_frame && this->next_frame < this->multiboot_end_frame)
 			    || (this->next_frame >= allocation_end_frame && allocation_end_frame < this->multiboot_end_frame)) {
-				// fprintf(stdserial, "bump alloc multiboot jump\n");
+				LOG(Log::TRACE, "monotonic allocator multiboot jump");
 				this->next_frame = this->multiboot_end_frame;
 				continue;
 			}
 
 			if ((this->next_frame >= this->ramdisk_start_frame && this->next_frame < this->ramdisk_end_frame) 
 			    || (this->next_frame >= allocation_end_frame && allocation_end_frame < this->ramdisk_end_frame)) {
+				LOG(Log::TRACE, "monotonic allocator ramdisk jump");
 				this->next_frame = this->ramdisk_end_frame; 
 				continue; 
 			}   
