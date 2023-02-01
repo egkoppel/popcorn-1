@@ -11,16 +11,47 @@
 #ifndef _HUGOS_INITRAMFS_H
 #define _HUGOS_INITRAMFS_H
 
-#include <stdint.h>
-#include <stddef.h>
+#include <cstddef>
+#include <cstdint>
+#include <memory/memory_map.hpp>
+#include <memory/physical_allocators/null_allocator.hpp>
+#include <popcorn_prelude.h>
+#include <stdexcept>
+
+using namespace std::literals;
 
 class Initramfs {
 private:
-	uint64_t data_start;
-	uint64_t data_end;
+	static constexpr auto flags = memory::paging::PageTableFlags::NO_EXECUTE;
+
 public:
-	Initramfs(uint64_t data_start, uint64_t data_end) : data_start(data_start), data_end(data_end) {};
-	size_t locate_file(const char *filename, void **data);
+	class File {
+	public:
+		File(std::byte *data, usize file_size) : data_(data), file_size(file_size) {}
+
+
+		usize size() const { return this->file_size; }
+		std::byte *data() { return this->data_; }
+		const std::byte *data() const { return this->data_; }
+
+	private:
+		std::byte *data_;
+		usize file_size;
+	};
+
+	class FileNotFoundException : public std::runtime_error {
+	public:
+		explicit FileNotFoundException(const char *filename) : std::runtime_error("File not found: "s + filename) {}
+	};
+
+	Initramfs(memory::paddr_t data_start, usize size) : data(data_start, size, flags, alloc, memory::paging::kas){};
+	File get_file(const char *filename);
+
+
+private:
+	memory::MemoryMap<std::byte> data;
+
+	static memory::physical_allocators::NullAllocator alloc;
 };
 
 #endif
