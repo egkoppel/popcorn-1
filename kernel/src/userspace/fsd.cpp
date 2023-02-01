@@ -16,7 +16,7 @@
 
 #include <stdlib.h>
 
-Initramfs initramfs(0, 0);
+// Initramfs initramfs(0, 0);
 
 struct fd_t {
 	char *start_addr;
@@ -45,7 +45,7 @@ static inline fsd_command_response_t fsd_mount(fsd_command_t *command_) {
 		auto initramfs_size_ = atoll_p(&s);
 		auto initramfs_size  = *reinterpret_cast<uint64_t *>(&initramfs_size_);
 
-		initramfs = Initramfs(initramfs_addr, initramfs_addr + initramfs_size);
+		// initramfs = Initramfs(initramfs_addr, initramfs_addr + initramfs_size);
 
 		return fsd_command_response_t{.return_code = 0};
 	} else {
@@ -61,7 +61,8 @@ static inline fsd_command_response_t fsd_open(fsd_command_t *command_) {
 
 	command->path[command->path_len] = '\0';
 	void *file_addr;
-	size_t file_size = initramfs.locate_file(command->path + 11, &file_addr); /* +11 to remove mountpoint name */
+	size_t file_size = 0;   // initramfs.locate_file(command->path + 11, &file_addr); /* +11 to remove mountpoint name
+	                        // */
 	if (file_size == 0) return fsd_command_response_t{.return_code = -4};
 
 	uint64_t fd          = next_fd++;
@@ -79,14 +80,14 @@ static inline fsd_command_response_t fsd_read(fsd_command_t *command_) {
 
 	// TODO
 	/*auto file_vm_region_handle =
-			vm_region_new_anon(command->size, VmMapping::PROT_READ | VmMapping::PROT_WRITE, VmMapping::PROT_READ);
+	        vm_region_new_anon(command->size, VmMapping::PROT_READ | VmMapping::PROT_WRITE, VmMapping::PROT_READ);
 	if (!file_vm_region_handle) return fsd_command_response_t{.return_code = -3};
 
 	auto res = vm_map_region(pointer, file_vm_region_handle, VmMapping::PROT_READ | VmMapping::PROT_WRITE);
 	if (res) return fsd_command_response_t{.return_code = -4};
 
 	if (file_descriptors[command->fd].read_addr + command->size > file_descriptors[command->fd].end_addr)
-		command->size = file_descriptors[command->fd].end_addr - file_descriptors[command->fd].read_addr;
+	    command->size = file_descriptors[command->fd].end_addr - file_descriptors[command->fd].read_addr;
 
 	memcpy(pointer, file_descriptors[command->fd].read_addr, command->size);
 	file_descriptors[command->fd].read_addr += command->size;
@@ -95,8 +96,8 @@ static inline fsd_command_response_t fsd_read(fsd_command_t *command_) {
 	vm_map_region(pointer2, file_vm_region_handle, VmMapping::PROT_READ | VmMapping::PROT_WRITE);
 	*pointer2 = '3';*/
 
-	return fsd_command_response_t{.return_code =
-	                                      -1};   //0, .data = {.read = {.mmap_vm_handle = file_vm_region_handle}}};
+	return fsd_command_response_t{.return_code = -1};   // 0, .data = {.read = {.mmap_vm_handle =
+	                                                    // file_vm_region_handle}}};
 }
 
 static inline fsd_command_response_t process_command(fsd_command_t& command) {
