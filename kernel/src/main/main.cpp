@@ -45,6 +45,7 @@
 #include <threading/task.hpp>
 #include <tuple>
 #include <userspace/userspace_driver.hpp>
+#include <userspace/userspace_initramfs.hpp>
 #include <userspace/userspace_ps2_keyboard.hpp>
 
 #define KERNEL_ACCESS_FROM_USERSPACE 0
