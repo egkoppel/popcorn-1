@@ -33,6 +33,12 @@ namespace memory::physical_allocators {
 				continue;
 			}
 
+			if ((this->next_frame >= this->ramdisk_start_frame && this->next_frame < this->ramdisk_end_frame) 
+			    || (this->next_frame >= allocation_end_frame && allocation_end_frame < this->ramdisk_end_frame)) {
+				this->next_frame = this->ramdisk_end_frame; 
+				continue; 
+			}   
+
 			for (auto entry : *this->mem_map) {
 				if (entry.get_start_address() <= this->next_frame && allocation_end_frame < entry.get_end_address()) {
 					if (entry.get_type() == multiboot::tags::MemoryMap::Type::AVAILABLE) {
