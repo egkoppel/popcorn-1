@@ -43,8 +43,8 @@ struct [[gnu::packed]] tar_file_header {
 	char filename_prefix[155];
 };
 
-int oct2bin(char *str, int size) {
-	int n   = 0;
+usize oct2bin(char *str, int size) {
+	usize n = 0;
 	char *c = str;
 	while (size-- > 0) {
 		n *= 8;
@@ -54,18 +54,33 @@ int oct2bin(char *str, int size) {
 	return n;
 }
 
-size_t Initramfs::locate_file(const char *filename, void **data) {
-	auto *ptr = reinterpret_cast<tar_file_header *>(this->data_start);
+Initramfs::File Initramfs::get_file(const char *filename) {
+	auto ptr = reinterpret_cast<tar_file_header *>(this->data.get());
 
-	while ((uint64_t)ptr < this->data_end && memcmp(ptr->ustar, "ustar", 5) == 0) {
-		int filesize = oct2bin(ptr->size, 11);
-		if (strcmp(ptr->filename + 10, filename)
-		    == 0) { /* ptr->filename + 10 gives filename without preceding initramfs/ */
-			*data = static_cast<void *>(ADD_BYTES(ptr, 512));
-			return filesize;
+	while (true) {
+		LOG(Log::DEBUG, "ramfs found file: %s", ptr->filename);
+		LOG(Log::DEBUG,
+		    "ustar check: %c%c%c%c%c (%d)",
+		    ptr->ustar[0],
+		    ptr->ustar[1],
+		    ptr->ustar[2],
+		    ptr->ustar[3],
+		    ptr->ustar[4],
+		    strncmp(ptr->ustar, "ustar", 5));
+		LOG(Log::DEBUG, "Current ptr: %lp - search in %lp -> %lp", ptr, this->data.start(), this->data.end());
+
+		if (!(memory::vaddr_t{.address = reinterpret_cast<usize>(ptr)} < this->data.end()
+		      && strncmp(ptr->ustar, "ustar", 5) == 0))
+			break;
+		usize filesize = oct2bin(ptr->size, 11);
+		if (strcmp(ptr->filename + 10, filename) == 0) { /* ptr->filename + 10 gives filename without preceding
+			                                                initramfs/ */
+			return {reinterpret_cast<std::byte *>(ADD_BYTES(ptr, 512)), filesize};
 		}
 		ptr = ADD_BYTES(ptr, (((filesize + 511) / 512) + 1) * 512);
 	}
 
-	return 0;
+	throw FileNotFoundException(filename);
 }
+
+memory::physical_allocators::NullAllocator Initramfs::alloc;

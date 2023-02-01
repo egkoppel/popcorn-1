@@ -360,6 +360,11 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	auto ktask = threads::Task::initialise(KStack<>{old_p4_table_page, 8 * constants::frame_size});
 	threads::GlobalScheduler::get().make_local_scheduler(std::move(ktask));
 
+	LOG(Log::DEBUG, "ramdisk at %lp - size %zu", boot_module->begin(), boot_module->module_size());
+	Initramfs ramfs{boot_module->begin(), boot_module->module_size()};
+
+	auto test_file = ramfs.get_file("server_test.exec");
+
 	LOG(Log::DEBUG, "Locating AP processors");
 
 	auto acpi_context = acpi::parse_acpi_tables<general_allocator_t>(rsdp_tag->rsdt_addr(), null_allocator);
