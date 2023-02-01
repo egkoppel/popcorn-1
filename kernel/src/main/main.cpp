@@ -45,6 +45,7 @@
 #include <threading/task.hpp>
 #include <tuple>
 #include <userspace/userspace_driver.hpp>
+#include <userspace/userspace_initramfs.hpp>
 #include <userspace/userspace_ps2_keyboard.hpp>
 
 #define KERNEL_ACCESS_FROM_USERSPACE 0
@@ -129,10 +130,9 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 
 	auto fb = mb.find_tag<multiboot::tags::Framebuffer>(multiboot::TagType::FRAMEBUFFER).value();
 
-	auto sections = mb.find_tag<multiboot::tags::ElfSections>(multiboot::TagType::ELF_SECTIONS).value();
-	/*TODO
-	 * auto boot_module = mb.find_tag<multiboot::tags::BootModule>(multiboot::TagType::BOOT_MODULE).value();
-	 * if (strcmp(boot_module->name(), "initramfs") != 0) panic("No initramfs found");*/
+	auto sections    = mb.find_tag<multiboot::tags::ElfSections>(multiboot::TagType::ELF_SECTIONS).value();
+	auto boot_module = mb.find_tag<multiboot::tags::BootModule>(multiboot::TagType::BOOT_MODULE).value();
+	if (strcmp(boot_module->name(), "initramfs") != 0) panic("No initramfs found");
 
 	arch::arch_specific_early_init();
 	arch::set_interrupt_perms(0x3, true, 0);
@@ -208,6 +208,8 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	                                                                                        kernel_max,
 	                                                                                        mb.begin().devirtualise(),
 	                                                                                        mb.end().devirtualise(),
+	                                                                                        boot_module->begin(),
+	                                                                                        boot_module->end(),
 	                                                                                        mmap);
 	allocators.general_frame_allocator_   = &kernel_monotonic_frame_allocator;
 
@@ -363,6 +365,11 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	threads::GlobalScheduler::get().make_local_scheduler(std::move(ktask));
 
 	hal::enable_interrupts();
+
+	LOG(Log::DEBUG, "ramdisk at %lp - size %zu", boot_module->begin(), boot_module->module_size());
+	Initramfs ramfs{boot_module->begin(), boot_module->module_size()};
+
+	auto test_file = ramfs.get_file("server_test.exec");
 
 	LOG(Log::DEBUG, "Locating AP processors");
 

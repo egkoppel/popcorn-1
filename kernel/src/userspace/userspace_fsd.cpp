@@ -16,7 +16,7 @@
 
 #include <stdlib.h>
 
-Initramfs initramfs(0, 0);
+// Initramfs initramfs(0, 0);
 
 struct fd_t {
 	char *start_addr;
@@ -45,7 +45,7 @@ static inline fsd_command_response_t fsd_mount(fsd_command_t *command_) {
 		auto initramfs_size_ = atoll_p(&s);
 		auto initramfs_size  = *reinterpret_cast<uint64_t *>(&initramfs_size_);
 
-		initramfs = Initramfs(initramfs_addr, initramfs_addr + initramfs_size);
+		// initramfs = Initramfs(initramfs_addr, initramfs_addr + initramfs_size);
 
 		return fsd_command_response_t{.return_code = 0};
 	} else {
@@ -61,7 +61,8 @@ static inline fsd_command_response_t fsd_open(fsd_command_t *command_) {
 
 	command->path[command->path_len] = '\0';
 	void *file_addr;
-	size_t file_size = initramfs.locate_file(command->path + 11, &file_addr); /* +11 to remove mountpoint name */
+	size_t file_size = 0;   // initramfs.locate_file(command->path + 11, &file_addr); /* +11 to remove mountpoint name
+	                        // */
 	if (file_size == 0) return fsd_command_response_t{.return_code = -4};
 
 	uint64_t fd          = next_fd++;

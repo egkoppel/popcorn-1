@@ -119,6 +119,10 @@ namespace memory::physical_allocators {
 		     i++) {
 			allocator.mark_frame(i.frame(), allocated);
 		}
+		for (auto i = monotonic_allocator.get_ramdisk_start_frame(); i < monotonic_allocator.get_ramdisk_end_frame();
+		     i++) {
+			allocator.mark_frame(i.frame(), allocated);
+		}
 
 		return allocator;
 	}
