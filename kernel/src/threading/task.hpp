@@ -53,7 +53,7 @@ namespace threads {
 		atomic_uint_fast64_t pending_wake_count = 0;
 
 		explicit Task(const char *name, memory::KStack<>&& stack);
-		Task(const char *name, usize argument, usize stack_offset);
+		Task(const char *name, const usize (&args)[6], usize stack_offset);
 
 	public:
 		Task()            = delete;
@@ -65,8 +65,26 @@ namespace threads {
 		                memory::vaddr_t{.address = memory::constants::userspace_end}) {}
 		Task(Task&&) = default;
 		~Task()      = default;
-		Task(const char *name, void (*entrypoint)(usize), usize argument, kernel_task_t);
-		Task(const char *name, void (*entrypoint)(usize), usize argument, user_task_t);
+		template<class... Args> requires(sizeof...(Args) <= 6)
+		[[clang::no_sanitize("pointer-overflow")]] Task(const char *name,
+		                                                void (*entrypoint)(Args...) noexcept,
+		                                                kernel_task_t,
+		                                                Args&&...args)
+			: Task(name, {std::bit_cast<usize>(args)...}, 0) {
+			auto stack_top = static_cast<u64 *>((*this->stack.top()).address);
+			stack_top[-1]  = reinterpret_cast<u64>(entrypoint);
+		}
+
+		template<class... Args> requires(sizeof...(Args) <= 6)
+		[[clang::no_sanitize("pointer-overflow")]] Task(const char *name,
+		                                                void (*entrypoint)(Args...) noexcept,
+		                                                user_task_t,
+		                                                Args&&...args)
+			: Task(name, {std::bit_cast<usize>(args)...}, 1) {
+			auto stack_top = static_cast<u64 *>((*this->stack.top()).address);
+			stack_top[-1]  = reinterpret_cast<u64>(entrypoint);
+			stack_top[-2]  = reinterpret_cast<u64>(arch::switch_to_user_mode);
+		}
 
 		static std::unique_ptr<Task> initialise(memory::KStack<>&& current_stack);
 
