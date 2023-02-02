@@ -50,6 +50,10 @@ namespace Elf64 {
 		SHF_MASKOS           = 0x0ff00000,
 		SHF_MASKPROC         = 0xf0000000
 	};
+
+	constexpr u64 operator+(Elf64::section_flags lhs) {
+        	return static_cast<uint64_t>(lhs);
+	}
 }
 
 #endif   // POPCORN_KERNEL_SRC_ELF_ELF64_HPP
