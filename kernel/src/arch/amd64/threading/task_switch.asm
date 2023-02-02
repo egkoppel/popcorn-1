@@ -22,12 +22,12 @@ extern task_startup_scheduler_unlock
     global task_startup
 task_startup:
     call task_startup_scheduler_unlock
-	mov rdi, rbx
-	mov rsi, rbp
-	mov rdx, r12
-	mov rcx, r13
-	mov r8, r14
-	mov r9, r15
+	mov rdi, r15
+	mov rsi, r14
+	mov rdx, r13
+	mov rcx, r12
+	mov r8, rbp
+	mov r9, rbx
 	xor rbp, rbp
 	ret
 
