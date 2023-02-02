@@ -401,8 +401,8 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 
 		auto kb_task = std::make_unique<threads::Task>("ps2kbd",
 		                                               driver::_start,
-		                                               reinterpret_cast<usize>(driver::ps2_keyboard::main),
-		                                               threads::user_task);
+		                                               threads::user_task,
+		                                               &driver::ps2_keyboard::main);
 		threads::GlobalScheduler::get().add_task(std::move(kb_task));
 	} else {
 		LOG(Log::WARNING, "No MADT found");

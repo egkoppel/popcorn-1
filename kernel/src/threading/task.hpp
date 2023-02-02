@@ -12,6 +12,7 @@
 #ifndef HUGOS_KERNEL_SRC_THREADING_TASK_HPP
 #define HUGOS_KERNEL_SRC_THREADING_TASK_HPP
 
+#include <arch/threading.hpp>
 #include <functional>
 #include <memory/memory_map.hpp>
 #include <memory/paging.hpp>

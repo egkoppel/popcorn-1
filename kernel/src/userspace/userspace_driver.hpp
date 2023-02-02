@@ -15,7 +15,7 @@
 #include <popcorn_prelude.h>
 
 namespace driver {
-	[[gnu::naked]] void _start(usize main_entry);
+	[[gnu::naked]] void _start(int(*main_entry)()) noexcept;
 }
 
 #endif   // POPCORN_KERNEL_SRC_USERSPACE_DRIVER_HPP
