@@ -74,7 +74,7 @@ namespace threads {
 		                                flags,
 		                                allocators.general(),
 		                                this->address_space_,
-		                                allocator_wrapper{this}};
+		                                allocator_wrapper{this, hint}};
 		this->mmaps.push_back(std::move(map));
 		LOG(Log::DEBUG, "mmap backing at %lp", this->mmaps.back().pstart());
 		if (downwards) return this->mmaps.back().end();
