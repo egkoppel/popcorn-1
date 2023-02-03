@@ -69,12 +69,14 @@ namespace threads {
 
 	memory::vaddr_t Task::new_mmap(memory::vaddr_t hint, usize size, bool downwards) {
 		using enum paging::PageTableFlags;
-		auto flags = WRITEABLE | USER | NO_EXECUTE;
-		decltype(mmaps)::value_type map{size,
-		                                flags,
-		                                allocators.general(),
-		                                this->address_space_,
-		                                allocator_wrapper{this}};
+		auto flags = WRITEABLE | USER;   // | NO_EXECUTE;
+		decltype(mmaps)::value_type map{
+				size,
+				flags,
+				allocators.general(),
+				this->address_space_,
+				allocator_wrapper{this, hint}
+        	};
 		this->mmaps.push_back(std::move(map));
 		LOG(Log::DEBUG, "mmap backing at %lp", this->mmaps.back().pstart());
 		if (downwards) return this->mmaps.back().end();
@@ -101,6 +103,14 @@ namespace threads {
 		return (*task->kernel_stack().top()).address.address;
 	}
 	memory::aligned<memory::vaddr_t> Task::allocator_wrapper::allocate(std::size_t size) {
+		if (this->hint.address != 0) {
+			try {
+				return this->task->allocator.allocate(this->hint, size);
+			} catch (const std::bad_alloc&) {
+				if (this->fail_on_hint_fail) throw;
+			}
+			// Fall through to generic allocation if couldn't allocate with hint
+		}
 		return this->task->allocator.allocate(size);
 	}
 	void Task::allocator_wrapper::deallocate(memory::aligned<memory::vaddr_t> start, std::size_t size) {
