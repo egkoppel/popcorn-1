@@ -50,6 +50,22 @@ namespace Elf64 {
 		SHF_MASKOS           = 0x0ff00000,
 		SHF_MASKPROC         = 0xf0000000
 	};
-}
+
+	enum class segment_type : u32 {
+		PT_NULL    = 0,
+		PT_LOAD    = 1,
+		PT_DYNAMIC = 2,
+		PT_INTERP  = 3,
+		PT_NOTE    = 4,
+		PT_SHLIB   = 5,
+		PT_PHDR    = 6,
+		PT_LOOS    = 0x6000'0000,
+		PT_HIOS    = 0x6fff'ffff,
+		PT_LOPROC  = 0x7000'0000,
+		PT_HIPROC  = 0x7fff'ffff,
+	};
+
+	enum class segment_flags : u32 { PF_X = 1 << 0, PF_W = 1 << 1, PF_R = 1 << 2 };
+}   // namespace Elf64
 
 #endif   // POPCORN_KERNEL_SRC_ELF_ELF64_HPP
