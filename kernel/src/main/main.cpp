@@ -367,6 +367,10 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 
 	auto test_file = ramfs.get_file("server_test.exec");
 
+	threads::GlobalScheduler::get()
+			.add_task(std::make_unique<threads::Task>("server_test.exec", Elf64::exec, threads::kernel_task, test_file.data()));
+
+
 	LOG(Log::DEBUG, "Locating AP processors");
 
 	auto acpi_context = acpi::parse_acpi_tables<general_allocator_t>(rsdp_tag->rsdt_addr(), null_allocator);
