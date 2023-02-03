@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.14)
 
+set(BUILD_ROOT ${CMAKE_BINARY_DIR} CACHE STRING "")
 set(LLVM_SOURCES_SOURCES_DIR llvm-sources-sources)
-set(LLVM_SOURCES_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/toolchain-build/llvm-sources-binary)
+set(USERSPACE_SYSROOT ${BUILD_ROOT}/popcornroot/System)
+set(LLVM_SOURCES_BINARY_DIR ${BUILD_ROOT}/toolchain-build/llvm-sources-binary)
 set(CLANG_INSTALL ${LLVM_SOURCES_BINARY_DIR}/stage1_install)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
@@ -17,8 +19,6 @@ if (EXISTS "${PROJECT_BINARY_DIR}/CMakeLists.txt")
 endif ()
 
 if (${DO_GET_TOOLCHAIN})
-    set(LLVM_SOURCES_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/llvm-sources-binary)
-    set(CLANG_INSTALL ${LLVM_SOURCES_BINARY_DIR}/stage1_install)
     include(GetToolchain)
     return()
 endif ()
@@ -48,6 +48,7 @@ execute_process(
         -DLLVM_VERSION=${TOOLCHAIN_LLVM_VERSION}
         -DSYSROOT=${CMAKE_CURRENT_BINARY_DIR}/sysroot
         -DTOOLCHAIN_BUILD_PARALLEL=${TOOLCHAIN_BUILD_PARALLEL}
+        -DBUILD_ROOT=${BUILD_ROOT}
         -G${CMAKE_GENERATOR}
         ${CMAKE_CURRENT_SOURCE_DIR}
         RESULT_VARIABLE ret
@@ -116,7 +117,7 @@ set(UBSAN_FLAG
 
 # =========== Install dependencies ===========
 ExternalProject_Add(
-        libc-source
+        libc
         GIT_REPOSITORY https://github.com/egkoppel/mlibc.git
         GIT_TAG popcorn-latest
         GIT_SHALLOW TRUE
@@ -128,13 +129,9 @@ ExternalProject_Add(
         BUILD_COMMAND ${PATH_WRAP} ${CMAKE_SYSROOT}/bin ninja -C popcorn-build
         INSTALL_COMMAND ${PATH_WRAP} ${CMAKE_SYSROOT}/bin ninja -C popcorn-build install
 )
-ExternalProject_Get_property(libc-source INSTALL_DIR SOURCE_DIR)
+ExternalProject_Get_property(libc INSTALL_DIR SOURCE_DIR)
 list(APPEND ADDITIONAL_CLEAN_FILES ${SOURCE_DIR}/popcorn-build)
 list(APPEND ADDITIONAL_CLEAN_FILES ${INSTALL_DIR})
-add_library(libc INTERFACE)
-target_link_libraries(libc INTERFACE "${INSTALL_DIR}/lib/libc.a")
-target_include_directories(libc INTERFACE "${INSTALL_DIR}/include")
-add_dependencies(libc libc-source)
 
 FetchContent_Declare(
         libcxxrt
@@ -159,6 +156,11 @@ add_subdirectory(libk)
 add_subdirectory(libk++)
 add_subdirectory(kernel)
 add_subdirectory(codesign)
+
+set(SYSROOT_BACKUP ${CMAKE_SYSROOT})
+set(CMAKE_SYSROOT ${USERSPACE_SYSROOT})
+add_subdirectory(userspace)
+set(CMAKE_SYSROOT ${SYSROOT_BACKUP})
 
 include(RamdiskGenerate)
 include(IsoGenerate)
