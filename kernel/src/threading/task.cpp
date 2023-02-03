@@ -70,7 +70,7 @@ namespace threads {
 	memory::aligned<memory::vaddr_t> Task::allocator_wrapper::allocate(std::size_t size) {
 		return this->task->allocator.allocate(size);
 	}
-	void Task::allocator_wrapper::deallocate(memory::aligned<memory::vaddr_t> start, std::size_t size) {
+	void Task::allocator_wrapper::deallocate(memory::aligned<memory::vaddr_t> start, std::size_t size) const {
 		this->task->allocator.deallocate(start, size);
 	}
 }   // namespace threads
