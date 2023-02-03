@@ -56,4 +56,58 @@ namespace Elf64 {
 		u64 size_in_memory;
 		u64 alignment;
 	};
+
+	[[noreturn]] void dyld_terminate(const char *message) {
+		LOG(Log::CRITICAL, "Unable to load executable: %s", message);
+		while (true) threads::local_scheduler->block_task(threads::Task::State::KILLED);
+	}
+
+	/*[[noreturn]] void dyld_terminate(const std::string& message) {
+	    dyld_terminate(message.c_str());
+	}*/
+
+	void exec(std::byte *file) noexcept {
+		auto header          = reinterpret_cast<file_header *>(file);
+		auto program_headers = reinterpret_cast<program_header *>(file + header->program_header_offset);
+		for (usize i = 0; i < header->program_header_entry_count; ++i) {
+			const auto& segment = program_headers[i];
+			LOG(Log::INFO,
+			    "Found header of type %s",
+			    segment.type == segment_type::PT_NULL    ? "NULL" :
+			    segment.type == segment_type::PT_LOAD    ? "LOAD" :
+			    segment.type == segment_type::PT_INTERP  ? "INTERP" :
+			    segment.type == segment_type::PT_DYNAMIC ? "DYNAMIC" :
+			                                               "(unsupported)");
+
+			switch (segment.type) {
+				case segment_type::PT_INTERP: {
+					auto interpreter = reinterpret_cast<const char *>(file + segment.file_offset);
+					if (std::strcmp(interpreter, "dyld.exec") != 0) {
+						dyld_terminate(("Unknown interpreter"s + interpreter).c_str());
+					}
+					break;
+				}
+				case segment_type::PT_LOAD: {
+					auto aligned_start = memory::aligned<memory::vaddr_t>::aligned_down(segment.load_addr);
+					for (auto offset = 0uz; offset < segment.size_in_memory; offset += 0x1000) {
+						try {
+							auto _ = threads::local_scheduler->get_current_task()
+							                             ->new_mmap(aligned_start.address + offset, 0x1000, false, true);
+						} catch (std::bad_alloc&) { dyld_terminate("Couldn't load segment at required address"); }
+					}
+					std::memcpy(static_cast<void *>(segment.load_addr),
+					            file + segment.file_offset,
+					            segment.size_on_disk);
+					std::memset(static_cast<void *>(segment.load_addr + segment.size_on_disk),
+					            0,
+					            segment.size_in_memory - segment.size_on_disk);
+					break;
+				}
+				default: break;
+			}
+		}
+		auto entrypoint = static_cast<void (*)()>(header->entrypoint);
+		entrypoint();
+		while (true) threads::local_scheduler->yield();
+	}
 }   // namespace Elf64

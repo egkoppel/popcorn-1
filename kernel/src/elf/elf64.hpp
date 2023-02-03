@@ -70,6 +70,8 @@ namespace Elf64 {
 	};
 
 	enum class segment_flags : u32 { PF_X = 1 << 0, PF_W = 1 << 1, PF_R = 1 << 2 };
+
+	void exec(std::byte *file) noexcept;
 }   // namespace Elf64
 
 #endif   // POPCORN_KERNEL_SRC_ELF_ELF64_HPP
