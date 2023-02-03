@@ -33,8 +33,8 @@ namespace threads {
 	private:
 		struct allocator_wrapper {
 			allocator_wrapper(Task *task, memory::vaddr_t allocation_hint) : task(task), hint(allocation_hint) {}
-			memory::aligned<memory::vaddr_t> allocate(std::size_t) const;
-			void deallocate(memory::aligned<memory::vaddr_t>, std::size_t) const;
+			memory::aligned<memory::vaddr_t> allocate(std::size_t);
+			void deallocate(memory::aligned<memory::vaddr_t>, std::size_t);
 			Task *task;
 			memory::vaddr_t hint;
 		};
