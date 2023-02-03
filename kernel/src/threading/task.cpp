@@ -25,7 +25,7 @@ namespace threads {
 		  address_space_(),
 		  stack_ptr_(0_va),
 		  name_(name),
-		  allocator(vaddr_t{.address = constants::userspace_end / 2}, vaddr_t{.address = constants::userspace_end}) {}
+		  allocator(vaddr_t{.address = 0x10'000}, vaddr_t{.address = constants::userspace_end}) {}
 
 	std::unique_ptr<Task> Task::initialise(memory::KStack<>&& current_stack) {
 		auto ktask = new Task{"kmain", std::move(current_stack)};
@@ -37,7 +37,7 @@ namespace threads {
 		  address_space_(),
 		  stack_ptr_(vaddr_t(*this->stack.top()) - (stack_offset + 8) * 8),
 		  name_(name),
-		  allocator(vaddr_t{.address = constants::userspace_end / 2}, vaddr_t{.address = constants::userspace_end}) {
+		  allocator(vaddr_t{.address = 0x10'000}, vaddr_t{.address = constants::userspace_end}) {
 		auto stack_top               = static_cast<u64 *>((*this->stack.top()).address);
 		stack_top[-2 - stack_offset] = reinterpret_cast<u64>(arch::task_startup);
 		std::memcpy(&stack_top[-8 - stack_offset], &args[0], sizeof(usize) * 6);
