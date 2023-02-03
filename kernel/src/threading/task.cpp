@@ -67,7 +67,13 @@ namespace threads {
 	usize get_kstack_top(const Task *task) {
 		return (*task->kernel_stack().top()).address.address;
 	}
-	memory::aligned<memory::vaddr_t> Task::allocator_wrapper::allocate(std::size_t size) {
+	memory::aligned<memory::vaddr_t> Task::allocator_wrapper::allocate(std::size_t size) const {
+		if (this->hint.address != 0) {
+			try {
+				return this->task->allocator.allocate(this->hint, size);
+			} catch (const std::bad_alloc&) {}
+			// Fall through to generic allocation if couldn't allocate with hint
+		}
 		return this->task->allocator.allocate(size);
 	}
 	void Task::allocator_wrapper::deallocate(memory::aligned<memory::vaddr_t> start, std::size_t size) const {
