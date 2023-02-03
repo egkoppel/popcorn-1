@@ -32,11 +32,12 @@ namespace threads {
 
 	private:
 		struct allocator_wrapper {
-			allocator_wrapper(Task *task, memory::vaddr_t allocation_hint) : task(task), hint(allocation_hint) {}
+			allocator_wrapper(Task *task, memory::vaddr_t allocation_hint, bool fail_on_hint_fail = false) : task(task), hint(allocation_hint), fail_on_hint_fail(fail_on_hint_fail) {}
 			memory::aligned<memory::vaddr_t> allocate(std::size_t);
 			void deallocate(memory::aligned<memory::vaddr_t>, std::size_t);
 			Task *task;
 			memory::vaddr_t hint;
+			bool fail_on_hint_fail;
 		};
 
 		static atomic_uint_fast64_t next_pid;
