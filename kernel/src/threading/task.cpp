@@ -43,7 +43,7 @@ namespace threads {
 		std::memcpy(&stack_top[-8 - stack_offset], &args[0], sizeof(usize) * 6);
 	}
 
-	memory::vaddr_t Task::new_mmap(memory::vaddr_t hint, usize size, bool downwards) {
+	memory::vaddr_t Task::new_mmap(memory::vaddr_t hint, usize size, bool downwards, bool fail_on_hint_fail) {
 		using enum paging::PageTableFlags;
 		auto flags = WRITEABLE | USER;   // | NO_EXECUTE;
 		decltype(mmaps)::value_type map{
@@ -51,7 +51,7 @@ namespace threads {
 				flags,
 				allocators.general(),
 				this->address_space_,
-				allocator_wrapper{this, hint}
+				allocator_wrapper{this, hint, fail_on_hint_fail}
         	};
 		this->mmaps.push_back(std::move(map));
 		LOG(Log::DEBUG, "mmap backing at %lp", this->mmaps.back().pstart());

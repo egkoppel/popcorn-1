@@ -96,7 +96,7 @@ namespace threads {
 		memory::vaddr_t& stack_ptr() { return this->stack_ptr_; }
 		const memory::vaddr_t& stack_ptr() const { return this->stack_ptr_; }
 		const memory::KStack<>& kernel_stack() const { return this->stack; }
-		memory::vaddr_t new_mmap(memory::vaddr_t hint, usize size, bool downwards);
+		memory::vaddr_t new_mmap(memory::vaddr_t hint, usize size, bool downwards, bool fail_on_hint_fail = false);
 		const char *name() { return this->name_; }
 		void send_signal();
 		u64 pending_signals() { return this->pending_wake_count; }
