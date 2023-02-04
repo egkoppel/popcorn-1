@@ -11,11 +11,11 @@
 #include "paging.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <log.hpp>
 #include <optional>
-#include <stddef.h>
-#include <stdint.h>
 #include <type_traits>
 #include <utility/zip.hpp>
 #include <utils.h>
@@ -110,7 +110,7 @@ namespace memory::paging {
 				});
 	}
 
-	alignas(alignof(KernelAddressSpace)) u8 kas_[sizeof(KernelAddressSpace)];
+	alignas(alignof(KernelAddressSpace)) std::byte kas_[sizeof(KernelAddressSpace)];
 	KernelAddressSpace& kas = reinterpret_cast<KernelAddressSpace&>(kas_);
 
 	AddressSpace::AddressSpace(IPhysicalAllocator& allocator)
