@@ -360,16 +360,8 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	auto ktask = threads::Task::initialise(KStack<>{old_p4_table_page, 8 * constants::frame_size});
 	threads::GlobalScheduler::get().make_local_scheduler(std::move(ktask));
 
-	hal::enable_interrupts();
-
 	LOG(Log::DEBUG, "ramdisk at %lp - size %zu", boot_module->begin(), boot_module->module_size());
 	Initramfs ramfs{boot_module->begin(), boot_module->module_size()};
-
-	auto test_file = ramfs.get_file("server_test.exec");
-
-	threads::GlobalScheduler::get()
-			.add_task(std::make_unique<threads::Task>("server_test.exec", Elf64::exec, threads::kernel_task, test_file.data()));
-
 
 	LOG(Log::DEBUG, "Locating AP processors");
 
@@ -391,6 +383,14 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 				cpu.boot();
 			}
 		}
+
+		hal::enable_interrupts();
+
+		auto test_file = ramfs.get_file("server_test.exec");
+
+		threads::GlobalScheduler::get()
+				.add_task(std::make_unique<threads::Task>("server_test.exec", Elf64::exec, threads::kernel_task, test_file.data()));
+
 		
 		auto keyboard_int               = ioapics.redirection_entry(ioapics.pic_irq_to_gsi(1));
 		keyboard_int.vector()           = 0x96;
