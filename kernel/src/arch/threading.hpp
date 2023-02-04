@@ -12,7 +12,7 @@
 #ifndef HUGOS_THREADING_HPP
 #define HUGOS_THREADING_HPP
 
-#include <threading/task.hpp>
+namespace threads { class Task; }
 
 namespace arch {
 	extern "C" void task_startup();
