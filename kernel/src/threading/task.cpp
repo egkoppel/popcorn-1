@@ -25,49 +25,25 @@ namespace threads {
 		  address_space_(),
 		  stack_ptr_(0_va),
 		  name_(name),
-		  allocator(vaddr_t{.address = constants::userspace_end / 2}, vaddr_t{.address = constants::userspace_end}) {}
+		  allocator(vaddr_t{.address = 0x10'000}, vaddr_t{.address = constants::userspace_end}) {}
 
 	std::unique_ptr<Task> Task::initialise(memory::KStack<>&& current_stack) {
 		auto ktask = new Task{"kmain", std::move(current_stack)};
 		return std::unique_ptr<Task>(ktask);
 	}
 
-	[[clang::no_sanitize("pointer-overflow")]] Task::Task(const char *name, usize argument, usize stack_offset)
+	[[clang::no_sanitize("pointer-overflow")]] Task::Task(const char *name, const usize (&args)[6], usize stack_offset)
 		: stack(memory::constants::frame_size * 2),
 		  address_space_(),
 		  stack_ptr_(vaddr_t(*this->stack.top()) - (stack_offset + 8) * 8),
 		  name_(name),
-		  allocator(vaddr_t{.address = constants::userspace_end / 2}, vaddr_t{.address = constants::userspace_end}) {
+		  allocator(vaddr_t{.address = 0x10'000}, vaddr_t{.address = constants::userspace_end}) {
 		auto stack_top               = static_cast<u64 *>((*this->stack.top()).address);
 		stack_top[-2 - stack_offset] = reinterpret_cast<u64>(arch::task_startup);
-		stack_top[-3 - stack_offset] = argument;
-		stack_top[-4 - stack_offset] = 0;
-		stack_top[-5 - stack_offset] = 0;
-		stack_top[-6 - stack_offset] = 0;
-		stack_top[-7 - stack_offset] = 0;
-		stack_top[-8 - stack_offset] = 0;
+		std::memcpy(&stack_top[-8 - stack_offset], &args[0], sizeof(usize) * 6);
 	}
 
-	[[clang::no_sanitize("pointer-overflow")]] Task::Task(const char *name,
-	                                                      void (*entrypoint)(usize),
-	                                                      usize argument,
-	                                                      kernel_task_t)
-		: Task(name, argument, 0) {
-		auto stack_top = static_cast<u64 *>((*this->stack.top()).address);
-		stack_top[-1]  = reinterpret_cast<u64>(entrypoint);
-	}
-
-	[[clang::no_sanitize("pointer-overflow")]] Task::Task(const char *name,
-	                                                      void (*entrypoint)(usize),
-	                                                      usize argument,
-	                                                      user_task_t)
-		: Task(name, argument, 1) {
-		auto stack_top = static_cast<u64 *>((*this->stack.top()).address);
-		stack_top[-1]  = reinterpret_cast<u64>(entrypoint);
-		stack_top[-2]  = reinterpret_cast<u64>(arch::switch_to_user_mode);
-	}
-
-	memory::vaddr_t Task::new_mmap(memory::vaddr_t hint, usize size, bool downwards) {
+	memory::vaddr_t Task::new_mmap(memory::vaddr_t hint, usize size, bool downwards, bool fail_on_hint_fail) {
 		using enum paging::PageTableFlags;
 		auto flags = WRITEABLE | USER;   // | NO_EXECUTE;
 		decltype(mmaps)::value_type map{
@@ -75,8 +51,8 @@ namespace threads {
 				flags,
 				allocators.general(),
 				this->address_space_,
-				allocator_wrapper{this, hint}
-        	};
+				allocator_wrapper{this, hint, fail_on_hint_fail}
+        };
 		this->mmaps.push_back(std::move(map));
 		LOG(Log::DEBUG, "mmap backing at %lp", this->mmaps.back().pstart());
 		if (downwards) return this->mmaps.back().end();

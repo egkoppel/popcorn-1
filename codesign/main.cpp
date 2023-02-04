@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2023 Eliyahu Gluschove-Koppel.
  *
@@ -9,13 +8,9 @@
  * limitations under the License.
  */
 
-#ifndef POPCORN_KERNEL_SRC_USERSPACE_DRIVER_HPP
-#define POPCORN_KERNEL_SRC_USERSPACE_DRIVER_HPP
+#include <cstdio>
 
-#include <popcorn_prelude.h>
-
-namespace driver {
-	[[gnu::naked]] void _start(int(*main_entry)()) noexcept;
+int main() {
+	std::printf("Hello world from codesign!\n");
+	return 0;
 }
-
-#endif   // POPCORN_KERNEL_SRC_USERSPACE_DRIVER_HPP

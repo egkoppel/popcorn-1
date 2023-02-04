@@ -153,7 +153,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	usize tls_size  = 0;
 	for (auto& i : *sections) {
 		if ((i.type() != decltype(i.type())::SHT_NULL) && (i.type() != decltype(i.type())::SHT_NOTE)
-		    && (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_ALLOC) != 0) {
+		    && (i.flags() & +Elf64::section_flags::SHF_ALLOC) != 0) {
 			/* TODO
 			stdserial << i;
 			stdout << i;
@@ -170,9 +170,7 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 			if (i.start() - offset < kernel_min) kernel_min = i.start() - offset;
 			if (i.end() - offset > kernel_max) kernel_max = i.end() - offset;
 
-			if (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_TLS) {
-				tls_size = i.end().address - i.start().address;
-			}
+			if (i.flags() & +Elf64::section_flags::SHF_TLS) { tls_size = i.end().address - i.start().address; }
 		}
 	}
 	LOG(Log::DEBUG, "Kernel executable: %lp -> %lp", kernel_min, kernel_max);
@@ -218,9 +216,8 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 
 	// Map the kernel with section flags
 	for (auto& i : *sections) {
-		if ((i.type() != multiboot::tags::ElfSections::Entry::Type::SHT_NULL)
-		    && (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_ALLOC) != 0
-		    && (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_TLS) == 0) {
+		if ((i.type() != Elf64::section_type::SHT_NULL) && (i.flags() & +Elf64::section_flags::SHF_ALLOC) != 0
+		    && (i.flags() & +Elf64::section_flags::SHF_TLS) == 0) {
 			auto name         = i.name(*sections);
 			auto is_userspace = strncmp(name, ".userspace", 10) == 0;
 
@@ -233,11 +230,10 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 			     phys_frame++) {
 				using enum memory::paging::PageTableFlags;
 				auto flags = static_cast<paging::PageTableFlags>(0);
-				if (i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_WRITE) flags = flags | WRITEABLE;
+				if (i.flags() & +Elf64::section_flags::SHF_WRITE) flags = flags | WRITEABLE;
 				if (is_userspace || KERNEL_ACCESS_FROM_USERSPACE) flags = flags | USER;
 				flags = flags | GLOBAL;
-				if (!(i.flags() & +multiboot::tags::ElfSections::Entry::Flags::SHF_EXECINSTR))
-					flags = flags | NO_EXECUTE;
+				if (!(i.flags() & +Elf64::section_flags::SHF_EXECINSTR)) flags = flags | NO_EXECUTE;
 
 				LOG(Log::TRACE,
 				    "Kexe - Mapping %p -> %p",
@@ -364,12 +360,8 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 	auto ktask = threads::Task::initialise(KStack<>{old_p4_table_page, 8 * constants::frame_size});
 	threads::GlobalScheduler::get().make_local_scheduler(std::move(ktask));
 
-	hal::enable_interrupts();
-
 	LOG(Log::DEBUG, "ramdisk at %lp - size %zu", boot_module->begin(), boot_module->module_size());
 	Initramfs ramfs{boot_module->begin(), boot_module->module_size()};
-
-	auto test_file = ramfs.get_file("server_test.exec");
 
 	LOG(Log::DEBUG, "Locating AP processors");
 
@@ -391,6 +383,14 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 				cpu.boot();
 			}
 		}
+
+		hal::enable_interrupts();
+
+		auto test_file = ramfs.get_file("server_test.exec");
+
+		threads::GlobalScheduler::get()
+				.add_task(std::make_unique<threads::Task>("server_test.exec", Elf64::exec, threads::kernel_task, test_file.data()));
+
 		
 		auto keyboard_int               = ioapics.redirection_entry(ioapics.pic_irq_to_gsi(1));
 		keyboard_int.vector()           = 0x96;
@@ -401,8 +401,8 @@ extern "C" void kmain(u32 multiboot_magic, paddr32_t multiboot_addr) {
 
 		auto kb_task = std::make_unique<threads::Task>("ps2kbd",
 		                                               driver::_start,
-		                                               reinterpret_cast<usize>(driver::ps2_keyboard::main),
-		                                               threads::user_task);
+		                                               threads::user_task,
+		                                               &driver::ps2_keyboard::main);
 		threads::GlobalScheduler::get().add_task(std::move(kb_task));
 	} else {
 		LOG(Log::WARNING, "No MADT found");
