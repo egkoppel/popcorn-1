@@ -16,6 +16,7 @@
 #include "virtual_allocator.hpp"
 #include "virtual_region.hpp"
 
+#include <cstddef>
 #include <optional>
 #include <utils.h>
 
@@ -65,7 +66,7 @@ namespace memory {
 	 * A MemoryMap represents a RAII-based map between virtual and physical memory space, and should usually be treated
 	 * similarly to a pointer by specifying the type of \p T.
 	 */
-	template<class T = void, class VAllocator = general_allocator_t>
+	template<class T = std::byte, class VAllocator = general_allocator_t>
 	class MemoryMap : public detail::MemoryMapBase<VAllocator> {
 	public:
 		using detail::MemoryMapBase<VAllocator>::size;
