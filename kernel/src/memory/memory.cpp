@@ -20,7 +20,9 @@ using namespace memory;
 
 static bool initialised = false;
 
-void memory::init_sbrk() { initialised = true; }
+void memory::init_sbrk() {
+	initialised = true;
+}
 
 extern "C" void *sbrk(intptr_t increment) noexcept try {
 	static aligned<vaddr_t> current_break = vaddr_t{.address = constants::kernel_heap_start};
@@ -28,6 +30,8 @@ extern "C" void *sbrk(intptr_t increment) noexcept try {
 
 	vaddr_t ret                = current_break;
 	intptr_t rounded_increment = IDIV_ROUND_UP(increment, constants::frame_size);
+	assert_msg((increment & (0x1000 - 1)) == 0, "welp - it's not aligned");
+	rounded_increment          = increment / 4096;
 	aligned<vaddr_t> new_break = current_break + rounded_increment;
 	LOG(Log::DEBUG, "sbrk old: %p, new: %p", ret, new_break);
 
